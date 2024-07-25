@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Threading.Tasks;
+using Dryv.AspNetCore.Razor;
 using Dryv.Extensions;
 using Microsoft.AspNetCore.Html;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -9,14 +10,18 @@ namespace Dryv.AspNetCore
 {
     public static class HtmlExtensions
     {
-        public static Task<IHtmlContent> DryvValidation<TModel>(this IHtmlHelper<TModel> htmlHelper, string validationSetName, IReadOnlyDictionary<string, object> parameters = null)
+        public static async Task<IHtmlContent> DryvValidation<TModel>(this IHtmlHelper<TModel> htmlHelper, string validationSetName, IReadOnlyDictionary<string, object> parameters = null)
         {
-            return htmlHelper.GetDryvClientWriter().WriteDryvValidation<TModel>(validationSetName, htmlHelper.ViewContext.HttpContext.RequestServices.GetService, parameters);
+            return new LazyHtmlContent(
+                await htmlHelper.GetDryvClientWriter().WriteDryvValidation<TModel>(validationSetName, htmlHelper.ViewContext.HttpContext.RequestServices.GetService, parameters)
+            );
         }
 
-        public static Task<IHtmlContent> DryvValidation<TModel>(this IHtmlHelper htmlHelper, string validationSetName, IReadOnlyDictionary<string, object> parameters = null)
+        public static async Task<IHtmlContent> DryvValidation<TModel>(this IHtmlHelper htmlHelper, string validationSetName, IReadOnlyDictionary<string, object> parameters = null)
         {
-            return htmlHelper.GetDryvClientWriter().WriteDryvValidation<TModel>(validationSetName, htmlHelper.ViewContext.HttpContext.RequestServices.GetService, parameters);
+            return new LazyHtmlContent(
+                await htmlHelper.GetDryvClientWriter().WriteDryvValidation<TModel>(validationSetName, htmlHelper.ViewContext.HttpContext.RequestServices.GetService, parameters)
+        );
         }
 
         public static Task<IHtmlContent> DryvValidation<TModel>(this IHtmlHelper htmlHelper, IReadOnlyDictionary<string, object> parameters = null)

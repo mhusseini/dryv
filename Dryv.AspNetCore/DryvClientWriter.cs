@@ -3,9 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
-using Dryv.AspNetCore.Razor;
 using Dryv.Validation;
-using Microsoft.AspNetCore.Html;
 
 namespace Dryv.AspNetCore
 {
@@ -22,22 +20,22 @@ namespace Dryv.AspNetCore
             this.setWriter = setWriter ?? throw new ArgumentNullException(nameof(setWriter));
         }
 
-        public async Task<IHtmlContent> WriteDryvValidation<TModel>(string validationSetName, Func<Type, object> serviceProvider, IReadOnlyDictionary<string, object> parameters)
+        public async Task<Action<TextWriter>> WriteDryvValidation<TModel>(string validationSetName, Func<Type, object> serviceProvider, IReadOnlyDictionary<string, object> parameters)
         {
             var translation = await this.translator.TranslateValidationRules(typeof(TModel), serviceProvider, parameters);
             var ruleParameters = translation.Parameters;
             var validators = translation.ValidationFunctions.ToDictionary(i => i.Key, i => this.functionWriter.GetValidationFunction(i.Value));
             var disablers = translation.DisablingFunctions.ToDictionary(i => i.Key, i => this.functionWriter.GetValidationFunction(i.Value));
 
-            return new LazyHtmlContent(writer =>
+            return writer =>
             {
                 this.setWriter.WriteBegin(writer);
                 this.setWriter.WriteValidationSet(writer, validationSetName, validators, disablers, ruleParameters);
                 this.setWriter.WriteEnd(writer);
-            });
+            };
         }
 
-        public async Task<IHtmlContent> WriteDryvValidation(IEnumerable<KeyValuePair<string, Type>> validationSets, Func<Type, object> serviceProvider, IReadOnlyDictionary<string, object> parameters)
+        public async Task<Action<TextWriter>> WriteDryvValidation(IEnumerable<KeyValuePair<string, Type>> validationSets, Func<Type, object> serviceProvider, IReadOnlyDictionary<string, object> parameters)
         {
             var resultSet = new Dictionary<string, (Dictionary<string, Action<TextWriter>> validators, Dictionary<string, Action<TextWriter>> disablers, Dictionary<string, object> parameters)>();
 
@@ -51,7 +49,7 @@ namespace Dryv.AspNetCore
                 resultSet.Add(setName, (validators, disablers, ruleParameters));
             }
 
-            return new LazyHtmlContent(writer =>
+            return writer =>
             {
                 this.setWriter.WriteBegin(writer);
 
@@ -61,7 +59,7 @@ namespace Dryv.AspNetCore
                 }
 
                 this.setWriter.WriteEnd(writer);
-            });
+            };
         }
     }
 }

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using Dryv.Configuration;
@@ -18,25 +18,21 @@ namespace Dryv.Validation
 
         public virtual void WriteBegin(TextWriter writer)
         {
-            writer.WriteLine("(function(dryv) { if (!dryv.v) { dryv.v = {}; }");
         }
 
         public virtual void WriteEnd(TextWriter writer)
         {
-            writer.Write("})(window.dryv || (window.dryv = {}));");
         }
 
         public virtual void WriteValidationSet(TextWriter writer, string validationSetName, IDictionary<string, Action<TextWriter>> validators, IDictionary<string, Action<TextWriter>> disablers, IDictionary<string, object> parameters)
         {
-            writer.Write(@"dryv.v[""");
-            writer.Write(validationSetName);
-            writer.Write(@"""] = { validators: ");
+            writer.Write("{ validators: ");
             WriteObject(writer, validators);
             writer.Write(", disablers: ");
             WriteObject(writer, disablers);
             writer.Write(", parameters: ");
             this.WriteParameters(writer, parameters);
-            writer.Write("};");
+            writer.Write("}");
         }
 
         private void WriteParameters(TextWriter writer, IDictionary<string, object> parameters)

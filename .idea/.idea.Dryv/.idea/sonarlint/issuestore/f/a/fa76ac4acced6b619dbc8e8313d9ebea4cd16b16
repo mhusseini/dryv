@@ -1,0 +1,9 @@
+
+pcsharpsquid:S3776¸"RRefactor this method to reduce its Cognitive Complexity from 16 to the 15 allowed.(Öê·³
+Rcsharpsquid:S1066Ù"/Merge this if statement with the enclosing one.(èÌ£¨úÿÿÿÿ
+pcsharpsquid:S6605"RCollection-specific "Exists" method should be used instead of the "Any" extension.(óé¹²
+hcsharpsquid:S1144"FRemove the unused private field 'DryvValidationResultImplicitConvert'.(‚ù¦Öûÿÿÿÿ
+tcsharpsquid:S6608§"QIndexing at 0 should be used instead of the "Enumerable" extension method "First"(®¿ëûøÿÿÿÿ
+Ocsharpsquid:S1481º",Remove the unused local variable 'isEquals'.(Òßí¬şÿÿÿÿ
+Ocsharpsquid:S1481½",Remove the unused local variable 'leftType'.(Îùùèıÿÿÿÿ
+Pcsharpsquid:S1481¾"-Remove the unused local variable 'rightType'.(ê±‚Îøÿÿÿÿ

@@ -3,7 +3,7 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Dryv.Validation;
 
-namespace Dryv.Rules
+namespace Dryv
 {
     partial class DryvRules<TModel>
     {

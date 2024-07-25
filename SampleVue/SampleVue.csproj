@@ -7,10 +7,10 @@
 
   <Target Name="BuildJavascript" BeforeTargets="Build">
     <!-- Ensure Node.js is installed -->
-    <Exec Command="npm install" />
-    <Exec Command="npm run build" ContinueOnError="false">
-      <Output TaskParameter="ExitCode" PropertyName="ErrorCode" />
-    </Exec>
+<!--    <Exec Command="npm install" />-->
+<!--    <Exec Command="npm run build" ContinueOnError="false">-->
+<!--      <Output TaskParameter="ExitCode" PropertyName="ErrorCode" />-->
+<!--    </Exec>-->
   </Target>
 
   <ItemGroup>
