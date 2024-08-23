@@ -69,7 +69,7 @@ namespace Dryv.AspNetCore
                     PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
                     Converters =
                     {
-                        new JsonStringEnumConverter(),
+                        new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
                         new ValueTupleFactory()
                     },
                 };

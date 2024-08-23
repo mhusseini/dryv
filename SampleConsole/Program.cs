@@ -28,21 +28,26 @@ internal class Program
         {
             Converters =
             {
-                new JsonStringEnumConverter(),
+                new JsonStringEnumConverter(JsonNamingPolicy.CamelCase),
                 new ValueTupleFactory()
             },
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
         };
 
-        var options = new DryvOptions();
-        options.JsonConversion = v => JsonSerializer.Serialize(v, jsonOptions);
-        options.Translators.Add<DryvValidationResultTranslator>();
-        options.Translators.Add<DateTimeTranslator>();
-        options.Translators.Add<StringTranslator>();
-        options.Translators.Add<ToStringTranslator>();
-        options.Translators.Add<EnumerableTranslator>();
-        options.Translators.Add<RegexTranslator>();
-        options.Translators.Add<CustomCodeTranslator>();
+        var options = new DryvOptions
+        {
+            JsonConversion = v => JsonSerializer.Serialize(v, jsonOptions),
+            Translators =
+            {
+                typeof(DryvValidationResultTranslator),
+                typeof(DateTimeTranslator),
+                typeof(StringTranslator),
+                typeof(ToStringTranslator),
+                typeof(EnumerableTranslator),
+                typeof(RegexTranslator),
+                typeof(CustomCodeTranslator),
+            },
+        };
 
         //var validator = new DryvValidator(new DryvRuleFinder(new ModelTreeBuilder(), new DryvCompiler(), null, null, options), options);
         var translator = new DryvTranslator(new DryvRuleFinder(
