@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 namespace Dryv
 {
@@ -21,6 +20,7 @@ namespace Dryv
         }
 
         public object Data { get; }
+
         public string Group { get; internal set; }
 
         public string Text { get; }
@@ -36,5 +36,9 @@ namespace Dryv
         public static DryvValidationResult Warning(string text, object data) => new DryvValidationResult(text, DryvResultType.Warning, data);
 
         public static DryvValidationResult Warning(string text) => Warning(text, null);
+
+        public static DryvValidationResult From(string? text) => string.IsNullOrWhiteSpace(text)
+            ? Success
+            : Error(text);
     }
 }
