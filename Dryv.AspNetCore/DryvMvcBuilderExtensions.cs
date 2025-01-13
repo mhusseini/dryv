@@ -7,6 +7,7 @@ using System.Text.Json.Serialization;
 using Dryv.AspNetCore.DynamicControllers.Endpoints;
 using Dryv.AspNetCore.Internal;
 using Dryv.AspNetCore.Json;
+using Dryv.AspNetCore.Translators;
 using Dryv.Configuration;
 using Dryv.RuleDetection;
 using Dryv.Rules;
@@ -54,11 +55,13 @@ namespace Dryv.AspNetCore
 
             options.Translators.Add<DryvValidationResultTranslator>();
             options.Translators.Add<DateTimeTranslator>();
-            options.Translators.Add<StringTranslator>();
+            options.Translators.Add<FormFileCollectionTranslator>();
             options.Translators.Add<ToStringTranslator>();
             options.Translators.Add<EnumerableTranslator>();
             options.Translators.Add<RegexTranslator>();
             options.Translators.Add<CustomCodeTranslator>();
+            options.Translators.Add<FormFileCollectionTranslator>();
+            options.Translators.Add<FormFileTranslator>();
 
             setupAction?.Invoke(options);
 
