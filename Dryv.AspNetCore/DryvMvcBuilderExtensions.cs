@@ -55,7 +55,7 @@ namespace Dryv.AspNetCore
 
             options.Translators.Add<DryvValidationResultTranslator>();
             options.Translators.Add<DateTimeTranslator>();
-            options.Translators.Add<FormFileCollectionTranslator>();
+            options.Translators.Add<StringTranslator>();
             options.Translators.Add<ToStringTranslator>();
             options.Translators.Add<EnumerableTranslator>();
             options.Translators.Add<RegexTranslator>();
