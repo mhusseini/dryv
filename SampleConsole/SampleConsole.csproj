@@ -3,6 +3,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <RootNamespace>Dryv.SampleConsole</RootNamespace>
+    <LangVersion>default</LangVersion>
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Dryv.AspNetCore\Dryv.AspNetCore.csproj" />
