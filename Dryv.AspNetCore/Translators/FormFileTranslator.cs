@@ -1,36 +1,36 @@
+using System.Linq.Expressions;
 using Dryv.Translation;
 using Dryv.Translation.Translators;
 using Microsoft.AspNetCore.Http;
 
 namespace Dryv.AspNetCore.Translators
 {
-    public class FormFileTranslator : MethodCallTranslator
+    public class FormFileTranslator : PropertyTranslator
     {
         public FormFileTranslator()
         {
             this.Supports<IFormFile>();
-
-            this.AddMethodTranslator(nameof(IFormFile.FileName), FileName);
-            this.AddMethodTranslator(nameof(IFormFile.Name), FileName);
-            this.AddMethodTranslator(nameof(IFormFile.Length), Length);
-            this.AddMethodTranslator(nameof(IFormFile.ContentType), ContentType);
+            this.AddPropertyTranslator(nameof(IFormFile.FileName), FileName);
+            this.AddPropertyTranslator(nameof(IFormFile.Name), FileName);
+            this.AddPropertyTranslator(nameof(IFormFile.Length), Length);
+            this.AddPropertyTranslator(nameof(IFormFile.ContentType), ContentType);
         }
 
-        private static void FileName(MethodTranslationContext context)
+        private static void FileName(CustomTranslationContext context, Expression objectExpression)
         {
-            context.Translator.Translate(context.Expression.Object, context);
+            context.Translator.Translate(objectExpression, context);
             context.Writer.Write(".name");
         }
 
-        private static void Length(MethodTranslationContext context)
+        private static void Length(CustomTranslationContext context, Expression objectExpression)
         {
-            context.Translator.Translate(context.Expression.Object, context);
+            context.Translator.Translate(objectExpression, context);
             context.Writer.Write(".size");
         }
 
-        private static void ContentType(MethodTranslationContext context)
+        private static void ContentType(CustomTranslationContext context, Expression objectExpression)
         {
-            context.Translator.Translate(context.Expression.Object, context);
+            context.Translator.Translate(objectExpression, context);
             context.Writer.Write(".type");
         }
     }

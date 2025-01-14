@@ -4,7 +4,7 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.RegularExpressions;
-using Dryv.Reflection;
+using BindingFlags = System.Reflection.BindingFlags;
 
 namespace Dryv.Translation.Translators
 {
@@ -16,7 +16,8 @@ namespace Dryv.Translation.Translators
 
         public int? OrderIndex { get; set; }
 
-        public static void WriteArguments(ITranslator translator, IEnumerable<Expression> arguments, TranslationContext context)
+        public static void WriteArguments(ITranslator translator, IEnumerable<Expression> arguments,
+            TranslationContext context)
         {
             var sep = string.Empty;
 
@@ -35,7 +36,8 @@ namespace Dryv.Translation.Translators
 
         public virtual bool Translate(MethodTranslationContext options)
         {
-            var translator = this.methodTranslatorsByRegex.Where(i => i.Method.IsMatch(options.Expression.Method.Name)).Select(i => i.Translator).FirstOrDefault();
+            var translator = this.methodTranslatorsByRegex.Where(i => i.Method.IsMatch(options.Expression.Method.Name))
+                .Select(i => i.Translator).FirstOrDefault();
 
             if (translator == null)
             {
@@ -82,23 +84,23 @@ namespace Dryv.Translation.Translators
 
             return constantExpressions.Select(e => e.Value)
                 .Union(from exp in constantExpressions
-                       let v = exp.Value
-                       from f in v?.GetType().GetFields(BindingFlags.Instance | BindingFlags.Static |
-                                                        BindingFlags.Public | BindingFlags.NonPublic |
-                                                        BindingFlags.FlattenHierarchy)
-                       select f.GetValue(v))
+                    let v = exp.Value
+                    from f in v?.GetType().GetFields(BindingFlags.Instance | BindingFlags.Static |
+                                                     BindingFlags.Public | BindingFlags.NonPublic |
+                                                     BindingFlags.FlattenHierarchy)
+                    select f.GetValue(v))
                 .Union(from exp in constantExpressions
-                       let v = exp.Value
-                       from f in v?.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Static |
-                                                            BindingFlags.Public | BindingFlags.NonPublic |
-                                                            BindingFlags.FlattenHierarchy)
-                       select f.GetValue(v))
+                    let v = exp.Value
+                    from f in v?.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Static |
+                                                         BindingFlags.Public | BindingFlags.NonPublic |
+                                                         BindingFlags.FlattenHierarchy)
+                    select f.GetValue(v))
                 .Union(from exp in expressions.OfType<MemberExpression>()
-                       let obj = (exp.Expression as ConstantExpression)?.Value
-                       where obj != null
-                       let field = exp.Member as FieldInfo
-                       let property = exp.Member as PropertyInfo
-                       select field?.GetValue(obj) ?? property?.GetValue(obj))
+                    let obj = (exp.Expression as ConstantExpression)?.Value
+                    where obj != null
+                    let field = exp.Member as FieldInfo
+                    let property = exp.Member as PropertyInfo
+                    select field?.GetValue(obj) ?? property?.GetValue(obj))
                 .OfType<T>()
                 .FirstOrDefault();
         }
