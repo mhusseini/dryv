@@ -4,8 +4,9 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using Dryv.Extensions;
+using Dryv.Rules;
 
-namespace Dryv.Rules
+namespace Dryv
 {
     public partial class DryvRules<TModel> : DryvRules
     {

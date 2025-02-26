@@ -124,7 +124,7 @@ namespace Dryv.Translation.Translators
             }
 
             context.Writer.Write(".indexOf(");
-            WriteArguments(context.Translator, context.Expression.Arguments, context);
+            WriteArguments(context.Translator, context.Expression.Arguments.Take(1), context);
             if (isCaseInsensitive)
             {
                 context.Writer.Write(".toLowerCase()");
@@ -217,7 +217,7 @@ namespace Dryv.Translation.Translators
                 throw new DryvExpressionNotSupportedException(context.Expression, "Calls to string.Format with non-constant pattern strings are not supported.");
             }
 
-            var skipped = context.Expression.Arguments.Skip(patternIndex + 1);
+            var skipped = context.Expression.Arguments.Skip(patternIndex + 1).ToList();
             var arguments = skipped.FirstOrDefault() is NewArrayExpression nar
                 ? nar.Expressions.Cast<object>().ToArray()
                 : skipped.Cast<object>().ToArray();
@@ -341,7 +341,7 @@ namespace Dryv.Translation.Translators
             }
 
             context.Writer.Write(".indexOf(");
-            WriteArguments(context.Translator, context.Expression.Arguments, context);
+            WriteArguments(context.Translator, context.Expression.Arguments.Take(1), context);
             if (isCaseInsensitive)
             {
                 context.Writer.Write(".toLowerCase()");

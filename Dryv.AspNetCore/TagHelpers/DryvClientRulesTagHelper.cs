@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Dryv.AspNetCore.Razor;
 using Dryv.Extensions;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
@@ -43,8 +44,8 @@ namespace Dryv.AspNetCore.TagHelpers
             output.TagMode = TagMode.StartTagAndEndTag;
 
             var content = await this.clientWriter.WriteDryvValidation(modelTypes, this.ViewContext.HttpContext.RequestServices.GetService, this.Parameters);
-            
-            output.Content.AppendHtml(content);
+
+            output.Content.AppendHtml(new LazyHtmlContent(content));
         }
 
         private Dictionary<string, Type> GetModelTypes()
@@ -55,18 +56,19 @@ namespace Dryv.AspNetCore.TagHelpers
             switch (this.Model)
             {
                 case null:
-                    {
-                        var type = this.ViewContext.ViewData.ModelMetadata.ModelType;
-                        var name = this.GetSingleValidationSetName(type);
-                        itemTypes.Add(name, type);
-                        break;
-                    }
+                {
+                    var type = this.ViewContext.ViewData.ModelMetadata.ModelType;
+                    var name = this.GetSingleValidationSetName(type);
+                    itemTypes.Add(name, type);
+                    break;
+                }
+
                 case Type type:
-                    {
-                        var name = this.GetSingleValidationSetName(type);
-                        itemTypes.Add(name, type);
-                        break;
-                    }
+                {
+                    var name = this.GetSingleValidationSetName(type);
+                    itemTypes.Add(name, type);
+                    break;
+                }
 
                 case Tuple<string, Type> type:
                     itemTypes.Add(type.Item1, type.Item2);
@@ -97,16 +99,16 @@ namespace Dryv.AspNetCore.TagHelpers
                     break;
 
                 case { } model:
+                {
+                    var name = this.ValidationSetName ?? model.GetType().FullName;
+                    if (string.IsNullOrWhiteSpace(name))
                     {
-                        var name = this.ValidationSetName ?? model.GetType().FullName;
-                        if (string.IsNullOrWhiteSpace(name))
-                        {
-                            throw new InvalidOperationException($"The type specified in the 'for' attribute does not have a name and the 'name' attribute is not specified, either.");
-                        }
-
-                        items.Add(name, model);
-                        break;
+                        throw new InvalidOperationException($"The type specified in the 'for' attribute does not have a name and the 'name' attribute is not specified, either.");
                     }
+
+                    items.Add(name, model);
+                    break;
+                }
             }
 
             itemTypes.AddRange(items.Select(i => new KeyValuePair<string, Type>(i.Key, i.Value.GetType())));

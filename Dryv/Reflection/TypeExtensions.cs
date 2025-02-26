@@ -118,7 +118,8 @@ namespace Dryv.Reflection
                 : typeInfo.DeclaredProperties;
 
             return (from i in items
-                    where (isPublic && i.GetMethod.IsPublic ||
+                    where i.GetMethod != null &&
+                          (isPublic && i.GetMethod.IsPublic ||
                            isNonPublic && !i.GetMethod.IsPublic)
                           &&
                           (isStatic && i.GetMethod.IsStatic ||

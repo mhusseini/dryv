@@ -11,6 +11,7 @@ using Dryv.Reflection;
 using Dryv.Rules;
 using Dryv.Translation;
 using Dryv.Translation.Visitors;
+using BindingFlags = System.Reflection.BindingFlags;
 
 namespace Dryv.RuleDetection
 {

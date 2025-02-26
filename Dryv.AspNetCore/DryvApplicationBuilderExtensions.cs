@@ -15,7 +15,7 @@ namespace Dryv.AspNetCore
             var provider = app.ApplicationServices.GetService<DryvEndpointRouteBuilderProvider>();
             if (provider == null)
             {
-                throw new InvalidOperationException($"Please call {nameof(DryvMvcBuilderExtensions)}.{nameof(DryvMvcBuilderExtensions.AddDryv)} before using {nameof(UseDryv)}.");
+                throw new InvalidOperationException($"Please call {nameof(DryvConfigurationExtensions)}.{nameof(DryvConfigurationExtensions.AddDryv)} before using {nameof(UseDryv)}.");
             }
 
             var endpointRouteBuilder = app.Properties.Values.OfType<IEndpointRouteBuilder>().FirstOrDefault();

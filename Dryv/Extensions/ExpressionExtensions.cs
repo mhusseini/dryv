@@ -106,7 +106,7 @@ namespace Dryv.Extensions
             var genericArguments = expression.Type.GetGenericArguments();
             return genericArguments
                 .Skip(1)
-                .Take(genericArguments.Count - 2)
+                .Take(genericArguments.Length - 2)
                 .ToList();
         }
 

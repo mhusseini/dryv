@@ -6,7 +6,7 @@ namespace Dryv.Configuration
     public class DryvOptions
     {
         public static readonly Type DefaultClientFunctionWriterType = typeof(DryvClientValidationFunctionWriter);
-        public static readonly Type DefaultClientValidationSetWriterType = typeof(DryvClientValidationSetWriter);
+        public static readonly Type DefaultClientValidationSetWriterType = typeof(DryvWindowValidationSetWriter);
         public virtual DryvServiceCollection Annotators { get; } = new DryvServiceCollection();
         public Type ClientFunctionWriterType { get; internal set; } = DefaultClientFunctionWriterType;
         public Type ClientValidationSetWriterType { get; internal set; } = DefaultClientValidationSetWriterType;
