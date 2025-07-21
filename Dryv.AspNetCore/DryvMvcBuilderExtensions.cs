@@ -59,6 +59,7 @@ namespace Dryv.AspNetCore
             options.Translators.Add<ToStringTranslator>();
             options.Translators.Add<EnumerableTranslator>();
             options.Translators.Add<RegexTranslator>();
+            options.Translators.Add<DryvParametersTranslator>();
             options.Translators.Add<CustomCodeTranslator>();
             options.Translators.Add<FormFileCollectionTranslator>();
             options.Translators.Add<FormFileTranslator>();
