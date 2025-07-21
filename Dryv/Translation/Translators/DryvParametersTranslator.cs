@@ -14,8 +14,10 @@ namespace Dryv.Translation.Translators
 
         private void Get(MethodTranslationContext context)
         {
-            context.Writer.Write("$ctx.parameter(");
+            context.Writer.Write("($ctx.parameter ? $ctx.parameter(");
             context.Translator.Translate(context.Expression.Arguments.First(), context);
+            context.Writer.Write(") : ");
+            context.InjectRuntimeExpression(context.Expression, context.Expression.Object as ParameterExpression);
             context.Writer.Write(")");
         }
     }

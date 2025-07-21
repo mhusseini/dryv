@@ -4,6 +4,7 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Dryv.Extensions;
 using Dryv.Reflection;
+using Dryv.Rules;
 using Dryv.Translation.Visitors;
 
 namespace Dryv.Translation
@@ -38,7 +39,6 @@ namespace Dryv.Translation
 
             return parameter != null && context.InjectedServiceTypes.Contains(parameter.Type)
                    || expression.IsStaticMemberAccess();
-
         }
 
         public static bool CanInjectMethodCall(MethodCallExpression expression, TranslationContext context, IList<ParameterExpression> parameters)
@@ -61,20 +61,20 @@ namespace Dryv.Translation
             var finder = new ExpressionNodeFinder<ParameterExpression>();
 
             var parameterExpressions = (from a in expression.Arguments
-                                        from p in finder.FindChildren(a)
-                                        where p != null
-                                        select p).ToList();
+                from p in finder.FindChildren(a)
+                where p != null
+                select p).ToList();
 
             var notInlinable = from p in parameterExpressions
-                               where p.Type == context.ModelType || !context.InjectedServiceTypes.Contains(p.Type)
-                               select p;
+                where p.Type == context.ModelType || !context.InjectedServiceTypes.Contains(p.Type)
+                select p;
 
             return !notInlinable.Any();
         }
 
         public static IList<ParameterExpression> GetInjectionParameters(Expression expression, TranslationContext context)
         {
-            if (expression.Type == typeof(DryvValidationResult))
+            if (expression.Type == typeof(DryvValidationResult) || (expression as MethodCallExpression)?.Object?.Type == typeof(DryvParameters))
             {
                 return null;
             }

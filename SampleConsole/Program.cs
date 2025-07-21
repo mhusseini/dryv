@@ -46,6 +46,7 @@ internal class Program
                 typeof(EnumerableTranslator),
                 typeof(RegexTranslator),
                 typeof(CustomCodeTranslator),
+                typeof(DryvParametersTranslator),
             },
         };
 
