@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Text;
 using Dryv.Configuration;
 using Dryv.Extensions;
@@ -614,10 +615,10 @@ namespace Dryv.Translation
             this.Translate(expression.Operand, context, negatedExpression);
         }
 
-        private static bool TryWriteInjectedExpression(Expression expression, TranslationContext context)
+        private bool TryWriteInjectedExpression(Expression expression, TranslationContext context)
         {
-            var parameters = ExpressionInjectionHelper.GetInjectionParameters(expression, context);
-            return context.InjectRuntimeExpression(expression, parameters);
+            var parameters = ExpressionInjectionHelper.GetInjectionParameters(this.Options, expression, context);
+            return context.InjectRuntimeExpression(this.Options, expression, parameters);
         }
 
         private bool GetNeedsBrackets(Expression expression)

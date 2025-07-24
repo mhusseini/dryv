@@ -2,6 +2,7 @@
 using System.Linq;
 using System.Linq.Expressions;
 using System.Threading.Tasks;
+using Dryv.Configuration;
 using Dryv.Extensions;
 using Dryv.Reflection;
 using Dryv.Rules;
@@ -17,7 +18,7 @@ namespace Dryv.Translation
             return CanInjectMethodCall(expression, context, parameters);
         }
 
-        public static bool CanInjectProperty(Expression expression, TranslationContext context, IList<ParameterExpression> parameters)
+        public static bool CanInjectProperty(DryvOptions options, Expression expression, TranslationContext context, IList<ParameterExpression> parameters)
         {
             if (!expression.Type.IsSystemType())
             {
@@ -35,7 +36,7 @@ namespace Dryv.Translation
                 return false;
             }
 
-            var parameter = GetInjectionParameters(expression, context)?.FirstOrDefault();
+            var parameter = GetInjectionParameters(options, expression, context)?.FirstOrDefault();
 
             return parameter != null && context.InjectedServiceTypes.Contains(parameter.Type)
                    || expression.IsStaticMemberAccess();
@@ -72,9 +73,9 @@ namespace Dryv.Translation
             return !notInlinable.Any();
         }
 
-        public static IList<ParameterExpression> GetInjectionParameters(Expression expression, TranslationContext context)
+        public static IList<ParameterExpression> GetInjectionParameters(DryvOptions options, Expression expression, TranslationContext context)
         {
-            if (expression.Type == typeof(DryvValidationResult) || (expression as MethodCallExpression)?.Object?.Type == typeof(DryvParameters))
+            if (expression.Type == typeof(DryvValidationResult) || options.DisableParameterInjection && (expression as MethodCallExpression)?.Object?.Type == typeof(DryvParameters))
             {
                 return null;
             }

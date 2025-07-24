@@ -1,4 +1,5 @@
 using System.Linq;
+using Dryv.Configuration;
 using Dryv.Rules;
 using Dryv.Translation.Translators;
 using Escape.Ast;
@@ -20,7 +21,7 @@ namespace Dryv.Tests
                     : DryvValidationResult.Error("Parameter value doesn't match"));
 
             // Act
-            var jsProgram = GetTranslatedAst(expression, [new DryvParametersTranslator()]);
+            var jsProgram = GetTranslatedAst(expression, [new DryvParametersTranslator(new DryvOptions())]);
             var conditional = GetBodyExpression<ConditionalExpression>(jsProgram);
             var binaryExpression = conditional.Test as BinaryExpression;
             var rightSide = binaryExpression?.Right as CallExpression;

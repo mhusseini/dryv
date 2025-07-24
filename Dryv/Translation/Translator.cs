@@ -166,6 +166,11 @@ namespace Dryv.Translation
         {
             // Find all service types used in the validation expression.
             var serviceTypes = ((LambdaExpression)expression).GetInjectedServiceTypes();
+            if (this.Options.DisableParameterInjection && serviceTypes.Contains(typeof(DryvParameters)))
+            {
+                serviceTypes.Remove(typeof(DryvParameters));
+            }
+
             // Collect delegates that use options from withing the validation expression.
             var optionDelegates = new Dictionary<int, InjectedExpression>();
             var sb = new StringBuilder();

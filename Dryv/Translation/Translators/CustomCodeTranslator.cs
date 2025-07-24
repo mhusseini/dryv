@@ -1,12 +1,16 @@
 ﻿using System.Linq.Expressions;
+using Dryv.Configuration;
 using Dryv.Rules;
 
 namespace Dryv.Translation.Translators
 {
     public class CustomCodeTranslator : MethodCallTranslator, IDryvCustomTranslator
     {
-        public CustomCodeTranslator()
+        private readonly DryvOptions options;
+
+        public CustomCodeTranslator(DryvOptions options)
         {
+            this.options = options;
             this.Supports<DryvClientCode>();
             this.AddMethodTranslator(nameof(DryvClientCode.Raw), CustomScript);
         }
@@ -29,11 +33,11 @@ namespace Dryv.Translation.Translators
             return true;
         }
 
-        private static void CustomScript(MethodTranslationContext context)
+        private void CustomScript(MethodTranslationContext context)
         {
             foreach (var script in context.Expression.Arguments)
             {
-                context.InjectRuntimeExpression(script, true);
+                context.InjectRuntimeExpression(this.options, script, true);
             }
         }
 

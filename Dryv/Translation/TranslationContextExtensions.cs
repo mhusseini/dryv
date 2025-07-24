@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq.Expressions;
+using Dryv.Configuration;
 using Dryv.Extensions;
 
 namespace Dryv.Translation
@@ -11,28 +12,28 @@ namespace Dryv.Translation
             return $"$p{++TranslationContext.ParameterCount}";
         }
 
-        public static bool InjectRuntimeExpression(this TranslationContext context, Expression expression, params ParameterExpression[] parameters)
+        public static bool InjectRuntimeExpression(this TranslationContext context, DryvOptions options, Expression expression, params ParameterExpression[] parameters)
         {
-            return InjectRuntimeExpression(context, expression, (IList<ParameterExpression>) parameters);
+            return InjectRuntimeExpression(context, options, expression, (IList<ParameterExpression>) parameters);
         }
 
-        public static bool InjectRuntimeExpression(this TranslationContext context, Expression expression, IList<ParameterExpression> parameters)
+        public static bool InjectRuntimeExpression(this TranslationContext context, DryvOptions options, Expression expression, IList<ParameterExpression> parameters)
         {
-            return InjectRuntimeExpression(context, expression, false, parameters);
+            return InjectRuntimeExpression(context, options, expression, false, parameters);
         }
 
-        public static bool InjectRuntimeExpression(this TranslationContext context, Expression expression, bool isRawOutput, params ParameterExpression[] parameters)
+        public static bool InjectRuntimeExpression(this TranslationContext context, DryvOptions options, Expression expression, bool isRawOutput, params ParameterExpression[] parameters)
         {
-            return InjectRuntimeExpression(context, expression, isRawOutput, (IList<ParameterExpression>) parameters);
+            return InjectRuntimeExpression(context, options, expression, isRawOutput, (IList<ParameterExpression>) parameters);
         }
 
-        public static bool InjectRuntimeExpression(this TranslationContext context, Expression expression, bool isRawOutput, IList<ParameterExpression> parameters)
+        public static bool InjectRuntimeExpression(this TranslationContext context, DryvOptions options, Expression expression, bool isRawOutput, IList<ParameterExpression> parameters)
         {
             parameters ??= new ParameterExpression[0];
 
             var canInject = expression is MethodCallExpression mex
                 ? ExpressionInjectionHelper.CanInjectMethodCall(mex, context, parameters)
-                : ExpressionInjectionHelper.CanInjectProperty(expression, context, parameters);
+                : ExpressionInjectionHelper.CanInjectProperty(options, expression, context, parameters);
             
             if (!canInject)
             {
