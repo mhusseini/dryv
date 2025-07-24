@@ -61,7 +61,14 @@ namespace Dryv
         private static async Task<bool> IsRuleEnabled(DryvCompiledRule rule, Func<Type, object> serviceProvider, IReadOnlyDictionary<IReadOnlyList<DryvCompiledRule>, DryvParameters> parameters)
         {
             var arguments = serviceProvider.GetServices(rule, parameters);
-            return true.Equals(await TaskValueHelper.GetPossiblyAsyncValue(rule.CompiledEnablingExpression(arguments)));
+            try
+            {
+                return true.Equals(await TaskValueHelper.GetPossiblyAsyncValue(rule.CompiledEnablingExpression(arguments)));
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
 
         private static TranslatedRule Translate(DryvCompiledRule rule, Func<Type, object> serviceProvider, IReadOnlyDictionary<IReadOnlyList<DryvCompiledRule>, DryvParameters> parameters)
