@@ -26,7 +26,9 @@ namespace Dryv.Validation
 
         public virtual void WriteValidationSet(TextWriter writer, string validationSetName, IDictionary<string, Action<TextWriter>> validators, IDictionary<string, Action<TextWriter>> disablers, IDictionary<string, object> parameters)
         {
-            writer.Write("{ validators: ");
+            writer.Write("{ name: ");
+            writer.Write(JavaScriptHelper.TranslateValue(validationSetName));
+            writer.Write(", validators: ");
             WriteObject(writer, validators);
             writer.Write(", disablers: ");
             WriteObject(writer, disablers);
