@@ -190,6 +190,7 @@ namespace Dryv.Translation.Translators
                 ? context.Expression.Arguments.Skip(1).OfType<LambdaExpression>().FirstOrDefault()
                 : null;
 
+            var resultType = array.Type.GetElementType();
             context.Translator.Translate(array, context);
             if (lambda != null)
             {
@@ -197,9 +198,13 @@ namespace Dryv.Translation.Translators
                 context.Writer.Write($".map(function({parameter}){{ return ");
                 context.Translator.Translate(lambda.Body, context);
                 context.Writer.Write("})");
+                
+                resultType = lambda.ReturnType;
             }
 
-            context.Writer.Write($".reduce(function(a,b){{{reducer}}})");
+            context.Writer.Write($".reduce(function(a,b){{{reducer}}}, ");
+            context.Translator.Translate(Expression.Default(resultType), context);
+            context.Writer.Write(")");
         }
 
         private static void Translate(MethodTranslationContext context, string funcName)
