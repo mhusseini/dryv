@@ -568,6 +568,11 @@ namespace Dryv.Translation
 
             switch (expression.NodeType)
             {
+                case ExpressionType.ArrayLength:
+                    this.Translate(expression.Operand, context);
+                    context.Writer.Write(".length");
+                    return;
+                
                 case ExpressionType.Not:
                     negatedExpression = true;
                     break;
@@ -588,7 +593,8 @@ namespace Dryv.Translation
 
                         return;
                     }
-                    else if (expression.Type.IsEnumOrNullableEnum(out var enumType))
+
+                    if (expression.Type.IsEnumOrNullableEnum(out var enumType))
                     {
                         var value = expression.GetValue();
                         if (value == null)

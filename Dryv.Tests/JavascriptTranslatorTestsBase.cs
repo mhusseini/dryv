@@ -35,7 +35,7 @@ namespace Dryv.Tests
         protected static System.Linq.Expressions.Expression<Func<object>> Expression(System.Linq.Expressions.Expression<Func<object>> exp) =>
             exp;
 
-        
+
         protected static T GetBodyExpression<T>(FunctionExpression jsProgram)
             where T : Expression =>
             ((jsProgram.Body as BlockStatement)?.Body.First() as ReturnStatement)?.Argument as T;
@@ -94,7 +94,8 @@ namespace Dryv.Tests
                 new RegexTranslator(),
                 new DryvValidationResultTranslator(),
                 new StringTranslator(),
-                new EnumerableTranslator()
+                new EnumerableTranslator(),
+                new DryvParametersTranslator(new DryvOptions { DisableParameterInjection = true })
             };
 
             var customTranslators = new Collection<IDryvCustomTranslator>
@@ -123,6 +124,8 @@ namespace Dryv.Tests
             public IEnumerable<int> IntItems { get; set; }
 
             public IEnumerable<string> Items { get; set; }
+
+            public string[] ItemArray { get; set; }
 
             public abstract string Text { get; set; }
         }

@@ -14,9 +14,9 @@ namespace Dryv.Tests
         private readonly Regex regexField = new Regex(@"^\d+$");
         private readonly string var2Field = "fail";
 
-        private string PatternProperty => this.patternField;
-        private Regex RegexProperty => this.regexField;
-        private string Var2Property => this.var2Field;
+        private string PatternProperty => patternField;
+        private Regex RegexProperty => regexField;
+        private string Var2Property => var2Field;
 
 
         [TestMethod]
@@ -48,7 +48,7 @@ namespace Dryv.Tests
         public void GetArgumentFromField()
         {
             var expression = Expression(m =>
-                new Regex(this.patternField, RegexOptions.IgnoreCase | RegexOptions.Singleline).IsMatch(m.Text)
+                new Regex(patternField, RegexOptions.IgnoreCase | RegexOptions.Singleline).IsMatch(m.Text)
                     ? "fail"
                     : DryvValidationResult.Success);
 
@@ -57,15 +57,15 @@ namespace Dryv.Tests
             var method = GetMethod(conditional?.Test);
             var regexp = (method.Object as Literal)?.Value as RegExp;
 
-            Assert.AreEqual(this.patternField, regexp?.Pattern);
+            Assert.AreEqual(patternField, regexp?.Pattern);
         }
 
         [TestMethod]
         public void GetArgumentFromFieldWhereOtherFieldExists()
         {
             var expression = Expression(m =>
-                new Regex(this.patternField, RegexOptions.IgnoreCase | RegexOptions.Singleline).IsMatch(m.Text)
-                    ? this.var2Field
+                new Regex(patternField, RegexOptions.IgnoreCase | RegexOptions.Singleline).IsMatch(m.Text)
+                    ? var2Field
                     : DryvValidationResult.Success);
 
             var jsProgram = GetTranslatedAst(expression);
@@ -73,14 +73,14 @@ namespace Dryv.Tests
             var method = GetMethod(conditional?.Test);
             var regexp = (method.Object as Literal)?.Value as RegExp;
 
-            Assert.AreEqual(this.patternField, regexp?.Pattern);
+            Assert.AreEqual(patternField, regexp?.Pattern);
         }
 
         [TestMethod]
         public void GetArgumentFromProperty()
         {
             var expression = Expression(m =>
-                new Regex(this.PatternProperty, RegexOptions.IgnoreCase | RegexOptions.Singleline).IsMatch(m.Text)
+                new Regex(PatternProperty, RegexOptions.IgnoreCase | RegexOptions.Singleline).IsMatch(m.Text)
                     ? "fail"
                     : DryvValidationResult.Success);
 
@@ -89,15 +89,15 @@ namespace Dryv.Tests
             var method = GetMethod(conditional?.Test);
             var regexp = (method.Object as Literal)?.Value as RegExp;
 
-            Assert.AreEqual(this.PatternProperty, regexp?.Pattern);
+            Assert.AreEqual(PatternProperty, regexp?.Pattern);
         }
 
         [TestMethod]
         public void GetArgumentFromPropertyWhereOtherPropertyExists()
         {
             var expression = Expression(m =>
-                new Regex(this.PatternProperty, RegexOptions.IgnoreCase | RegexOptions.Singleline).IsMatch(m.Text)
-                    ? this.Var2Property
+                new Regex(PatternProperty, RegexOptions.IgnoreCase | RegexOptions.Singleline).IsMatch(m.Text)
+                    ? Var2Property
                     : DryvValidationResult.Success);
 
             var jsProgram = GetTranslatedAst(expression);
@@ -105,7 +105,7 @@ namespace Dryv.Tests
             var method = GetMethod(conditional?.Test);
             var regexp = (method.Object as Literal)?.Value as RegExp;
 
-            Assert.AreEqual(this.PatternProperty, regexp?.Pattern);
+            Assert.AreEqual(PatternProperty, regexp?.Pattern);
         }
 
         [TestMethod]
@@ -147,7 +147,7 @@ namespace Dryv.Tests
         public void GetObjectFromField()
         {
             var expression = Expression(m =>
-                this.regexField.IsMatch(m.Text)
+                regexField.IsMatch(m.Text)
                     ? "fail"
                     : DryvValidationResult.Success);
 
@@ -156,15 +156,15 @@ namespace Dryv.Tests
             var method = GetMethod(conditional?.Test);
             var regexp = (method.Object as Literal)?.Value as RegExp;
 
-            Assert.AreEqual(this.regexField.ToString(), regexp?.Pattern);
+            Assert.AreEqual(regexField.ToString(), regexp?.Pattern);
         }
 
         [TestMethod]
         public void GetObjectFromFieldWhereOtherFieldExists()
         {
             var expression = Expression(m =>
-                this.regexField.IsMatch(m.Text)
-                    ? this.var2Field
+                regexField.IsMatch(m.Text)
+                    ? var2Field
                     : DryvValidationResult.Success);
 
             var jsProgram = GetTranslatedAst(expression);
@@ -172,14 +172,14 @@ namespace Dryv.Tests
             var method = GetMethod(conditional?.Test);
             var regexp = (method.Object as Literal)?.Value as RegExp;
 
-            Assert.AreEqual(this.regexField.ToString(), regexp?.Pattern);
+            Assert.AreEqual(regexField.ToString(), regexp?.Pattern);
         }
 
         [TestMethod]
         public void GetObjectFromProperty()
         {
             var expression = Expression(m =>
-                this.RegexProperty.IsMatch(m.Text)
+                RegexProperty.IsMatch(m.Text)
                     ? "fail"
                     : DryvValidationResult.Success);
 
@@ -188,15 +188,15 @@ namespace Dryv.Tests
             var method = GetMethod(conditional?.Test);
             var regexp = (method.Object as Literal)?.Value as RegExp;
 
-            Assert.AreEqual(this.RegexProperty.ToString(), regexp?.Pattern);
+            Assert.AreEqual(RegexProperty.ToString(), regexp?.Pattern);
         }
 
         [TestMethod]
         public void GetObjectFromPropertyWhereOtherPropertyExists()
         {
             var expression = Expression(m =>
-                this.RegexProperty.IsMatch(m.Text)
-                    ? this.Var2Property
+                RegexProperty.IsMatch(m.Text)
+                    ? Var2Property
                     : DryvValidationResult.Success);
 
             var jsProgram = GetTranslatedAst(expression);
@@ -204,7 +204,7 @@ namespace Dryv.Tests
             var method = GetMethod(conditional?.Test);
             var regexp = (method.Object as Literal)?.Value as RegExp;
 
-            Assert.AreEqual(this.RegexProperty.ToString(), regexp?.Pattern);
+            Assert.AreEqual(RegexProperty.ToString(), regexp?.Pattern);
         }
 
         [TestMethod]

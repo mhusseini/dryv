@@ -72,9 +72,9 @@ namespace Dryv.Tests
         {
             public RegexMatchTranslator()
             {
-                this.Supports<Regex>();
+                Supports<Regex>();
 
-                this.AddMethodTranslator(nameof(Regex.Match), context =>
+                AddMethodTranslator(nameof(Regex.Match), context =>
                 {
                     context.Translator.Translate(context.Expression.Object, context);
                     context.Writer.Write(".match(");

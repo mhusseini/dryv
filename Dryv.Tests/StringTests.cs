@@ -47,7 +47,7 @@ namespace Dryv.Tests
 
             var translation = Translate<TestModel>(expression);
             var model = @"{text:'zzzzzzzXY'}";
-            var engine = new Jurassic.ScriptEngine();
+            var engine = new ScriptEngine();
             var script = $"({translation})({model})";
             var result = engine.Evaluate(script) as string;
 
@@ -64,7 +64,7 @@ namespace Dryv.Tests
 
             var translation = Translate<TestModel>(expression);
             var model = @"{text:'ab'}";
-            var engine = new Jurassic.ScriptEngine();
+            var engine = new ScriptEngine();
             var script = $"({translation})({model})";
             var result = engine.Evaluate(script);
 
