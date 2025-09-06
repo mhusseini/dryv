@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net9.0</TargetFramework>
-    <Version>9.2.2</Version>
+    <Version>9.2.3</Version>
     <Copyright>2025 Munir Husseini</Copyright>
     <PackageProjectUrl>https://github.com/mhusseini/Dryv</PackageProjectUrl>
     <PackageLicense>https://github.com/mhusseini/Dryv/blob/master/LICENSE</PackageLicense>

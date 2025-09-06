@@ -49,7 +49,7 @@ namespace Dryv.Rules
                 .Reverse());
 
             var parameter = (ParameterExpression)members.Last().Expression;
-            var uniquePath = ":" + parameter.Type.FullName;
+            var uniquePath = ":" + (memberExpression.Member.DeclaringType?.FullName ?? parameter?.Type.FullName);
             if (!string.IsNullOrWhiteSpace(propertyPath))
             {
                 uniquePath += "." + propertyPath;
