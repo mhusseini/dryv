@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
@@ -154,8 +155,12 @@ namespace Dryv.Translation
         {
         }
 
-        protected object GetDefaultValue(Type type)
+        protected static object GetDefaultValue(Type type)
         {
+            if (type == typeof(void))
+            {
+                Debugger.Break();
+            }
             return type.GetTypeInfo().IsValueType ? Activator.CreateInstance(type) : null;
         }
 

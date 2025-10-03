@@ -270,12 +270,16 @@ namespace Dryv.RuleDetection
             {
                 if (this.options.TranslationErrorBehavior != TranslationErrorBehavior.ValidateOnServer)
                 {
-                    throw;
+                    throw new DryvExpressionTranslationException(validationExpression, "An error occurred while translating validation rule.", ex);
                 }
 
                 rule.TranslatedValidationExpression = null;
                 rule.ServiceTypes = null;
                 rule.TranslationError = ex;
+            }
+            catch (Exception ex)
+            {
+                throw new DryvExpressionTranslationException(validationExpression, "An error occurred while translating validation rule.", ex);           
             }
         }
     }

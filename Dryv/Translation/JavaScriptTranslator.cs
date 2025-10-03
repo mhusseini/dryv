@@ -263,7 +263,7 @@ namespace Dryv.Translation
 
         public override void Visit(DefaultExpression expression, TranslationContext context, bool negated = false)
         {
-            var value = this.GetDefaultValue(expression.Type);
+            var value = GetDefaultValue(expression.Type);
             var text = JavaScriptHelper.TranslateValue(value);
 
             context.Writer.Write(text);
