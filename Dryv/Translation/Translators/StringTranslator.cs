@@ -252,7 +252,7 @@ namespace Dryv.Translation.Translators
                         }
                         else
                         {
-                            context.Writer.Write("$ctx.format(");
+                            context.Writer.Write("$ctx.dryv.format(");
                             context.Translator.Translate(exp, context);
                             context.Writer.Write($@", ""{exp.GetOriginalType().Name.ToLower()}"", ""{format}""");
                             context.Writer.Write(")");

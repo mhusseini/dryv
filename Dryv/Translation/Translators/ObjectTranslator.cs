@@ -21,7 +21,7 @@ namespace Dryv.Translation.Translators
                 return false;
             }
 
-            context.Writer.Write("$ctx.format(");
+            context.Writer.Write("$ctx.dryv.format(");
             context.Translator.Translate(methodCallExpression.Object, context);
             context.Writer.Write($@", ""{methodCallExpression.Object.GetOriginalType().Name.ToLower()}""");
             
