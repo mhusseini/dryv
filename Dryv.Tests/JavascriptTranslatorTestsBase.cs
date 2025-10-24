@@ -123,6 +123,8 @@ namespace Dryv.Tests
             public bool BooleanValue { get; set; }
 
             public IEnumerable<int> IntItems { get; set; }
+            
+            public int IntItem { get; set; }
 
             public IEnumerable<string> Items { get; set; }
 

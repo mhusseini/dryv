@@ -1,5 +1,6 @@
 ﻿using System.Linq;
 using System.Linq.Expressions;
+using Dryv.Extensions;
 
 namespace Dryv.Translation.Translators
 {
@@ -15,14 +16,23 @@ namespace Dryv.Translation.Translators
                 return false;
             }
 
-            if (methodCallExpression.Method.Name != nameof(this.ToString) || methodCallExpression.Arguments.Any())
+            if (methodCallExpression.Method.Name != nameof(this.ToString) || methodCallExpression.Object == null)
             {
                 return false;
             }
 
+            context.Writer.Write("$ctx.format(");
             context.Translator.Translate(methodCallExpression.Object, context);
-            context.Writer.Write(".toString()");
+            context.Writer.Write($@", ""{methodCallExpression.Object.GetOriginalType().Name.ToLower()}""");
+            
+            if (methodCallExpression.Arguments.Any())
+            {
+                context.Writer.Write(", ");
+                context.Translator.Translate(methodCallExpression.Arguments.First(), context);
+            }
 
+            context.Writer.Write(")");
+            
             return true;
         }
     }

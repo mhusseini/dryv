@@ -4,7 +4,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using Dryv.Reflection;
 
 namespace Dryv.Extensions
 {
@@ -16,6 +15,15 @@ namespace Dryv.Extensions
         static ExpressionExtensions()
         {
             DefaultMethod = typeof(ExpressionExtensions).GetMethods().First(m => m.Name == nameof(GetDefaultValue) && m.IsGenericMethod);
+        }
+
+        public static Type GetOriginalType(this Expression expression)
+        {
+            return expression switch
+            {
+                UnaryExpression e when e.Type == typeof(object) && e.NodeType == ExpressionType.Convert => e.Operand.GetOriginalType(),
+                _ => expression.GetExpressionType()
+            };
         }
 
         public static bool IsStaticMemberAccess(this Expression expression)

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Linq.Expressions;
+using Dryv.Extensions;
 
 namespace Dryv.Translation.Translators
 {
@@ -36,17 +37,17 @@ namespace Dryv.Translation.Translators
             var stringComparison = (from exp in expression.Arguments
                 let constExp = exp as ConstantExpression
                 where constExp?.Value is StringComparison
-                select (StringComparison?) constExp.Value).FirstOrDefault();
+                select (StringComparison?)constExp.Value).FirstOrDefault();
 
             if (stringComparison == null)
             {
                 return false;
             }
 
-            switch ((int) stringComparison.Value)
+            switch ((int)stringComparison.Value)
             {
-                case (int) StringComparison.CurrentCultureIgnoreCase:
-                case (int) StringComparison.OrdinalIgnoreCase:
+                case (int)StringComparison.CurrentCultureIgnoreCase:
+                case (int)StringComparison.OrdinalIgnoreCase:
                 case 3: // StringComparison.InvariantCultureIgnoreCase:
                     // As stated above, locale hadling isn't very easy on the client side, so we'll just
                     // strick to simple case-insensitive sring comparison here.
@@ -188,7 +189,7 @@ namespace Dryv.Translation.Translators
             context.Writer.Write(context.Negated ? "!==" : " === ");
 
 
-            WriteArguments(context.Translator, new[] {value2}, context);
+            WriteArguments(context.Translator, new[] { value2 }, context);
             if (isCaseInsensitive)
             {
                 context.Writer.Write(".toLowerCase()");
@@ -222,7 +223,7 @@ namespace Dryv.Translation.Translators
                 ? nar.Expressions.Cast<object>().ToArray()
                 : skipped.Cast<object>().ToArray();
 
-            var parts = StringFormatDissector.Recombine(pattern.Value.ToString(), arguments);
+            var parts = StringFormatDissector.Recombine(pattern.Value.ToString(), arguments).Where(o => o != null && (!(o is string s) || !string.IsNullOrWhiteSpace(s))).ToList();
 
             for (var index = 0; index < parts.Count; index++)
             {
@@ -244,8 +245,19 @@ namespace Dryv.Translation.Translators
 
                         break;
 
-                    case Expression exp:
-                        context.Translator.Translate(exp, context);
+                    case (Expression exp, string format):
+                        if (string.IsNullOrWhiteSpace(format))
+                        {
+                            context.Translator.Translate(exp, context);
+                        }
+                        else
+                        {
+                            context.Writer.Write("$ctx.format(");
+                            context.Translator.Translate(exp, context);
+                            context.Writer.Write($@", ""{exp.GetOriginalType().Name.ToLower()}"", ""{format}""");
+                            context.Writer.Write(")");
+                        }
+
                         break;
                 }
             }

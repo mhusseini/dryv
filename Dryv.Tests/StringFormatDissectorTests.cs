@@ -14,9 +14,9 @@ namespace Dryv.Tests
 
             Assert.AreEqual(5, parts.Count);
             Assert.AreEqual(typeof(string), parts[0].GetType());
-            Assert.AreEqual(typeof(int), parts[1].GetType());
+            Assert.AreEqual(typeof((int, string)), parts[1].GetType());
             Assert.AreEqual(typeof(string), parts[2].GetType());
-            Assert.AreEqual(typeof(int), parts[3].GetType());
+            Assert.AreEqual(typeof((int, string)), parts[3].GetType());
             Assert.AreEqual(typeof(string), parts[4].GetType());
         }
 
@@ -27,7 +27,7 @@ namespace Dryv.Tests
             var parts = translator.Recombine("test {0} is {1} but {{2}} isn't.", new object[] { "pattern", "cool" });
             var text = string.Concat(parts);
 
-            Assert.AreEqual("test pattern is cool but {{2}} isn't.", text);
+            Assert.AreEqual("test (pattern, ) is (cool, ) but {{2}} isn't.", text);
         }
     }
 }

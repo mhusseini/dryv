@@ -61,7 +61,7 @@ namespace Dryv.Translation.Translators
                 ? DateTimeOffsetFormatExpression
                 : DateTimeFormatExpression;
 
-            context.Writer.Write("$ctx.dryv.valueOfDate(");
+            context.Writer.Write("$ctx.dryv.parseDate(");
             context.Translator.Translate(node, context);
             context.Writer.Write(",");
             context.Translator.Translate(CultureNameExpression.Body, context);
