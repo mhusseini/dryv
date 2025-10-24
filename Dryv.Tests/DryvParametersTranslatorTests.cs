@@ -19,7 +19,7 @@ namespace Dryv.Tests
             var expression = Expression(m =>
                 m.Text == new DryvParameters(null).Get<string>(parameterName)
                     ? DryvValidationResult.Success
-                    : DryvValidationResult.Error("Parameter value doesn't match".ToFormattedString()));
+                    : DryvValidationResult.Error("Parameter value doesn't match"));
 
             // Act
             var jsProgram = GetTranslatedAst(expression, [new DryvParametersTranslator(new DryvOptions())]);

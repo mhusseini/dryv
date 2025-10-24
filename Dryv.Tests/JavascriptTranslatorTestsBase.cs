@@ -96,14 +96,14 @@ namespace Dryv.Tests
                 new StringTranslator(),
                 new EnumerableTranslator(),
                 new DryvParametersTranslator(new DryvOptions { DisableParameterInjection = true }),
-                new FormattingExtensionsTranslator()
             };
 
             var customTranslators = new Collection<IDryvCustomTranslator>
             {
                 new RegexTranslator(),
                 new DryvValidationResultTranslator(),
-                new ObjectTranslator()
+                new ObjectTranslator(),
+                new DateTimeTranslator(new DryvOptions()),
             };
 
             if (translators != null)

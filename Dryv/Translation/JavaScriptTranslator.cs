@@ -457,7 +457,7 @@ namespace Dryv.Translation
 
         public override void Visit(MethodCallExpression expression, TranslationContext context, bool negated = false)
         {
-            if (!HasMethodCallTranslator(expression) && TryWriteInjectedExpression(expression, context))
+            if (TryWriteInjectedExpression(expression, context))
             {
                 return;
             }

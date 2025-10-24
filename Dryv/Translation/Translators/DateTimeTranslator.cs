@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Linq.Expressions;
 using Dryv.Configuration;
@@ -11,6 +12,14 @@ namespace Dryv.Translation.Translators
         private static readonly Expression<Func<string>> CultureNameExpression = () => CultureInfo.CurrentUICulture.Name;
         private static readonly Expression<Func<string>> DateTimeOffsetFormatExpression = () => MomentJsFormatConverter.ConvertFormat($"{CultureInfo.CurrentUICulture.DateTimeFormat.ShortDatePattern} {CultureInfo.CurrentUICulture.DateTimeFormat.LongTimePattern} zzz");
         private static readonly Expression<Func<string>> DateTimeFormatExpression = () => MomentJsFormatConverter.ConvertFormat($"{CultureInfo.CurrentUICulture.DateTimeFormat.ShortDatePattern} {CultureInfo.CurrentUICulture.DateTimeFormat.LongTimePattern}");
+
+        private readonly HashSet<Type> dateTimeTypes = new HashSet<Type>()
+        {
+            typeof(DateTime),
+            typeof(DateTimeOffset),
+            typeof(DateTime?),
+            typeof(DateTimeOffset?)
+        };
 
         public DateTimeTranslator(DryvOptions options)
         {
@@ -27,21 +36,10 @@ namespace Dryv.Translation.Translators
         public bool TryTranslate(CustomTranslationContext context)
         {
             if (ExpressionInjectionHelper.GetInjectionParameters(this.options, context.Expression, context) != null ||
-                !(context.Expression is BinaryExpression binary))
-            {
-                return false;
-            }
-
-            if (binary.Left is ConstantExpression { Value: null } ||
-                binary.Right is ConstantExpression { Value: null })
-            {
-                return false;
-            }
-
-            if ((binary.Left.Type != typeof(DateTime) || binary.Right.Type != typeof(DateTime)) &&
-                (binary.Left.Type != typeof(DateTimeOffset) || binary.Right.Type != typeof(DateTimeOffset)) &&
-                (binary.Left.Type != typeof(DateTime?) || binary.Right.Type != typeof(DateTime?)) &&
-                (binary.Left.Type != typeof(DateTimeOffset?) || binary.Right.Type != typeof(DateTimeOffset?)))
+                !(context.Expression is BinaryExpression binary) ||
+                binary.Left is ConstantExpression { Value: null } ||
+                binary.Right is ConstantExpression { Value: null } ||
+                !dateTimeTypes.Contains(binary.Left.Type) && !dateTimeTypes.Contains(binary.Right.Type))
             {
                 return false;
             }
