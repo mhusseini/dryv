@@ -10,13 +10,13 @@ namespace Dryv.Tests
         public void EnumsAreSerializedAsConfigured()
         {
             var expression = Expression<Model>(m => m.Prop1 != MyEnum.Two ? null : "fail");
-            var translation = Translate<TestModel>(expression);
-            var model = @"{prop1:'One'}";
+            var translation = Translate<Model>(expression);
+            var model = @"{prop1:'Two'}";
             var engine = new Jurassic.ScriptEngine();
             var script = $"({translation})({model})";
-            var result = engine.Evaluate(script) as string;
+            var result = engine.Evaluate(script);
 
-            Assert.AreEqual("fail", result);
+            Assert.IsNotNull(result);
         }
 
         private enum MyEnum

@@ -202,12 +202,12 @@ namespace Dryv.Tests
         {
             var expression = Expression(m => m.Items.Min(i => i.Length).ToString());
             var translation = Translate<TestModel>(expression);
-            var model = @"{items:['1', '2']}";
+            var model = @"{items:['12', '123']}";
             var engine = new ScriptEngine();
             var script = $"({translation})({model})";
             var result = engine.Evaluate(script);
 
-            Assert.AreEqual("1", result);
+            Assert.AreEqual("2", result);
         }
 
         [TestMethod]

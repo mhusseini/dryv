@@ -278,7 +278,7 @@ namespace Dryv.Translation.Translators
             }
 
             context.Writer.Write(".indexOf(");
-            context.Translator.Translate(arguments[1], context);
+            context.Translator.Translate(arguments[0], context);
             if (isCaseInsensitive)
             {
                 context.Writer.Write(".toLowerCase()");

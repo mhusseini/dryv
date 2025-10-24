@@ -144,7 +144,7 @@ namespace Dryv.Translation
             if (!this.customTranslators.Any(t => t.TryTranslate(context2)) &&
                 !context.DynamicTranslation.Any(t => t(expression, context2)))
             {
-                this.Visit((dynamic) expression, context2, negated);
+                this.Visit((dynamic)expression, context2, negated);
             }
             else if (context2.IsAsync)
             {
@@ -218,7 +218,7 @@ namespace Dryv.Translation
                 if (!TryWriteTerminal(expression, context.Writer))
                 {
                     throw expression.Method != null
-                        ? (Exception) new DryvMethodNotSupportedException(expression)
+                        ? (Exception)new DryvMethodNotSupportedException(expression)
                         : new DryvExpressionNotSupportedException(expression);
                 }
             }
@@ -457,7 +457,7 @@ namespace Dryv.Translation
 
         public override void Visit(MethodCallExpression expression, TranslationContext context, bool negated = false)
         {
-            if (TryWriteInjectedExpression(expression, context))
+            if (!HasMethodCallTranslator(expression) && TryWriteInjectedExpression(expression, context))
             {
                 return;
             }
@@ -572,7 +572,7 @@ namespace Dryv.Translation
                     this.Translate(expression.Operand, context);
                     context.Writer.Write(".length");
                     return;
-                
+
                 case ExpressionType.Not:
                     negatedExpression = true;
                     break;
@@ -606,7 +606,7 @@ namespace Dryv.Translation
                             var enumValue = Enum.ToObject(enumType, value);
                             context.Writer.Write(this.TranslateValue(enumValue));
                         }
-                        
+
                         return;
                     }
 
@@ -671,6 +671,13 @@ namespace Dryv.Translation
             }
 
             return expression;
+        }
+
+        private bool HasMethodCallTranslator(MethodCallExpression expression)
+        {
+            var objectType = expression.Object?.Type ?? expression.Method.DeclaringType;
+            return this.methodCallTranslators
+                .Any(t => t.SupportsType(objectType));
         }
 
         private void TranslateMethodCall(MethodCallExpression expression, TranslationContext context, bool negated)

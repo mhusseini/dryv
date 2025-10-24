@@ -1,5 +1,6 @@
 using System.Linq;
 using Dryv.Configuration;
+using Dryv.Extensions;
 using Dryv.Rules;
 using Dryv.Translation.Translators;
 using Escape.Ast;
@@ -18,7 +19,7 @@ namespace Dryv.Tests
             var expression = Expression(m =>
                 m.Text == new DryvParameters(null).Get<string>(parameterName)
                     ? DryvValidationResult.Success
-                    : DryvValidationResult.Error("Parameter value doesn't match"));
+                    : DryvValidationResult.Error("Parameter value doesn't match".ToFormattedString()));
 
             // Act
             var jsProgram = GetTranslatedAst(expression, [new DryvParametersTranslator(new DryvOptions())]);

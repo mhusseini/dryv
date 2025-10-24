@@ -47,7 +47,7 @@ namespace Dryv.Translation.Translators
         {
             context.Writer.Write("(function(){var _c = 0; return ");
             Reduce(context, "++_c; return a + b");
-            context.Writer.Write(" / (_c > 0 ? _c + 1 : 0);})()");
+            context.Writer.Write(" / (_c > 0 ? _c : 0);})()");
         }
 
         protected static void Contains(MethodTranslationContext context)
@@ -150,12 +150,16 @@ namespace Dryv.Translation.Translators
 
         protected static void Max(MethodTranslationContext context)
         {
-            Reduce(context, "return a < b ? b : a");
+            context.Writer.Write("Math.max.apply(null, ");
+            Translate(context, "map");
+            context.Writer.Write(")");
         }
 
         protected static void Min(MethodTranslationContext context)
         {
-            Reduce(context, "return a > b ? b : a");
+            context.Writer.Write("Math.min.apply(null, ");
+            Translate(context, "map");
+            context.Writer.Write(")");
         }
 
         protected static void Select(MethodTranslationContext context)

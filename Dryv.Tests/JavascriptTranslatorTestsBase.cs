@@ -95,7 +95,8 @@ namespace Dryv.Tests
                 new DryvValidationResultTranslator(),
                 new StringTranslator(),
                 new EnumerableTranslator(),
-                new DryvParametersTranslator(new DryvOptions { DisableParameterInjection = true })
+                new DryvParametersTranslator(new DryvOptions { DisableParameterInjection = true }),
+                new FormattingExtensionsTranslator()
             };
 
             var customTranslators = new Collection<IDryvCustomTranslator>

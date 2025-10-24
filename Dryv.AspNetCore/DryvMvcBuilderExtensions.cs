@@ -63,6 +63,7 @@ namespace Dryv.AspNetCore
             options.Translators.Add<CustomCodeTranslator>();
             options.Translators.Add<FormFileCollectionTranslator>();
             options.Translators.Add<FormFileTranslator>();
+            options.Translators.Add<FormattingExtensionsTranslator>();
 
             setupAction?.Invoke(options);
 
