@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
@@ -178,6 +179,30 @@ namespace Dryv.Tests
         }
 
         [TestMethod]
+        public void FindDifferentRulesFromDryvValidationAttributeOnProperty()
+        {
+            var nameProperty = typeof(ChildModel).GetProperty(nameof(ChildModel.Name));
+            var addressProperty = typeof(ChildModel).GetProperty(nameof(ChildModel.Address));
+
+            var allRules = sut.FindValidationRulesInTree(typeof(ModelWithAttributeOnProperty), RuleType.Validation);
+
+            // Rules for Child.Name should exist (from ChildModelRules) - ModelPath is camelCase
+            var childNameRules = allRules.Where(r => r.Property == nameProperty && r.ModelPath == "child.name").ToList();
+            Assert.IsTrue(childNameRules.Any(), "Rules for Child.Name should be found");
+
+            // Rules for OtherChild.Address should exist (from ChildModelOtherRules)
+            var otherChildAddressRules = allRules.Where(r => r.Property == addressProperty && r.ModelPath == "otherChild.address").ToList();
+            Assert.IsTrue(otherChildAddressRules.Any(), "Rules for OtherChild.Address should be found");
+
+            // Verify rules are distinct: Child should NOT have Address rule, OtherChild should NOT have Name rule
+            var childAddressRules = allRules.Where(r => r.Property == addressProperty && r.ModelPath?.StartsWith("child.") == true && !r.ModelPath.StartsWith("otherChild.")).ToList();
+            Assert.IsFalse(childAddressRules.Any(), "Child should not have Address validation rules");
+
+            var otherChildNameRules = allRules.Where(r => r.Property == nameProperty && r.ModelPath?.StartsWith("otherChild.") == true).ToList();
+            Assert.IsFalse(otherChildNameRules.Any(), "OtherChild should not have Name validation rules");
+        }
+
+        [TestMethod]
         public void FindRulesFromDryvValidationAttributeOnField()
         {
             var property = typeof(ChildModel).GetProperty(nameof(ChildModel.Name));
@@ -315,6 +340,9 @@ namespace Dryv.Tests
         {
             [DryvValidation(typeof(ChildModelRules))]
             public ChildModel Child { get; set; }
+
+            [DryvValidation(typeof(ChildModelOtherRules))]
+            public ChildModel OtherChild { get; set; }
         }
 
         private class ModelWithAttributeOnField
@@ -326,6 +354,7 @@ namespace Dryv.Tests
         private class ChildModel
         {
             public string Name { get; set; }
+            public string Address { get; set; }
         }
 
         private class ChildModelRules
@@ -335,6 +364,16 @@ namespace Dryv.Tests
                 .Rule(m => m.Name,
                     m => string.IsNullOrWhiteSpace(m.Name)
                         ? "Name is required"
+                        : null);
+        }
+
+        private class ChildModelOtherRules
+        {
+            public static DryvRules Rules = DryvRules
+                .For<ChildModel>()
+                .Rule(m => m.Address,
+                    m => string.IsNullOrWhiteSpace(m.Name)
+                        ? "Address is required"
                         : null);
         }
     }

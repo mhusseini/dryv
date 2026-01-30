@@ -57,9 +57,9 @@ namespace Dryv.RuleDetection
                 var result = new List<DryvCompiledRule>();
                 var tree = this.treeBuilder.Build(rootType);
                 var flatTree = tree.Iterate(t => t.Children.Select(c => c.Child).Where(c => c != null)).ToList();
-                var rules = FindRulesInModelTree(rootType, ruleType, new HashSet<Type>()).ToList();
+                var scopedRules = FindRulesInModelTree(rootType, ruleType, new HashSet<Type>(), null).ToList();
 
-                foreach (var rule in rules)
+                foreach (var (rule, scopePath) in scopedRules)
                 {
                     if (this.annotators != null)
                     {
@@ -69,7 +69,7 @@ namespace Dryv.RuleDetection
                         }
                     }
 
-                    var nodes = GetNodesForRule(flatTree, rule);
+                    var nodes = GetNodesForRule(flatTree, rule, scopePath);
                     result.AddRange(nodes.Select(node => this.ApplyRuleToNode(node, rule)));
                 }
 
@@ -77,7 +77,7 @@ namespace Dryv.RuleDetection
             });
         }
 
-        private static IEnumerable<DryvCompiledRule> FindRulesInModelTree(Type rootType, RuleType ruleType, ICollection<Type> processed)
+        private static IEnumerable<(DryvCompiledRule Rule, string ScopePath)> FindRulesInModelTree(Type rootType, RuleType ruleType, ICollection<Type> processed, string currentPath)
         {
             if (processed.Contains(rootType))
             {
@@ -94,43 +94,45 @@ namespace Dryv.RuleDetection
                                  from rule in FindRulesOnType(type, ruleType)
                                  select rule)
             {
-                yield return rule;
+                yield return (rule, currentPath);
             }
 
-            foreach (var rule in from type in baseTypes
+            foreach (var scopedRule in from type in baseTypes
                                  from attribute in type.GetTypeInfo().GetCustomAttributes<DryvValidationAttribute>()
                                  where attribute.RuleContainerType != null
-                                 from rule in FindRulesInModelTree(attribute.RuleContainerType, ruleType, processed)
-                                 select rule)
+                                 from scopedRule in FindRulesInModelTree(attribute.RuleContainerType, ruleType, processed, currentPath)
+                                 select scopedRule)
             {
-                yield return rule;
+                yield return scopedRule;
             }
 
-            foreach (var rule in from property in rootType.GetProperties(BindingFlagsForProperties)
+            foreach (var scopedRule in from property in rootType.GetProperties(BindingFlagsForProperties)
                                  let propertyType = GetElementTypeOrSelf(property.PropertyType)
                                  where propertyType.Namespace != typeof(object).Namespace
-                                 from rule in FindRulesInModelTree(propertyType, ruleType, processed)
-                                 select rule)
+                                 from scopedRule in FindRulesInModelTree(propertyType, ruleType, processed, currentPath)
+                                 select scopedRule)
             {
-                yield return rule;
+                yield return scopedRule;
             }
 
-            foreach (var rule in from property in rootType.GetProperties(BindingFlagsForProperties)
+            foreach (var scopedRule in from property in rootType.GetProperties(BindingFlagsForProperties)
                                  from attribute in property.GetCustomAttributes<DryvValidationAttribute>()
                                  where attribute.RuleContainerType != null
-                                 from rule in FindRulesInModelTree(attribute.RuleContainerType, ruleType, processed)
-                                 select rule)
+                                 let propertyPath = string.IsNullOrEmpty(currentPath) ? property.Name : currentPath + "." + property.Name
+                                 from scopedRule in FindRulesInModelTree(attribute.RuleContainerType, ruleType, new HashSet<Type>(processed), propertyPath)
+                                 select scopedRule)
             {
-                yield return rule;
+                yield return scopedRule;
             }
 
-            foreach (var rule in from field in rootType.GetTypeInfo().DeclaredFields
+            foreach (var scopedRule in from field in rootType.GetTypeInfo().DeclaredFields
                                  from attribute in field.GetCustomAttributes<DryvValidationAttribute>()
                                  where attribute.RuleContainerType != null
-                                 from rule in FindRulesInModelTree(attribute.RuleContainerType, ruleType, processed)
-                                 select rule)
+                                 let fieldPath = string.IsNullOrEmpty(currentPath) ? field.Name : currentPath + "." + field.Name
+                                 from scopedRule in FindRulesInModelTree(attribute.RuleContainerType, ruleType, new HashSet<Type>(processed), fieldPath)
+                                 select scopedRule)
             {
-                yield return rule;
+                yield return scopedRule;
             }
         }
 
@@ -171,7 +173,7 @@ namespace Dryv.RuleDetection
             return path + sep + property.Name.ToCamelCase();
         }
 
-        private static IEnumerable<ModelTreeNode> GetNodesForRule(List<ModelTreeNode> flatTree, DryvCompiledRule rule)
+        private static IEnumerable<ModelTreeNode> GetNodesForRule(List<ModelTreeNode> flatTree, DryvCompiledRule rule, string scopePath)
         {
             var rulePropertyName = rule.Property.Name;
             var rulePropertyType = rule.Property.PropertyType;
@@ -197,9 +199,17 @@ namespace Dryv.RuleDetection
                     return false;
 
                 var nodeDeclaringType = lastMember.DeclaringType;
-                return ruleDeclaringType != null && 
-                       nodeDeclaringType != null && 
-                       ruleDeclaringType.IsAssignableFrom(nodeDeclaringType);
+                if (ruleDeclaringType == null || nodeDeclaringType == null || !ruleDeclaringType.IsAssignableFrom(nodeDeclaringType))
+                    return false;
+
+                // If scopePath is set, the node's path must start with it
+                if (!string.IsNullOrEmpty(scopePath))
+                {
+                    var nodePath = string.Join(".", n.Hierarchy.Select(m => m.Name));
+                    return nodePath.StartsWith(scopePath + ".");
+                }
+
+                return true;
             });
         }
 
