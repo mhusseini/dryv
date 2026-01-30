@@ -227,6 +227,26 @@ namespace Dryv.RuleDetection
             return type;
         }
 
+        private static bool HasCollectionInPath(ModelTreeNode node)
+        {
+            if (node.Hierarchy == null || node.Hierarchy.Count <= 1)
+                return false;
+
+            foreach (var member in node.Hierarchy.Take(node.Hierarchy.Count - 1))
+            {
+                var type = member switch
+                {
+                    PropertyInfo p => p.PropertyType,
+                    FieldInfo f => f.FieldType,
+                    _ => null
+                };
+                if (type != null && type != GetElementTypeOrSelf(type))
+                    return true;
+            }
+
+            return false;
+        }
+
         private static Type TransposeExpressions(ModelTreeNode node, DryvCompiledRule rule, out LambdaExpression newValidationExpression, out string transposedPath)
         {
             var firstMember = node.Hierarchy.First();
@@ -274,8 +294,8 @@ namespace Dryv.RuleDetection
             Type modelType;
             string transposedPath = null;
 
-            var nodeDeclaringType = node.Hierarchy?.LastOrDefault()?.DeclaringType;
-            if (node.UniquePath != rule.UniquePath && nodeDeclaringType != rule.ModelType)
+            var hasCollectionInPath = HasCollectionInPath(node);
+            if (node.UniquePath != rule.UniquePath && !hasCollectionInPath)
             {
                 modelType = TransposeExpressions(node, rule, out newValidationExpression, out transposedPath);
             }

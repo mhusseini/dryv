@@ -191,7 +191,7 @@ namespace Dryv.Tests
             var translation = Translate<TestModel>(expression);
             var model = @"{items:['1', '12']}";
             var engine = new ScriptEngine();
-            var script = $"({translation})({model}, {{ format(v){{ return v.toString() }} }})";
+            var script = $"({translation})({model}, {{ dryv: {{ format(v){{ return v.toString() }} }} }})";
             var result = engine.Evaluate(script);
 
             Assert.AreEqual("2", result);
@@ -204,7 +204,7 @@ namespace Dryv.Tests
             var translation = Translate<TestModel>(expression);
             var model = @"{items:['12', '123']}";
             var engine = new ScriptEngine();
-            var script = $"({translation})({model}, {{ format(v){{ return v.toString() }} }})";
+            var script = $"({translation})({model}, {{ dryv: {{ format(v){{ return v.toString() }} }} }})";
             var result = engine.Evaluate(script);
 
             Assert.AreEqual("2", result);
@@ -257,7 +257,7 @@ namespace Dryv.Tests
             var translation = Translate<TestModel>(expression);
             var model = @"{intItems:[1, 2]}";
             var engine = new ScriptEngine();
-            var script = $"({translation})({model}, {{ format(v){{ return v.toString() }} }})";
+            var script = $"({translation})({model}, {{ dryv: {{ format(v){{ return v.toString() }} }} }})";
             var result = engine.Evaluate(script);
 
             Assert.AreEqual("6", result);
