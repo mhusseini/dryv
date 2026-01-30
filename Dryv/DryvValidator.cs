@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -149,11 +149,14 @@ namespace Dryv
 
         private Exception ThrowValidationException(object model, DryvCompiledRule rule, Exception innerException, RuleType ruleType)
         {
-            var json = this.options.JsonConversion(model);
-            var expressionText = rule.ValidationExpression.ToString();
-            var sb = new StringBuilder($"An error occurred executing the {ruleType.ToString().ToLowerInvariant()} expression '{expressionText}' for property '{rule.Property.DeclaringType.Name}.{rule.Property.Name}'. See the inner exception for details.");
-            if (this.options.IncludeModelDataInExceptions)
+            var expressionText = rule?.ValidationExpression?.ToString() ?? "unknown";
+            var propertyName = rule?.Property != null 
+                ? $"{rule.Property.DeclaringType?.Name ?? "Unknown"}.{rule.Property.Name}" 
+                : "unknown property";
+            var sb = new StringBuilder($"An error occurred executing the {ruleType.ToString().ToLowerInvariant()} expression '{expressionText}' for property '{propertyName}'. See the inner exception for details.");
+            if (this.options?.IncludeModelDataInExceptions == true)
             {
+                var json = this.options.JsonConversion?.Invoke(model) ?? model?.ToString();
                 sb.AppendLine("The model being validated is:");
                 sb.Append(json);
             }

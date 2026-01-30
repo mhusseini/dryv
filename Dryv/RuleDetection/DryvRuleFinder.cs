@@ -44,6 +44,12 @@ namespace Dryv.RuleDetection
             this.options = options;
         }
 
+        public static void ClearCache()
+        {
+            CompiledRuleCache.Clear();
+            CompiledRuleTreeCache.Clear();
+        }
+
         public IEnumerable<DryvCompiledRule> FindValidationRulesInTree(Type rootType, RuleType ruleType)
         {
             return CompiledRuleTreeCache.GetOrAdd($"{rootType.FullName}|{ruleType}", _ =>
@@ -101,8 +107,9 @@ namespace Dryv.RuleDetection
             }
 
             foreach (var rule in from property in rootType.GetProperties(BindingFlagsForProperties)
-                                 where property.PropertyType.Namespace != typeof(object).Namespace
-                                 from rule in FindRulesInModelTree(property.PropertyType, ruleType, processed)
+                                 let propertyType = GetElementTypeOrSelf(property.PropertyType)
+                                 where propertyType.Namespace != typeof(object).Namespace
+                                 from rule in FindRulesInModelTree(propertyType, ruleType, processed)
                                  select rule)
             {
                 yield return rule;
@@ -166,13 +173,58 @@ namespace Dryv.RuleDetection
 
         private static IEnumerable<ModelTreeNode> GetNodesForRule(List<ModelTreeNode> flatTree, DryvCompiledRule rule)
         {
-            var path = rule.UniquePath + ":" + rule.Property.PropertyType.GetNonGenericName();
-            return flatTree.FindAll(n => n.UniquePath.EndsWith(path));
+            var rulePropertyName = rule.Property.Name;
+            var rulePropertyType = rule.Property.PropertyType;
+            var ruleDeclaringType = rule.Property.DeclaringType;
+
+            return flatTree.FindAll(n =>
+            {
+                if (n.Hierarchy == null || n.Hierarchy.Count == 0)
+                    return false;
+
+                var lastMember = n.Hierarchy.Last();
+                if (lastMember.Name != rulePropertyName)
+                    return false;
+
+                var memberType = lastMember switch
+                {
+                    PropertyInfo p => p.PropertyType,
+                    FieldInfo f => f.FieldType,
+                    _ => null
+                };
+
+                if (memberType != rulePropertyType)
+                    return false;
+
+                var nodeDeclaringType = lastMember.DeclaringType;
+                return ruleDeclaringType != null && 
+                       nodeDeclaringType != null && 
+                       ruleDeclaringType.IsAssignableFrom(nodeDeclaringType);
+            });
         }
 
         private static IEnumerable<DryvCompiledRule> GetRulesOfType(DryvRules rules, RuleType ruleType)
         {
             return ruleType == RuleType.Disabling ? rules.DisablingRules : rules.ValidationRules;
+        }
+
+        private static Type GetElementTypeOrSelf(Type type)
+        {
+            if (type.IsArray)
+            {
+                return type.GetElementType() ?? type;
+            }
+
+            if (type.IsGenericType && typeof(System.Collections.IEnumerable).IsAssignableFrom(type))
+            {
+                var genericArgs = type.GetGenericArguments();
+                if (genericArgs.Length > 0)
+                {
+                    return genericArgs[0];
+                }
+            }
+
+            return type;
         }
 
         private static Type TransposeExpressions(ModelTreeNode node, DryvCompiledRule rule, out LambdaExpression newValidationExpression, out string transposedPath)
@@ -222,7 +274,8 @@ namespace Dryv.RuleDetection
             Type modelType;
             string transposedPath = null;
 
-            if (node.UniquePath != rule.UniquePath)
+            var nodeDeclaringType = node.Hierarchy?.LastOrDefault()?.DeclaringType;
+            if (node.UniquePath != rule.UniquePath && nodeDeclaringType != rule.ModelType)
             {
                 modelType = TransposeExpressions(node, rule, out newValidationExpression, out transposedPath);
             }
@@ -239,6 +292,8 @@ namespace Dryv.RuleDetection
                 }
             }
 
+            var concreteProperty = node.Hierarchy?.LastOrDefault() as PropertyInfo ?? rule.Property;
+
             var transposedRule = new DryvCompiledRule
             {
                 ModelType = modelType,
@@ -252,8 +307,8 @@ namespace Dryv.RuleDetection
                 Group = rule.Group,
                 Name = rule.Name,
                 RuleType = rule.RuleType,
-                ModelPath = GetEffectiveModelPath(rule.ModelPath, transposedPath, rule.Property),
-                Property = rule.Property,
+                ModelPath = GetEffectiveModelPath(rule.ModelPath, transposedPath, concreteProperty),
+                Property = concreteProperty,
                 UniquePath = rule.UniquePath,
                 Parameters = rule.Parameters,
                 Annotations = rule.Annotations,
