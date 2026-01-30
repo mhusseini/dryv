@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
@@ -14,11 +14,29 @@ namespace Dryv.RuleDetection
             return this.Build(type, string.Empty, string.Empty, new Dictionary<Type, ModelTreeNode>(), new Stack<MemberInfo>());
         }
 
-        private static IEnumerable<PropertyInfo> GetProperties(Type type)
+        private static IEnumerable<MemberInfo> GetMembers(Type type)
         {
-            return from property in type.GetProperties()
-                   where property.DeclaringType.Namespace != typeof(object).Namespace
-                   select property;
+            var properties = from property in type.GetProperties()
+                             where property.DeclaringType != null && property.DeclaringType.Namespace != typeof(object).Namespace
+                             select (MemberInfo)property;
+
+            var fields = from field in type.GetFields(System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic)
+                         where field.DeclaringType != null && field.DeclaringType.Namespace != typeof(object).Namespace
+                                                              && !field.Name.StartsWith("<")
+                                                              && field.GetCustomAttributes(typeof(DryvValidationAttribute), true).Any()
+                         select (MemberInfo)field;
+
+            return properties.Concat(fields);
+        }
+
+        private static Type GetMemberType(MemberInfo member)
+        {
+            return member switch
+            {
+                PropertyInfo p => p.PropertyType,
+                FieldInfo f => f.FieldType,
+                _ => throw new InvalidOperationException($"Unsupported member type: {member.GetType()}")
+            };
         }
 
         private ModelTreeNode Build(Type type, string uniquePath, string modelPath, IDictionary<Type, ModelTreeNode> processed, Stack<MemberInfo> hierarchy)
@@ -38,7 +56,7 @@ namespace Dryv.RuleDetection
             {
                 processed.Add(type, node);
 
-                node.Children = GetProperties(type).Select(p =>
+                node.Children = GetMembers(type).Select(p =>
                 {
                     hierarchy.Push(p);
 
@@ -57,17 +75,18 @@ namespace Dryv.RuleDetection
             return node;
         }
 
-        private ModelTreeEdge BuildEdge(ModelTreeNode parent, PropertyInfo property, IDictionary<Type, ModelTreeNode> processed, Stack<MemberInfo> hierarchy)
+        private ModelTreeEdge BuildEdge(ModelTreeNode parent, MemberInfo member, IDictionary<Type, ModelTreeNode> processed, Stack<MemberInfo> hierarchy)
         {
             var index = parent.UniquePath.LastIndexOf(":", StringComparison.OrdinalIgnoreCase);
             if (index < 0) index = 0;
-            var uniquePath = parent.UniquePath.Substring(0, index) + ":" + property.DeclaringType.GetNonGenericName();
+            var uniquePath = parent.UniquePath.Substring(0, index) + ":" + member.DeclaringType.GetNonGenericName();
+            var memberType = GetMemberType(member);
 
             return new ModelTreeEdge
             {
                 Parent = parent,
-                Property = property,
-                Child = this.Build(property.PropertyType, uniquePath + "." + property.Name, parent.ModelPath + "." + property.Name, processed, hierarchy)
+                Member = member,
+                Child = this.Build(memberType, uniquePath + "." + member.Name, parent.ModelPath + "." + member.Name, processed, hierarchy)
             };
         }
     }

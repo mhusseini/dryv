@@ -1,8 +1,8 @@
-﻿using System;
+using System;
 
 namespace Dryv
 {
-    [AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = true)]
     public class DryvValidationAttribute : Attribute
     {
         public DryvValidationAttribute()

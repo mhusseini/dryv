@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using System.Reflection;
 
 namespace Dryv.RuleDetection
@@ -7,8 +7,8 @@ namespace Dryv.RuleDetection
     public class ModelTreeEdge
     {
         public ModelTreeNode Child { get; set; }
-        public string Name => this.Property?.Name;
+        public string Name => this.Member?.Name;
         public ModelTreeNode Parent { get; set; }
-        public PropertyInfo Property { get; set; }
+        public MemberInfo Member { get; set; }
     }
 }

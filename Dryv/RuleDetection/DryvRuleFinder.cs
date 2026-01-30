@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -103,6 +103,24 @@ namespace Dryv.RuleDetection
             foreach (var rule in from property in rootType.GetProperties(BindingFlagsForProperties)
                                  where property.PropertyType.Namespace != typeof(object).Namespace
                                  from rule in FindRulesInModelTree(property.PropertyType, ruleType, processed)
+                                 select rule)
+            {
+                yield return rule;
+            }
+
+            foreach (var rule in from property in rootType.GetProperties(BindingFlagsForProperties)
+                                 from attribute in property.GetCustomAttributes<DryvValidationAttribute>()
+                                 where attribute.RuleContainerType != null
+                                 from rule in FindRulesInModelTree(attribute.RuleContainerType, ruleType, processed)
+                                 select rule)
+            {
+                yield return rule;
+            }
+
+            foreach (var rule in from field in rootType.GetTypeInfo().DeclaredFields
+                                 from attribute in field.GetCustomAttributes<DryvValidationAttribute>()
+                                 where attribute.RuleContainerType != null
+                                 from rule in FindRulesInModelTree(attribute.RuleContainerType, ruleType, processed)
                                  select rule)
             {
                 yield return rule;

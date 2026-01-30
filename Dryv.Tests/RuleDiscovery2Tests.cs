@@ -163,6 +163,30 @@ namespace Dryv.Tests
             Assert.IsTrue(rules.Any());
         }
 
+        [TestMethod]
+        public void FindRulesFromDryvValidationAttributeOnProperty()
+        {
+            var property = typeof(ChildModel).GetProperty(nameof(ChildModel.Name));
+
+            var allRules = sut.FindValidationRulesInTree(typeof(ModelWithAttributeOnProperty), RuleType.Validation);
+            var rules = GetRulesForProperty(allRules, property);
+
+            Assert.IsNotNull(rules);
+            Assert.IsTrue(rules.Any(), "Rules should be found via DryvValidationAttribute on property");
+        }
+
+        [TestMethod]
+        public void FindRulesFromDryvValidationAttributeOnField()
+        {
+            var property = typeof(ChildModel).GetProperty(nameof(ChildModel.Name));
+
+            var allRules = sut.FindValidationRulesInTree(typeof(ModelWithAttributeOnField), RuleType.Validation);
+            var rules = GetRulesForProperty(allRules, property);
+
+            Assert.IsNotNull(rules);
+            Assert.IsTrue(rules.Any(), "Rules should be found via DryvValidationAttribute on field");
+        }
+
         private abstract class CommonRules
         {
             public static readonly DryvRules Text = DryvRules
@@ -283,6 +307,33 @@ namespace Dryv.Tests
         private abstract class ModelBase
         {
             public virtual string Text { get; set; }
+        }
+
+        private class ModelWithAttributeOnProperty
+        {
+            [DryvValidation(typeof(ChildModelRules))]
+            public ChildModel Child { get; set; }
+        }
+
+        private class ModelWithAttributeOnField
+        {
+            [DryvValidation(typeof(ChildModelRules))]
+            public ChildModel Child;
+        }
+
+        private class ChildModel
+        {
+            public string Name { get; set; }
+        }
+
+        private class ChildModelRules
+        {
+            public static DryvRules Rules = DryvRules
+                .For<ChildModel>()
+                .Rule(m => m.Name,
+                    m => string.IsNullOrWhiteSpace(m.Name)
+                        ? "Name is required"
+                        : null);
         }
     }
 }

@@ -11,7 +11,7 @@ namespace Dryv.RuleDetection
             return oldParent.Children.Select(edge => new ModelTreeEdge
                 {
                     Parent = oldParent,
-                    Property = edge.Property,
+                    Member = edge.Member,
                     Child = edge.Child.Copy(newParent, oldModelPath, oldUniquePath, newModelPath, newUniquePath)
                 })
                 .ToList();
