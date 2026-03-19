@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using Dryv.AspNetCore.Internal;
 using Dryv.AspNetCore.PreLoading;
 using Microsoft.Extensions.DependencyInjection;
@@ -15,7 +15,7 @@ namespace Dryv.AspNetCore
 
             mvcBuilder.MvcBuilder.Services.AddSingleton(Options.Create(options));
             mvcBuilder.MvcBuilder.Services.AddSingleton<DryvPreloader>();
-            mvcBuilder.MvcBuilder.Services.AddSingleton(new DryvMvcInitializer(services => services.GetService<DryvPreloader>().Preload()));
+            mvcBuilder.MvcBuilder.Services.AddSingleton(new DryvMvcInitializer(services => services.GetService<DryvPreloader>().Preload(services.GetService)));
 
             return mvcBuilder;
         }
