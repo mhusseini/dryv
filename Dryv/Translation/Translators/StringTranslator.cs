@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Linq;
 using System.Linq.Expressions;
 using Dryv.Extensions;
@@ -254,7 +254,9 @@ namespace Dryv.Translation.Translators
                         {
                             context.Writer.Write("$ctx.dryv.format(");
                             context.Translator.Translate(exp, context);
-                            context.Writer.Write($@", ""{exp.GetOriginalType().Name.ToLower()}"", ""{format}""");
+                            var type = exp.GetOriginalType();
+                            type = Nullable.GetUnderlyingType(type) ?? type;
+                            context.Writer.Write($@", ""{type.Name.ToLower()}"", ""{format}""");
                             context.Writer.Write(")");
                         }
 
