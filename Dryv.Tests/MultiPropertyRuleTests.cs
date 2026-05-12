@@ -144,6 +144,66 @@ namespace Dryv.Tests
         }
 
         [TestMethod]
+        public void MultiPropertyRule_GroupAppearsInJavaScriptValidationResult()
+        {
+            var allRules = sut.FindValidationRulesInTree(typeof(AddressModel), RuleType.Validation);
+            var options = new DryvOptions();
+
+            foreach (var propName in new[] { "Street", "City", "Zip" })
+            {
+                var prop = typeof(AddressModel).GetProperty(propName);
+                var clientRules = allRules.Where(r => r.Property == prop && r.EvaluationLocation.HasFlag(DryvEvaluationLocation.Client)).ToList();
+                var code = clientRules.First().TranslatedValidationExpression(_ => null, new object[] { "" }, options);
+
+                Assert.IsTrue(code.Contains("group: \"street\""),
+                    $"{propName}'s generated JS validation result should contain group: \"street\", but got: {code}");
+            }
+        }
+
+        [TestMethod]
+        public void MultiPropertyRule_SinglePropertyRule_NoGroupInJavaScriptResult()
+        {
+            var emailProperty = typeof(AddressModel).GetProperty(nameof(AddressModel.Email));
+            var allRules = sut.FindValidationRulesInTree(typeof(AddressModel), RuleType.Validation);
+            var clientRules = allRules.Where(r => r.Property == emailProperty && r.EvaluationLocation.HasFlag(DryvEvaluationLocation.Client)).ToList();
+
+            var code = clientRules.First().TranslatedValidationExpression(_ => null, new object[] { "" }, new DryvOptions());
+
+            Assert.IsFalse(code.Contains("group:"),
+                $"Single-property rule should not have group in JS validation result, but got: {code}");
+        }
+
+        [TestMethod]
+        public void MultiPropertyRule_ExplicitGroup_AppearsInJavaScriptResult()
+        {
+            var allRules = sut.FindValidationRulesInTree(typeof(ModelWithExplicitGroup), RuleType.Validation);
+            var options = new DryvOptions();
+
+            var prop = typeof(ModelWithExplicitGroup).GetProperty(nameof(ModelWithExplicitGroup.Field1));
+            var clientRules = allRules.Where(r => r.Property == prop && r.EvaluationLocation.HasFlag(DryvEvaluationLocation.Client)).ToList();
+            var code = clientRules.First().TranslatedValidationExpression(_ => null, new object[] { "" }, options);
+
+            Assert.IsTrue(code.Contains("group: \"my-custom-group\""),
+                $"Explicit group should appear in JS validation result, but got: {code}");
+        }
+
+        [TestMethod]
+        public void MultiPropertyRule_ImplicitStringConversion_IncludesGroupInResult()
+        {
+            var allRules = sut.FindValidationRulesInTree(typeof(ModelWithImplicitConversion), RuleType.Validation);
+            var options = new DryvOptions();
+
+            var prop = typeof(ModelWithImplicitConversion).GetProperty(nameof(ModelWithImplicitConversion.Name));
+            var clientRules = allRules.Where(r => r.Property == prop && r.EvaluationLocation.HasFlag(DryvEvaluationLocation.Client)).ToList();
+
+            Assert.IsTrue(clientRules.Any(), "Name should have client-side rules");
+            var code = clientRules.First().TranslatedValidationExpression(_ => null, new object[] { "" }, options);
+
+            Assert.IsTrue(code.Contains("group: \"name\""),
+                $"Implicit string conversion should include group in JS result, but got: {code}");
+        }
+
+        [TestMethod]
         public void MultiPropertyRule_DumpGeneratedOutput()
         {
             var allRules = sut.FindValidationRulesInTree(typeof(AddressModel), RuleType.Validation);
@@ -202,6 +262,19 @@ namespace Dryv.Tests
 
             public string Field1 { get; set; }
             public string Field2 { get; set; }
+        }
+
+        private class ModelWithImplicitConversion
+        {
+            public static DryvRules Rules = DryvRules
+                .For<ModelWithImplicitConversion>()
+                .Rule(m => m.Name, m => m.Value,
+                    m => string.IsNullOrWhiteSpace(m.Name)
+                        ? "Name is required"
+                        : (DryvValidationResult)null);
+
+            public string Name { get; set; }
+            public string Value { get; set; }
         }
     }
 }

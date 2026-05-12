@@ -583,7 +583,7 @@ namespace Dryv.Translation
                         break;
                     }
 
-                    if (expression.Type == typeof(DryvValidationResult) && string.IsNullOrWhiteSpace(context.Group))
+                    if (expression.Type == typeof(DryvValidationResult))
                     {
                         context.Writer.Write("{ type:\"error\", text:");
                         this.Translate(expression.Operand, context);
