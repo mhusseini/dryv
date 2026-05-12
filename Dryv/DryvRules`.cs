@@ -43,7 +43,8 @@ namespace Dryv
             LambdaExpression enabled,
             DryvRuleSettings settings,
             DryvEvaluationLocation ruleLocation,
-            IEnumerable<Expression<Func<TModel, TProperty>>> relatedProperties)
+            IEnumerable<Expression<Func<TModel, TProperty>>> relatedProperties,
+            string groupOverride = null)
         {
             var ruleDefinition = DryvCompiledRule.Create(property, rule, enabled, ruleLocation, null);
             ruleDefinition.RuleType = RuleType.Validation;
@@ -61,6 +62,11 @@ namespace Dryv
                 ruleDefinition.Group = settings.Group;
             }
 
+            if (!string.IsNullOrWhiteSpace(groupOverride) && string.IsNullOrWhiteSpace(ruleDefinition.Group))
+            {
+                ruleDefinition.Group = groupOverride;
+            }
+
             this.InternalValidationRules.Add(ruleDefinition);
         }
 
@@ -73,10 +79,14 @@ namespace Dryv
         {
             var switchLambda = DelegateToLambda(ruleSwitch, services, true);
 
+            var groupOverride = properties.Count > 1 && string.IsNullOrWhiteSpace(settings?.Group)
+                ? properties[0].GetMemberExpression()?.GetModelPath(false, out _)
+                : null;
+
             foreach (var property in properties)
             {
                 var relatedProperties = properties.Except(new[] { property }).ToList();
-                this.Add(property, rule, switchLambda, settings, DryvEvaluationLocation.Server | DryvEvaluationLocation.Client, relatedProperties);
+                this.Add(property, rule, switchLambda, settings, DryvEvaluationLocation.Server | DryvEvaluationLocation.Client, relatedProperties, groupOverride);
             }
         }
 
@@ -89,10 +99,14 @@ namespace Dryv
         {
             var switchLambda = DelegateToLambda(ruleSwitch, services, true);
 
+            var groupOverride = properties.Count > 1 && string.IsNullOrWhiteSpace(settings?.Group)
+                ? properties[0].GetMemberExpression()?.GetModelPath(false, out _)
+                : null;
+
             foreach (var property in properties)
             {
                 var relatedProperties = properties.Except(new[] { property }).ToList();
-                this.Add(property, rule, switchLambda, settings, DryvEvaluationLocation.Client, relatedProperties);
+                this.Add(property, rule, switchLambda, settings, DryvEvaluationLocation.Client, relatedProperties, groupOverride);
             }
         }
 
