@@ -15,6 +15,19 @@
 
 This package provides the framework-agnostic foundation for Dryv. For ASP.NET Core integration (MVC filters, Tag Helpers, dynamic controllers), see [`Dryv.AspNetCore`](https://www.nuget.org/packages/Dryv.AspNetCore).
 
+
+## Why Dryv?
+
+In a typical web application, validation logic inevitably gets duplicated:
+- **Server-side validation (C#)** is absolutely mandatory for security and data integrity.
+- **Client-side validation (JavaScript)** is essential for providing instant user feedback and a snappy UI.
+
+For straightforward rules (like `[Required]` or `[StringLength]`), ASP.NET Core's built-in Data Annotations do the job perfectly and translate natively to jQuery Validate. But the moment you need **complex validation**—like cross-property checks, conditional rules, or database lookups—you hit a wall. To solve this, developers usually have to:
+1. Write a custom `ValidationAttribute`, use `IValidatableObject`, or integrate a library like `FluentValidation` for the backend.
+2. Manually write custom JavaScript or wire up tedious AJAX calls for the frontend.
+
+**Dryv breaks this cycle by making C# the definitive source of truth.** You write your complex business rules exactly once using C# expression trees. Dryv compiles and executes them on the server, and more importantly, it **translates them into pure JavaScript functions** that run instantly on the client.
+
 ## Installation
 
 ```shell
@@ -347,7 +360,7 @@ Annotations appear in the generated JavaScript rule objects under the `annotatio
 | Enum comparison | String comparison (by default) |
 | `DateTime` comparison | `$ctx.dryv.parseDate(...)` comparison |
 
-See the [full translation reference](https://github.com/mhusseini/dryv#c-to-javascript-translation--in-depth) in the repository root.
+See the [full translation reference](https://github.com/mhusseini/dryv#c-to-javascript-translation--reference) in the repository root.
 
 ## Client-Side Libraries
 

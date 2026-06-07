@@ -14,22 +14,41 @@
 
 ---
 
-Dryv (short for **DRY Validation**) eliminates the need to duplicate validation logic between server and client. You define your rules once as C# expressions, and Dryv:
+Dryv (short for **DRY Validation**) eliminates the headache of duplicating validation logic across your server and client. Simply define your rules once using familiar C# expressions, and Dryv will:
 
-1. **Executes them on the server** during model validation.
-2. **Translates them to JavaScript** for immediate client-side feedback.
+1. **Execute them securely on the server** during standard model validation.
+2. **Translate them into JavaScript** to provide instant, seamless feedback in the browser.
 
-This means your server is always the source of truth, while users get instant validation in the browser — without maintaining two codebases.
+By making your C# backend the single source of truth, Dryv ensures your application remains secure and responsive—without the burden of maintaining two separate codebases.
+
+## Why Dryv?
+
+In a typical web application, validation logic inevitably gets duplicated:
+- **Server-side validation (C#)** is absolutely mandatory for security and data integrity.
+- **Client-side validation (JavaScript)** is essential for providing instant user feedback and a snappy UI.
+
+For straightforward rules (like `[Required]` or `[StringLength]`), ASP.NET Core's built-in Data Annotations do the job perfectly and translate natively to jQuery Validate. But the moment you need **complex validation**—like cross-property checks, conditional rules, or database lookups—you hit a wall. To solve this, developers usually have to:
+1. Write a custom `ValidationAttribute`, use `IValidatableObject`, or integrate a library like `FluentValidation` for the backend.
+2. Manually write custom JavaScript or wire up tedious AJAX calls for the frontend.
+
+**Dryv breaks this cycle by making C# the definitive source of truth.** You write your complex business rules exactly once using C# expression trees. Dryv compiles and executes them on the server, and more importantly, it **translates them into pure JavaScript functions** that run instantly on the client.
+
+**How Dryv stands out:**
+- **vs. DataAnnotations:** Effortlessly handles complex conditional logic, cross-property validation, and dependency injection—areas where basic attributes fall short.
+- **vs. FluentValidation:** While FluentValidation is fantastic for server-side checks, it leaves you hanging on the frontend. Dryv bridges this gap by translating complex logic into JavaScript.
+- **vs. AJAX/Remote Validation:** Dryv translates rules to run *natively* in the browser whenever possible, entirely eliminating network latency. It only falls back to dynamic API endpoints when a rule explicitly requires server-side resources (like a database check).
+- **vs. Frontend Validation Libraries (Vuelidate, Yup, Zod, etc.):** While these libraries are excellent for client-side validation in Vue, React, or Svelte, using them means you still have to manually duplicate and maintain your C# backend logic in JavaScript. Dryv eliminates this duplication by automatically generating the exact validation rules your frontend needs, directly from your C# code.
 
 ## Table of Contents
 
+- [Why Dryv?](#why-dryv)
 - [Features](#features)
 - [Packages](#packages)
 - [Quick Start](#quick-start)
   - [1. Define Rules](#1-define-rules)
   - [2. Register Dryv (ASP.NET Core)](#2-register-dryv-aspnet-core)
   - [3. Render Client Validation](#3-render-client-validation)
-- [Defining Rules](#defining-rules)
+- [Writing Validation Rules](#writing-validation-rules)
   - [Basic Rules](#basic-rules)
   - [Multi-Property Rules](#multi-property-rules)
   - [Async Rules](#async-rules)
@@ -37,8 +56,10 @@ This means your server is always the source of truth, while users get instant va
   - [Disabling Rules](#disabling-rules)
   - [Rule Groups](#rule-groups)
   - [Validation Results (Errors and Warnings)](#validation-results-errors-and-warnings)
-- [Dependency Injection in Rules](#dependency-injection-in-rules)
-- [Rule Parameters](#rule-parameters)
+  - [Dependency Injection in Rules](#dependency-injection-in-rules)
+  - [Rule Parameters](#rule-parameters)
+  - [Rule Annotators](#rule-annotators)
+  - [Testing Rules](#testing-rules)
 - [Rule Discovery](#rule-discovery)
 - [C# to JavaScript Translation](#c-to-javascript-translation)
 - [ASP.NET Core Integration](#aspnet-core-integration)
@@ -49,10 +70,6 @@ This means your server is always the source of truth, while users get instant va
   - [Preloading](#preloading)
   - [Disabling Dryv per Action](#disabling-dryv-per-action)
   - [Validation Sets](#validation-sets)
-- [Standalone / Custom Integration](#standalone--custom-integration)
-  - [Extracting Translated Rules Programmatically](#extracting-translated-rules-programmatically)
-  - [Extracting Rule Parameters](#extracting-rule-parameters)
-  - [Build-Time Code Generation](#build-time-code-generation)
 - [Client-Side Usage](#client-side-usage)
   - [Understanding the Output Format](#understanding-the-output-format)
   - [How the Script Is Rendered on the Page](#how-the-script-is-rendered-on-the-page)
@@ -63,40 +80,13 @@ This means your server is always the source of truth, while users get instant va
   - [Using Parameters on the Client](#using-parameters-on-the-client)
   - [Working with Groups and Related Properties](#working-with-groups-and-related-properties)
   - [Integration with Frontend Frameworks](#integration-with-frontend-frameworks)
-    - [Official Client Libraries: DryvJS and Dryvue](#official-client-libraries-dryvjs-and-dryvue)
-    - [Using DryvJS (Vanilla TypeScript)](#using-dryvjs-vanilla-typescript)
-    - [Using Dryvue (Vue 3)](#using-dryvue-vue-3)
-    - [End-to-End Flow](#end-to-end-flow-dryv-c--dryvjsdryvue)
-    - [Manual Integration (Without DryvJS)](#manual-integration-without-dryvjs)
-- [Testing Rules](#testing-rules)
-- [C# to JavaScript Translation — In Depth](#c-to-javascript-translation--in-depth)
-  - [String Methods Reference](#string-methods-reference)
-  - [String Interpolation and Formatting](#string-interpolation-and-formatting)
-  - [Regular Expressions Reference](#regular-expressions-reference)
-  - [LINQ / Collections Reference](#linq--collections-reference)
-  - [Array Support](#array-support)
-  - [DateTime Comparisons](#datetime-comparisons)
-  - [Enum Handling](#enum-handling)
-  - [DryvValidationResult Translation](#dryvvalidationresult-translation)
-  - [DryvParameters Translation](#dryvparameters-translation)
-  - [IOptions&lt;T&gt; Inlining](#ioptionst-inlining)
-  - [Resource / Localization Strings](#resource--localization-strings)
-  - [Static Method Pre-evaluation](#static-method-pre-evaluation)
-  - [Raw JavaScript Injection](#raw-javascript-injection)
-  - [Writing Custom Method Call Translators](#writing-custom-method-call-translators)
-  - [Writing Custom Expression Translators](#writing-custom-expression-translators)
-- [Rule Discovery — In Depth](#rule-discovery--in-depth)
-  - [Rules on Interfaces](#rules-on-interfaces)
-  - [Rules on Base Classes](#rules-on-base-classes)
-  - [Rules in Static Methods](#rules-in-static-methods)
-  - [Rules via External Container Classes](#rules-via-external-container-classes)
-  - [Nested / Hierarchical Models](#nested--hierarchical-models)
-  - [Collection Elements](#collection-elements)
-  - [Different Rule Sets for the Same Type](#different-rule-sets-for-the-same-type)
-- [Rule Annotators](#rule-annotators)
+- [Standalone / Custom Integration](#standalone--custom-integration)
+  - [Extracting Translated Rules Programmatically](#extracting-translated-rules-programmatically)
+  - [Extracting Rule Parameters](#extracting-rule-parameters)
+  - [Build-Time Code Generation](#build-time-code-generation)
+- [C# to JavaScript Translation — Reference](#c-to-javascript-translation--reference)
 - [Tips & Tricks](#tips--tricks)
-- [Troubleshooting](#troubleshooting)
-- [FAQ](#faq)
+- [Troubleshooting & FAQ](#troubleshooting--faq)
 - [Configuration](#configuration)
 - [Project Structure](#project-structure)
 - [License](#license)
@@ -171,7 +161,7 @@ public class Address
 }
 ```
 
-Rules are defined as C# lambda expressions. Dryv translates them to JavaScript for client-side use and compiles them for server-side execution.
+By defining rules as simple C# lambda expressions, Dryv can translate them into JavaScript for the client while simultaneously compiling them for efficient server-side execution.
 
 ### 2. Register Dryv (ASP.NET Core)
 
@@ -208,11 +198,11 @@ This renders a `<script>` tag containing the translated JavaScript validation fu
 @await Html.DryvValidation<Address>("address")
 ```
 
-## Defining Rules
+## Writing Validation Rules
 
 ### Basic Rules
 
-A rule targets one property and returns either an error string (or `DryvValidationResult`) or `null`/`DryvValidationResult.Success`:
+A standard rule targets a specific property. It returns an error message (or a `DryvValidationResult`) if validation fails, and `null` (or `DryvValidationResult.Success`) if it succeeds:
 
 ```csharp
 public static readonly DryvRules Rules = DryvRules
@@ -236,7 +226,7 @@ Strings are implicitly converted to `DryvValidationResult`, so you can also writ
 
 ### Multi-Property Rules
 
-A single rule can validate across multiple properties. When any of the listed properties change, the rule runs for all of them:
+A single rule can govern multiple properties at once. If any of the specified properties change, the rule is automatically re-evaluated for all of them:
 
 ```csharp
 .Rule(
@@ -248,13 +238,13 @@ A single rule can validate across multiple properties. When any of the listed pr
         : DryvValidationResult.Success)
 ```
 
-Multi-property rules automatically:
-- Set a **group** (defaults to the first property's path) so the UI can deduplicate error messages.
-- Track **related properties** so the client knows which fields to re-validate together.
+Multi-property rules are smart. They automatically:
+- Assign a **group name** (defaulting to the first property's path) so your UI can easily deduplicate error messages.
+- Track **related properties**, giving the client the context it needs to re-validate interdependent fields together.
 
 ### Async Rules
 
-Rules can return `Task<DryvValidationResult>` for async operations:
+Rules can handle asynchronous operations by returning a `Task<DryvValidationResult>`:
 
 ```csharp
 .Rule(
@@ -264,7 +254,7 @@ Rules can return `Task<DryvValidationResult>` for async operations:
         : "Email is already taken")
 ```
 
-On the client side, async rules that involve server calls are automatically routed through [dynamic controllers](#dynamic-controllers-for-async-rules).
+On the client side, Dryv automatically routes any async rules requiring server interaction through seamlessly generated [dynamic controllers](#dynamic-controllers-for-async-rules).
 
 ### Server-Only Rules
 
@@ -319,7 +309,7 @@ DryvValidationResult.Error("error", customData)       // with additional data
 DryvValidationResult.Warning("warning", customData)
 ```
 
-## Dependency Injection in Rules
+### Dependency Injection in Rules
 
 Rules can accept injected services as additional parameters. Service types are resolved from the DI container at validation time:
 
@@ -341,7 +331,7 @@ You can inject up to 5 services:
 
 Injected services whose values are known at translation time (e.g. `IOptions<T>`) are **inlined** into the generated JavaScript. Services that cannot be inlined cause the rule to be routed through a dynamic controller endpoint instead.
 
-## Rule Parameters
+### Rule Parameters
 
 Parameters are named values resolved via DI and sent to the client alongside validation functions:
 
@@ -362,6 +352,58 @@ In rules, parameters are accessed via `DryvParameters`:
 ```
 
 On the client, parameters are available through the `$ctx.parameter("maxLength")` function.
+
+### Rule Annotators
+
+You can add custom metadata to your rules that will be passed down to the client. This is useful for building advanced UI features, such as defining which UI component should render the error, or tracking analytics.
+
+1. Create a class implementing `IDryvRuleAnnotator`.
+2. Register it in `DryvOptions`.
+
+```csharp
+public class CustomDataAnnotator : IDryvRuleAnnotator
+{
+    public void Annotate(DryvCompiledRule rule, IDictionary<string, object> annotations)
+    {
+        if (rule.Property.Name == "CreditCard")
+        {
+            annotations["ui-component"] = "SecureInput";
+            annotations["analytics-event"] = "credit_card_validation_failed";
+        }
+    }
+}
+
+// In Startup.cs
+builder.Services.AddDryv(options => 
+{
+    options.Annotators.Add<CustomDataAnnotator>();
+});
+```
+
+The annotations are serialized into the generated JavaScript and are available to your client-side validation handler.
+
+### Testing Rules
+
+Because Dryv rules are pure C# expressions stored on your models, unit testing them is straightforward. You don't need a running ASP.NET Core server to test your validation logic.
+
+```csharp
+[Fact]
+public async Task Address_WithMissingCity_FailsValidation()
+{
+    // Arrange
+    var model = new Address { City = "", ZipCode = "12345" };
+    var validator = new DryvValidator();
+    
+    // Act
+    // Pass a dummy service provider if your rules don't use DI
+    var errors = await validator.Validate(model, type => null);
+    
+    // Assert
+    var cityError = errors.FirstOrDefault(e => e.Path == "city");
+    Assert.NotNull(cityError);
+    Assert.Contains(cityError.Message, m => m.Type == DryvResultType.Error);
+}
+```
 
 ## Rule Discovery
 
@@ -395,9 +437,227 @@ public class ChildRules
 
 This allows different validation rule sets for the same model type depending on context.
 
+Dryv uses a `DryvRuleFinder` to scan model types and their dependencies for validation rules. Here are the discovery mechanisms in detail:
+
+### Rules on Interfaces
+
+Rules defined for an interface apply to all implementing classes:
+
+```csharp
+public interface IHasEmail
+{
+    string Email { get; set; }
+}
+
+// Rules defined for the interface
+public static class EmailRules
+{
+    public static readonly DryvRules Rules = DryvRules
+        .For<IHasEmail>()
+        .Rule(m => m.Email,
+            m => string.IsNullOrWhiteSpace(m.Email)
+                ? DryvValidationResult.Error("Email is required")
+                : DryvValidationResult.Success);
+}
+
+// Any class implementing IHasEmail gets these rules automatically
+public class Customer : IHasEmail
+{
+    public static DryvRules Rules = EmailRules.Rules; // reference the rules
+    public string Email { get; set; }
+}
+```
+
+### Rules on Base Classes
+
+Rules defined for a base class apply to all derived classes:
+
+```csharp
+public abstract class PersonBase
+{
+    public virtual string Name { get; set; }
+}
+
+public class Employee : PersonBase
+{
+    public static DryvRules Rules = DryvRules
+        .For<PersonBase>()
+        .Rule(m => m.Name,
+            m => m.Name != null
+                ? DryvValidationResult.Success
+                : DryvValidationResult.Error("Name is required"));
+
+    public override string Name { get; set; }
+}
+```
+
+### Rules in Static Methods
+
+Rules can be returned by static methods (not just fields/properties):
+
+```csharp
+public class Product
+{
+    // Discovered as a static method returning DryvRules
+    public static DryvRules Rules() => DryvRules
+        .For<Product>()
+        .Rule(m => m.Name,
+            m => m.Name != null
+                ? DryvValidationResult.Success
+                : DryvValidationResult.Error("error"));
+
+    public string Name { get; set; }
+}
+```
+
+### Rules via External Container Classes
+
+Use `[DryvValidation]` to point to an external class that contains rules:
+
+```csharp
+// On the model class:
+[DryvValidation(typeof(AddressValidation))]
+public class Address
+{
+    public string City { get; set; }
+    public string ZipCode { get; set; }
+}
+
+// Separate validation class:
+public class AddressValidation
+{
+    public static DryvRules Rules = DryvRules
+        .For<Address>()
+        .Rule(m => m.City, m => string.IsNullOrWhiteSpace(m.City) ? "Required" : null)
+        .Rule(m => m.ZipCode, m => string.IsNullOrWhiteSpace(m.ZipCode) ? "Required" : null);
+}
+```
+
+You can also put `[DryvValidation]` on individual **properties or fields** to apply different rule sets for the same child type in different contexts:
+
+```csharp
+public class Order
+{
+    [DryvValidation(typeof(BillingAddressRules))]
+    public Address BillingAddress { get; set; }
+
+    [DryvValidation(typeof(ShippingAddressRules))]
+    public Address ShippingAddress { get; set; }
+}
+```
+
+### Nested / Hierarchical Models
+
+Dryv recursively traverses the model tree to find rules on nested types:
+
+```csharp
+public class OrderForm
+{
+    public CustomerInfo Customer { get; set; }
+}
+
+public class CustomerInfo
+{
+    public ContactDetails Contact { get; set; }
+}
+
+public class ContactDetails
+{
+    public static DryvRules Rules = DryvRules
+        .For<ContactDetails>()
+        .Rule(m => m.Email,
+            m => string.IsNullOrWhiteSpace(m.Email)
+                ? "Email required"
+                : null);
+
+    public string Email { get; set; }
+}
+```
+
+When validating `OrderForm`, Dryv discovers the rule on `ContactDetails.Email` via the path `customer.contact.email`. The generated JavaScript uses the full camelCase path to reference the property.
+
+Rules can also target nested properties directly from a parent:
+
+```csharp
+public class Parent
+{
+    public static DryvRules Rules = DryvRules
+        .For<Parent>()
+        .Rule(m => m.Child.Child.Text,
+            m => m.Child.Child.Text != null
+                ? DryvValidationResult.Success
+                : DryvValidationResult.Error("error"));
+
+    public Child Child { get; set; }
+}
+```
+
+### Collection Elements
+
+Rules on types that appear as elements of collections (`T[]`, `IEnumerable<T>`, `List<T>`) are also discovered:
+
+```csharp
+public class ShoppingCart
+{
+    public CartItem[] Items { get; set; }
+}
+
+public class CartItem
+{
+    public static DryvRules Rules = DryvRules
+        .For<CartItem>()
+        .Rule(m => m.Name,
+            m => string.IsNullOrWhiteSpace(m.Name)
+                ? "Item name is required"
+                : null);
+
+    public string Name { get; set; }
+}
+```
+
+Dryv discovers the `CartItem` rules when scanning `ShoppingCart` because `Items` is a `CartItem[]`.
+
+### Different Rule Sets for the Same Type
+
+By using `[DryvValidation(typeof(...))]` on different properties, you can apply entirely different rule sets to the same model type based on where it appears:
+
+```csharp
+public class ParentModel
+{
+    [DryvValidation(typeof(NameRules))]
+    public ChildModel Primary { get; set; }
+
+    [DryvValidation(typeof(AddressRules))]
+    public ChildModel Secondary { get; set; }
+}
+
+public class ChildModel
+{
+    public string Name { get; set; }
+    public string Address { get; set; }
+}
+
+public class NameRules
+{
+    public static DryvRules Rules = DryvRules
+        .For<ChildModel>()
+        .Rule(m => m.Name, m => string.IsNullOrWhiteSpace(m.Name) ? "Name is required" : null);
+}
+
+public class AddressRules
+{
+    public static DryvRules Rules = DryvRules
+        .For<ChildModel>()
+        .Rule(m => m.Address, m => string.IsNullOrWhiteSpace(m.Address) ? "Address is required" : null);
+}
+```
+
+Result: `primary.name` gets the `NameRules`, `secondary.address` gets the `AddressRules`. The `primary` property does **not** get address validation and vice versa.
+
+
 ## C# to JavaScript Translation
 
-Dryv translates C# expression trees into equivalent JavaScript. The translation is performed by `JavaScriptTranslator` with a set of built-in translators for common .NET types. For a complete reference of every supported construct with detailed examples, see [C# to JavaScript Translation — In Depth](#c-to-javascript-translation--in-depth) below.
+Dryv translates C# expression trees into equivalent JavaScript. The translation is performed by `JavaScriptTranslator` with a set of built-in translators for common .NET types. For a complete reference of every supported construct with detailed examples, see [C# to JavaScript Translation — Reference](#c-to-javascript-translation--reference) below.
 
 **Quick Reference:**
 
@@ -499,11 +759,11 @@ Use the `[DryvSet("name")]` attribute on model classes to organize validation in
 
 ## Standalone / Custom Integration
 
-Dryv is not limited to server-rendered Razor views. You can use `DryvTranslator` and `DryvClientWriter` programmatically to extract the translated JavaScript and serve it through any API — REST, GraphQL, gRPC, etc. This is especially useful when:
+Dryv isn't tied exclusively to server-rendered Razor views. Using the `DryvTranslator` and `DryvClientWriter` APIs, you can programmatically extract the translated JavaScript and serve it through any API—whether it's REST, GraphQL, gRPC, or something else. This approach shines when:
 
-- Your frontend is a **decoupled SPA** (React, Vue, Angular, Svelte, …) that doesn't use Razor.
-- You want to **generate validation code at build time** so the client never calls the server for rule definitions at runtime.
-- You need to **embed validation rules in a mobile app** or any other non-browser client.
+- You're building a **decoupled SPA** (like React, Vue, Angular, or Svelte) that doesn't rely on Razor.
+- You want to **generate validation code at build time**, meaning the client never has to ping the server for rule definitions during runtime.
+- You need to **embed validation rules inside a mobile app** or any other non-browser environment.
 
 ### Extracting Translated Rules Programmatically
 
@@ -577,14 +837,14 @@ The client fetches fresh parameter values at runtime and injects them into the v
 
 ### Build-Time Code Generation
 
-A powerful pattern is to **generate typed validation files during development** so the client ships with pre-compiled rules and never needs to fetch them at runtime:
+One of Dryv's most powerful patterns is **generating typed validation files during development**. This ensures your client ships with pre-compiled rules, completely bypassing the need to fetch them at runtime:
 
-1. **Expose a dev-only API** (REST or GraphQL) that returns the translated rules as JSON.
-2. **Write a code-generation script** (e.g. a Node.js / TypeScript script) that:
-   - Calls the API while the backend is running locally.
-   - Parses the JSON response.
-   - Generates one typed file per model (TypeScript, JavaScript, etc.) containing the validation rule set.
-3. **Import the generated files** in your frontend and pass them to your validation runtime.
+1. **Expose a dev-only API** (like REST or GraphQL) that serves the translated rules as JSON.
+2. **Write a quick code-generation script** (such as a Node.js or TypeScript script) that:
+   - Queries the API while your backend is running locally.
+   - Parses the resulting JSON.
+   - Generates a dedicated, strongly-typed file per model (e.g., in TypeScript or JavaScript) containing the validation rule set.
+3. **Import the generated files** straight into your frontend and hand them off to your validation runtime.
 
 **Example generated TypeScript file:**
 
@@ -638,11 +898,11 @@ export const AddressValidationSet = {
 
 ## Client-Side Usage
 
-Dryv generates JavaScript validation functions, but it is **not** a client-side framework. You are in control of how and when those functions run in the browser. This section explains exactly what Dryv gives you and how to wire it up.
+While Dryv is incredibly adept at generating JavaScript validation functions, it doesn't force a specific client-side framework onto your stack. You retain full control over how and when these functions execute in the browser. This section demystifies exactly what Dryv outputs and shows you how to seamlessly wire it up to your frontend.
 
 ### Understanding the Output Format
 
-Whether you use the Tag Helper, the HTML Helper, or extract rules programmatically, Dryv produces a **validation set** — a JavaScript object with this structure:
+Regardless of whether you use the Tag Helper, the HTML Helper, or programmatically extract your rules, Dryv consistently outputs a **validation set**—a structured JavaScript object that looks like this:
 
 ```javascript
 {
@@ -1582,30 +1842,10 @@ export class AddressFormComponent {
 }
 ```
 
-## Testing Rules
 
-Because Dryv rules are pure C# expressions stored on your models, unit testing them is straightforward. You don't need a running ASP.NET Core server to test your validation logic.
 
-```csharp
-[Fact]
-public async Task Address_WithMissingCity_FailsValidation()
-{
-    // Arrange
-    var model = new Address { City = "", ZipCode = "12345" };
-    var validator = new DryvValidator();
-    
-    // Act
-    // Pass a dummy service provider if your rules don't use DI
-    var errors = await validator.Validate(model, type => null);
-    
-    // Assert
-    var cityError = errors.FirstOrDefault(e => e.Path == "city");
-    Assert.NotNull(cityError);
-    Assert.Contains(cityError.Message, m => m.Type == DryvResultType.Error);
-}
-```
 
-## C# to JavaScript Translation — In Depth
+## C# to JavaScript Translation — Reference
 
 This section provides a detailed reference for every C# construct that Dryv can translate to JavaScript, with realistic examples derived from the project's unit test suite.
 
@@ -2101,254 +2341,6 @@ builder.Services.AddDryv(options =>
 });
 ```
 
-## Rule Discovery — In Depth
-
-Dryv uses a `DryvRuleFinder` to scan model types and their dependencies for validation rules. Here are the discovery mechanisms in detail:
-
-### Rules on Interfaces
-
-Rules defined for an interface apply to all implementing classes:
-
-```csharp
-public interface IHasEmail
-{
-    string Email { get; set; }
-}
-
-// Rules defined for the interface
-public static class EmailRules
-{
-    public static readonly DryvRules Rules = DryvRules
-        .For<IHasEmail>()
-        .Rule(m => m.Email,
-            m => string.IsNullOrWhiteSpace(m.Email)
-                ? DryvValidationResult.Error("Email is required")
-                : DryvValidationResult.Success);
-}
-
-// Any class implementing IHasEmail gets these rules automatically
-public class Customer : IHasEmail
-{
-    public static DryvRules Rules = EmailRules.Rules; // reference the rules
-    public string Email { get; set; }
-}
-```
-
-### Rules on Base Classes
-
-Rules defined for a base class apply to all derived classes:
-
-```csharp
-public abstract class PersonBase
-{
-    public virtual string Name { get; set; }
-}
-
-public class Employee : PersonBase
-{
-    public static DryvRules Rules = DryvRules
-        .For<PersonBase>()
-        .Rule(m => m.Name,
-            m => m.Name != null
-                ? DryvValidationResult.Success
-                : DryvValidationResult.Error("Name is required"));
-
-    public override string Name { get; set; }
-}
-```
-
-### Rules in Static Methods
-
-Rules can be returned by static methods (not just fields/properties):
-
-```csharp
-public class Product
-{
-    // Discovered as a static method returning DryvRules
-    public static DryvRules Rules() => DryvRules
-        .For<Product>()
-        .Rule(m => m.Name,
-            m => m.Name != null
-                ? DryvValidationResult.Success
-                : DryvValidationResult.Error("error"));
-
-    public string Name { get; set; }
-}
-```
-
-### Rules via External Container Classes
-
-Use `[DryvValidation]` to point to an external class that contains rules:
-
-```csharp
-// On the model class:
-[DryvValidation(typeof(AddressValidation))]
-public class Address
-{
-    public string City { get; set; }
-    public string ZipCode { get; set; }
-}
-
-// Separate validation class:
-public class AddressValidation
-{
-    public static DryvRules Rules = DryvRules
-        .For<Address>()
-        .Rule(m => m.City, m => string.IsNullOrWhiteSpace(m.City) ? "Required" : null)
-        .Rule(m => m.ZipCode, m => string.IsNullOrWhiteSpace(m.ZipCode) ? "Required" : null);
-}
-```
-
-You can also put `[DryvValidation]` on individual **properties or fields** to apply different rule sets for the same child type in different contexts:
-
-```csharp
-public class Order
-{
-    [DryvValidation(typeof(BillingAddressRules))]
-    public Address BillingAddress { get; set; }
-
-    [DryvValidation(typeof(ShippingAddressRules))]
-    public Address ShippingAddress { get; set; }
-}
-```
-
-### Nested / Hierarchical Models
-
-Dryv recursively traverses the model tree to find rules on nested types:
-
-```csharp
-public class OrderForm
-{
-    public CustomerInfo Customer { get; set; }
-}
-
-public class CustomerInfo
-{
-    public ContactDetails Contact { get; set; }
-}
-
-public class ContactDetails
-{
-    public static DryvRules Rules = DryvRules
-        .For<ContactDetails>()
-        .Rule(m => m.Email,
-            m => string.IsNullOrWhiteSpace(m.Email)
-                ? "Email required"
-                : null);
-
-    public string Email { get; set; }
-}
-```
-
-When validating `OrderForm`, Dryv discovers the rule on `ContactDetails.Email` via the path `customer.contact.email`. The generated JavaScript uses the full camelCase path to reference the property.
-
-Rules can also target nested properties directly from a parent:
-
-```csharp
-public class Parent
-{
-    public static DryvRules Rules = DryvRules
-        .For<Parent>()
-        .Rule(m => m.Child.Child.Text,
-            m => m.Child.Child.Text != null
-                ? DryvValidationResult.Success
-                : DryvValidationResult.Error("error"));
-
-    public Child Child { get; set; }
-}
-```
-
-### Collection Elements
-
-Rules on types that appear as elements of collections (`T[]`, `IEnumerable<T>`, `List<T>`) are also discovered:
-
-```csharp
-public class ShoppingCart
-{
-    public CartItem[] Items { get; set; }
-}
-
-public class CartItem
-{
-    public static DryvRules Rules = DryvRules
-        .For<CartItem>()
-        .Rule(m => m.Name,
-            m => string.IsNullOrWhiteSpace(m.Name)
-                ? "Item name is required"
-                : null);
-
-    public string Name { get; set; }
-}
-```
-
-Dryv discovers the `CartItem` rules when scanning `ShoppingCart` because `Items` is a `CartItem[]`.
-
-### Different Rule Sets for the Same Type
-
-By using `[DryvValidation(typeof(...))]` on different properties, you can apply entirely different rule sets to the same model type based on where it appears:
-
-```csharp
-public class ParentModel
-{
-    [DryvValidation(typeof(NameRules))]
-    public ChildModel Primary { get; set; }
-
-    [DryvValidation(typeof(AddressRules))]
-    public ChildModel Secondary { get; set; }
-}
-
-public class ChildModel
-{
-    public string Name { get; set; }
-    public string Address { get; set; }
-}
-
-public class NameRules
-{
-    public static DryvRules Rules = DryvRules
-        .For<ChildModel>()
-        .Rule(m => m.Name, m => string.IsNullOrWhiteSpace(m.Name) ? "Name is required" : null);
-}
-
-public class AddressRules
-{
-    public static DryvRules Rules = DryvRules
-        .For<ChildModel>()
-        .Rule(m => m.Address, m => string.IsNullOrWhiteSpace(m.Address) ? "Address is required" : null);
-}
-```
-
-Result: `primary.name` gets the `NameRules`, `secondary.address` gets the `AddressRules`. The `primary` property does **not** get address validation and vice versa.
-
-## Rule Annotators
-
-You can add custom metadata to your rules that will be passed down to the client. This is useful for building advanced UI features, such as defining which UI component should render the error, or tracking analytics.
-
-1. Create a class implementing `IDryvRuleAnnotator`.
-2. Register it in `DryvOptions`.
-
-```csharp
-public class CustomDataAnnotator : IDryvRuleAnnotator
-{
-    public void Annotate(DryvCompiledRule rule, IDictionary<string, object> annotations)
-    {
-        if (rule.Property.Name == "CreditCard")
-        {
-            annotations["ui-component"] = "SecureInput";
-            annotations["analytics-event"] = "credit_card_validation_failed";
-        }
-    }
-}
-
-// In Startup.cs
-builder.Services.AddDryv(options => 
-{
-    options.Annotators.Add<CustomDataAnnotator>();
-});
-```
-
-The annotations are serialized into the generated JavaScript and are available to your client-side validation handler.
-
 ## Tips & Tricks
 
 ### 1. Keep Expressions Simple and Translatable
@@ -2520,7 +2512,7 @@ builder.Services
     .AddDryvPreloading();
 ```
 
-## Troubleshooting
+## Troubleshooting & FAQ
 
 ### "Rule failed to translate" / TranslationException
 
@@ -2585,23 +2577,23 @@ builder.Services
 
 **Fix:** Ensure your `DryvOptions.JsonConversion` matches your API's JSON serialization settings. If your API uses `JsonStringEnumConverter`, Dryv should too.
 
-## FAQ
+### FAQ
 
-### Can I use Dryv without ASP.NET Core?
+#### Can I use Dryv without ASP.NET Core?
 
 Yes. The core `Dryv` NuGet package is framework-agnostic and targets .NET 9. You can define rules, validate on the server, and translate to JavaScript without any web framework. See [Standalone / Custom Integration](#standalone--custom-integration).
 
-### What happens when a rule can't be translated to JavaScript?
+#### What happens when a rule can't be translated to JavaScript?
 
 It depends on your `TranslationErrorBehavior` setting:
 - **`Throw`** (recommended for development) — throws an exception immediately, so you catch the problem early.
 - **`Ignore`** — the rule is silently excluded from client-side output. If dynamic controllers are enabled, the rule will be routed through a server endpoint instead (the client makes an HTTP call to validate).
 
-### Can I use `if/else` in rules?
+#### Can I use `if/else` in rules?
 
 No. Dryv works with C# **expression trees** (`Expression<Func<...>>`), which do not support statements like `if/else`, `switch`, `for`, or `while`. Use the **ternary operator** (`? :`) and logical operators (`&&`, `||`) instead.
 
-### How are property names cased in JavaScript?
+#### How are property names cased in JavaScript?
 
 Always **camelCase**. C# `ZipCode` becomes `zipCode`, `FirstName` becomes `firstName`. This applies to all property paths in the generated output (validators, disablers, related properties, model paths).
 
@@ -2609,7 +2601,7 @@ Always **camelCase**. C# `ZipCode` becomes `zipCode`, `FirstName` becomes `first
 
 Dryv discovers rules on collection element types (see [Collection Elements](#collection-elements)). The rules are available in the validation set and the LINQ methods on collections are translated (see [LINQ / Collections Reference](#linq--collections-reference)). However, the exact client-side behavior for validating individual collection items depends on your client-side validation runner implementation.
 
-### How do I handle multiple validation sets on one page?
+#### How do I handle multiple validation sets on one page?
 
 Use the `[DryvSet("name")]` attribute on your model classes to assign set names, or pass a dictionary of types to the Tag Helper:
 
@@ -2622,15 +2614,15 @@ Use the `[DryvSet("name")]` attribute on your model classes to assign set names,
 
 Each set gets its own `name`, `validators`, `disablers`, and `parameters`.
 
-### Is there a ready-made client-side library?
+#### Is there a ready-made client-side library?
 
 Yes! The official companion packages [`dryvjs`](https://github.com/mhusseini/dryvjs/tree/develop/packages/dryvjs) and [`dryvue`](https://github.com/mhusseini/dryvjs/tree/develop/packages/dryvue) provide a full-featured reactive validation engine that directly consumes the `DryvValidationRuleSet` objects generated by Dryv. `dryvjs` is framework-agnostic (works with vanilla JS/TS, React, Angular, etc.), while `dryvue` adds Vue 3 reactive bindings. See [Integration with Frontend Frameworks](#integration-with-frontend-frameworks) for comprehensive usage examples.
 
-### Can I use Dryv with Blazor?
+#### Can I use Dryv with Blazor?
 
 Dryv is designed for C#-to-JavaScript translation. In Blazor (where your client-side code is also C#), you can use the server-side `DryvValidator` directly without translation. The JavaScript translation features are not applicable in Blazor's execution model.
 
-### How do I debug the generated JavaScript?
+#### How do I debug the generated JavaScript?
 
 1. Render the validation script to a string (via Tag Helper, HTML Helper, or the programmatic API).
 2. Pretty-print it in the browser dev tools or save it to a file.
