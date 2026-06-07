@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="logo_slogan.svg" title="Dryv - DRY Validation for ASP.NET" width="300">
+  <img src="logo_slogan_light.svg" title="Dryv - DRY Validation for ASP.NET" width="300">
 </p>
 
 <p align="center">

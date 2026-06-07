@@ -12,6 +12,14 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		.gitignore = .gitignore
 		LICENSE = LICENSE
 		README.md = README.md
+		logo_slogan.svg = logo_slogan.svg
+		logo.png = logo.png
+		dryv.ico = dryv.ico
+		g996.png = g996.png
+		hero.jpg = hero.jpg
+		hero.png = hero.png
+		hero.svg = hero.svg
+		logo_slogan_light.svg = logo_slogan_light.svg
 	EndProjectSection
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Dryv.AspNetCore", "Dryv.AspNetCore\Dryv.AspNetCore.csproj", "{FF88F3ED-CD0F-4209-AB50-4CD56866F21A}"
