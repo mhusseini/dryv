@@ -1,8 +1,17 @@
-# Dryv.AspNetCore
+<p align="center">
+  <img src="../logo_slogan_light.svg" title="Dryv - DRY Validation for ASP.NET" width="300">
+</p>
 
-[![NuGet](https://img.shields.io/nuget/v/Dryv.AspNetCore.svg)](https://www.nuget.org/packages/Dryv.AspNetCore)
+<p align="center">
+  <a href="https://www.nuget.org/packages/Dryv.AspNetCore"><img src="https://img.shields.io/nuget/v/Dryv.AspNetCore.svg" alt="NuGet"></a>
+  <a href="https://github.com/mhusseini/dryv/blob/main/LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="License"></a>
+</p>
 
-**ASP.NET Core integration for Dryv — plugs DRY Validation into the MVC pipeline with Tag Helpers, dynamic controllers, and automatic server-side validation.**
+<p align="center">
+  <strong>ASP.NET Core integration for Dryv — plugs DRY Validation into the MVC pipeline with Tag Helpers, dynamic controllers, and automatic server-side validation.</strong>
+</p>
+
+---
 
 This package depends on the [`Dryv`](https://www.nuget.org/packages/Dryv) core library.
 
