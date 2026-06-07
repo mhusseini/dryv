@@ -55,6 +55,8 @@ This means your server is always the source of truth, while users get instant va
   - [Build-Time Code Generation](#build-time-code-generation)
 - [Client-Side Usage](#client-side-usage)
   - [Understanding the Output Format](#understanding-the-output-format)
+  - [How the Script Is Rendered on the Page](#how-the-script-is-rendered-on-the-page)
+  - [Automatic Discovery by DryvJS / Dryvue](#automatic-discovery-by-dryvjs--dryvue)
   - [The Validation Function Signature](#the-validation-function-signature)
   - [Running Validators in Vanilla JavaScript](#running-validators-in-vanilla-javascript)
   - [Handling Async Rules on the Client](#handling-async-rules-on-the-client)
@@ -678,6 +680,129 @@ Whether you use the Tag Helper, the HTML Helper, or extract rules programmatical
 - **`disablers`** has the same structure — if any disabler returns `true`, all validators for that property are skipped.
 - **`parameters`** contains named values defined via `.Parameter(...)`.
 - Property names are **always camelCase** regardless of the C# naming convention.
+
+### How the Script Is Rendered on the Page
+
+When you use the Tag Helper (`<dryv-client-rules>`) or HTML Helper (`@await Html.DryvValidation<T>()`), Dryv renders a `<script>` tag that registers the rule set on the global `window.dryv.v` object. Here's the actual pattern used in production (example from [yello.de](https://www.yello.de/)):
+
+```html
+<script>
+(function(dryv) {
+  if (!dryv.v) { dryv.v = {}; }
+  dryv.v["tariff-builder-query"] = {
+    name: "tariff-builder-query",
+    validators: {
+      "zipCode": [
+        {
+          validate: function($m, $ctx) {
+            return /\d{5,5}/.test($m.zipCode)
+              ? null
+              : { type: "error", text: "Deine Postleitzahl muss aus 5 Ziffern bestehen.", group: null }
+          }
+        },
+        {
+          async: true,
+          validate: function($m, $ctx) {
+            return $ctx.dryv.callServer('/_v/cpk97zzro', 'POST', { "zipCode": $m.zipCode })
+              .then(function($r) { return $ctx.dryv.handleResult($ctx, $m, "zipCode", null, $r); })
+          }
+        }
+      ],
+      "consumption": [
+        {
+          annotations: { "required": true },
+          validate: function($m, $ctx) {
+            return !/\S/.test($m.consumption || "")
+              ? { type: "error", text: "Gib bitte deinen Jahresverbrauch an.", group: null }
+              : null
+          }
+        },
+        {
+          async: true,
+          validate: function($m, $ctx) {
+            return $ctx.dryv.callServer('/_v/ch0smecjn', 'POST', { "consumption": $m.consumption, "sector": $m.sector })
+              .then(function($r) { return $ctx.dryv.handleResult($ctx, $m, "consumption", null, $r); })
+          }
+        }
+      ]
+    },
+    disablers: {
+      "consumption": [
+        { validate: function($m, $ctx) { return $m.consumption === "frei" } }
+      ]
+    },
+    parameters: {}
+  }
+})(window.dryv || (window.dryv = {}));
+</script>
+```
+
+**Key observations:**
+
+- The IIFE pattern `(function(dryv) { ... })(window.dryv || (window.dryv = {}))` ensures the global `window.dryv` namespace exists.
+- All rule sets are stored under `window.dryv.v["name"]`, making them globally discoverable.
+- Multiple `<script>` tags can coexist on the same page — each one registers an additional rule set.
+- The rules contain real JavaScript functions (not JSON), so they can reference `$m` and `$ctx` directly.
+
+### Automatic Discovery by DryvJS / Dryvue
+
+The `window.dryv.v` convention is exactly what DryvJS and Dryvue expect. You can pass the entire `window.dryv.v` object to the `DryvStaticRuleSets` plugin, and all rule sets become automatically available by name:
+
+```typescript
+import { createApp } from 'vue'
+import { Dryv, DryvStaticRuleSets } from 'dryvue'
+import App from './App.vue'
+
+const app = createApp(App)
+app.use(Dryv)
+
+// Pass all server-rendered rule sets — DryvJS discovers them automatically
+app.use(DryvStaticRuleSets, window.dryv.v)
+
+app.mount('#app')
+```
+
+Then in any component, reference a rule set by its name:
+
+```vue
+<script setup lang="ts">
+import { reactive } from 'vue'
+import { useDryv } from 'dryvue'
+
+const data = reactive({ zipCode: '', consumption: '' })
+
+// Automatically resolves "tariff-builder-query" from window.dryv.v
+const { validatable, validate, valid } = useDryv(data, 'tariff-builder-query')
+</script>
+
+<template>
+  <form @submit.prevent="validate">
+    <input v-model="validatable.zipCode.value" placeholder="PLZ" />
+    <span v-if="validatable.zipCode.hasErrors">{{ validatable.zipCode.text }}</span>
+
+    <input v-model="validatable.consumption.value" placeholder="Verbrauch" />
+    <span v-if="validatable.consumption.hasErrors">{{ validatable.consumption.text }}</span>
+
+    <button type="submit" :disabled="!valid">Weiter</button>
+  </form>
+</template>
+```
+
+For vanilla JS/TS (without Vue), access rule sets directly from `window.dryv.v`:
+
+```typescript
+import { DryvValidationSession, DryvObjectValidator, defaultDryvOptions } from 'dryvjs'
+
+// Grab the server-rendered rule set by name
+const ruleSet = window.dryv.v['tariff-builder-query']
+
+const model = { zipCode: '12345', consumption: '2500', sector: 'strom' }
+const options = { ...defaultDryvOptions }
+const session = new DryvValidationSession(options, ruleSet)
+const validator = new DryvObjectValidator(model, session, undefined, options)
+
+const result = await validator.validate()
+```
 
 ### The Validation Function Signature
 
