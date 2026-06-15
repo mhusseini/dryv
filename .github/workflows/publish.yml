@@ -39,5 +39,9 @@ jobs:
       - name: Pack Dryv.HotChocolate
         run: dotnet pack Dryv.HotChocolate/Dryv.HotChocolate.csproj -c Release --no-build -o ./nupkgs
 
-      - name: Push to NuGet (Trusted Publishing)
-        run: dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json
+      - name: NuGet login (OIDC)
+        id: nuget-login
+        uses: NuGet/login@v1
+
+      - name: Push to NuGet
+        run: dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ steps.nuget-login.outputs.token }}
