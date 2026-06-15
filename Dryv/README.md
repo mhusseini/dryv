@@ -235,9 +235,10 @@ Rules can return `Task<DryvValidationResult>` for async operations:
 ```csharp
 .Rule<IEmailService>(
     m => m.Email,
-    async (m, emailService) => await emailService.IsAvailable(m.Email)
-        ? DryvValidationResult.Success
-        : "Email is already taken")
+    (m, emailService) => emailService.IsAvailable(m.Email)
+        .ContinueWith(t => t.Result
+            ? DryvValidationResult.Success
+            : "Email is already taken"))
 ```
 
 Async rules that inject services which cannot be inlined are routed through dynamically generated server endpoints (when using `Dryv.AspNetCore`). The generated JavaScript calls these endpoints via `$ctx.dryv.callServer(url, method, data)`.
