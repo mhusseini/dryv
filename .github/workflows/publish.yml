@@ -30,11 +30,11 @@ jobs:
       - name: Test
         run: dotnet test -c Release --no-build --verbosity normal
 
-      - name: Pack Dryv
-        run: dotnet pack Dryv/Dryv.csproj -c Release --no-build -o ./nupkgs
-
-      - name: Pack Dryv.AspNetCore
-        run: dotnet pack Dryv.AspNetCore/Dryv.AspNetCore.csproj -c Release --no-build -o ./nupkgs
+#      - name: Pack Dryv
+#        run: dotnet pack Dryv/Dryv.csproj -c Release --no-build -o ./nupkgs
+#
+#      - name: Pack Dryv.AspNetCore
+#        run: dotnet pack Dryv.AspNetCore/Dryv.AspNetCore.csproj -c Release --no-build -o ./nupkgs
 
       - name: Pack Dryv.HotChocolate
         run: dotnet pack Dryv.HotChocolate/Dryv.HotChocolate.csproj -c Release --no-build -o ./nupkgs
@@ -42,6 +42,8 @@ jobs:
       - name: NuGet login (OIDC)
         id: nuget-login
         uses: NuGet/login@v1
+        with:
+          user: mhusseini
 
       - name: Push to NuGet
         run: dotnet nuget push ./nupkgs/*.nupkg --source https://api.nuget.org/v3/index.json --api-key ${{ steps.nuget-login.outputs.token }}
