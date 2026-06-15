@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Dryv.Demo.GraphQL.Dryvue": {
+      "commandName": "Project",
+      "applicationUrl": "http://localhost:5130",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

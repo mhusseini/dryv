@@ -1,0 +1,200 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   width="819.88251mm"
+   height="329.95303mm"
+   viewBox="0 0 819.88251 329.95303"
+   version="1.1"
+   id="svg8"
+   inkscape:version="1.3.2 (091e20e, 2023-11-25)"
+   sodipodi:docname="logo_dryv.svg"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <defs
+     id="defs2">
+    <font
+       vert-adv-y="90"
+       vert-origin-y="90"
+       vert-origin-x="45"
+       horiz-origin-y="0"
+       horiz-origin-x="0"
+       horiz-adv-x="1189"
+       id="robotobold">
+      <font-face
+         id="font-face2"
+         alphabetic="0"
+         descent="-555"
+         ascent="2146"
+         panose-1="2 0 0 0 0 0 0 0 0 0"
+         units-per-em="2048"
+         font-family="Roboto" />
+      <missing-glyph
+         id="missing-glyph4"
+         horiz-adv-x="510" />
+      <glyph
+         id="glyph6"
+         horiz-adv-x="510"
+         glyph-name="space"
+         unicode=" " />
+      <glyph
+         id="glyph8"
+         d="M136 0V1456H636Q903 1456 1076 1286T1249 848V607Q1249 339 1076 170T636 0H136ZM428 1231V224H621Q778 224 867 330T956 607V850Q956 1019 867 1125T621 1231H428Z"
+         horiz-adv-x="1342"
+         glyph-name="D"
+         unicode="D" />
+      <glyph
+         id="glyph10"
+         d="M643 785H649L967 1456H1287L787 512V0H496V527L5 1456H325L643 785Z"
+         horiz-adv-x="1292"
+         glyph-name="Y"
+         unicode="Y" />
+      <glyph
+         id="glyph12"
+         d="M747 0Q731 37 720 78T703 162Q658 83 585 31T409 -21Q239 -21 147 66T55 305Q55 464 177 551T535 639H698V725Q698 803 657 846T536 889Q465 889 427 855T388 759L106 760L105 766Q98 903 224 1002T555 1102Q749 1102 870 1004T991 723V276Q991 200 1002 133T1039 0H747ZM480 195Q557 195 617 233T698 321V474H535Q442 474 394 428T346 315Q346 261 382 228T480 195Z"
+         horiz-adv-x="1100"
+         glyph-name="a"
+         unicode="a" />
+      <glyph
+         id="glyph14"
+         d="M67 532Q67 788 178 945T491 1102Q582 1102 651 1061T769 944L792 1082H1044V5Q1044 -206 906 -321T520 -437Q438 -437 346 -415T176 -353L230 -135Q297 -167 366 -183T518 -200Q638 -200 694 -150T751 6V104Q703 43 638 11T489 -21Q290 -21 179 125T67 511V532ZM359 511Q359 369 407 288T563 206Q630 206 676 230T751 302V772Q723 821 677 848T565 875Q458 875 409 780T359 532V511Z"
+         horiz-adv-x="1156"
+         glyph-name="g"
+         unicode="g" />
+      <glyph
+         id="glyph16"
+         d="M419 0H127V1560H419V0Z"
+         horiz-adv-x="547"
+         glyph-name="l"
+         unicode="l" />
+      <glyph
+         id="glyph18"
+         d="M379 1082L392 927Q446 1010 525 1056T702 1102Q866 1102 958 999T1050 676V0H757V675Q757 784 713 829T580 875Q522 875 476 852T399 785V0H107V1082H379Z"
+         horiz-adv-x="1156"
+         glyph-name="n"
+         unicode="n" />
+      <glyph
+         id="glyph20"
+         d="M67 551Q67 793 202 947T576 1102Q816 1102 952 948T1088 551V530Q1088 286 953 133T578 -21Q338 -21 203 132T67 530V551ZM358 530Q358 382 410 293T578 203Q691 203 743 293T796 530V551Q796 695 743 786T576 877Q463 877 411 786T358 551V530Z"
+         horiz-adv-x="1156"
+         glyph-name="o"
+         unicode="o" />
+      <glyph
+         id="glyph22"
+         d="M681 831L574 834Q509 834 467 807T403 731V0H112V1082H383L396 922Q434 1007 494 1054T634 1102Q656 1102 674 1099T712 1090L681 831Z"
+         horiz-adv-x="717"
+         glyph-name="r"
+         unicode="r" />
+      <glyph
+         id="glyph24"
+         d="M697 298Q697 346 651 381T478 443Q286 482 189 558T91 767Q91 907 208 1004T523 1102Q730 1102 852 1005T970 760L968 754H686Q686 819 645 860T523 901Q452 901 412 867T371 780Q371 730 413 698T586 641Q786 601 883 524T980 310Q980 164 855 72T525 -21Q309 -21 184 88T64 338L66 344H333Q336 257 390 218T531 179Q612 179 654 211T697 298Z"
+         horiz-adv-x="1056"
+         glyph-name="s"
+         unicode="s" />
+      <glyph
+         id="glyph26"
+         d="M773 156Q723 71 646 25T469 -21Q298 -21 202 88T105 429V1082H396V427Q396 309 436 258T554 206Q624 206 674 228T756 295V1082H1048V0H799L773 156Z"
+         horiz-adv-x="1156"
+         glyph-name="u"
+         unicode="u" />
+      <glyph
+         id="glyph28"
+         d="M503 403L522 303H528L548 403L726 1082H1031L663 0H384L16 1082H321L503 403Z"
+         horiz-adv-x="1046"
+         glyph-name="v"
+         unicode="v" />
+      <glyph
+         id="glyph30"
+         d="M502 454L514 394H520L727 1082H1041L602 -162Q556 -278 477 -357T240 -437Q203 -437 172 -431T95 -414L129 -201Q142 -203 157 -205T184 -207Q256 -207 295 -172T355 -83L389 1L5 1082H319L502 454Z"
+         horiz-adv-x="1046"
+         glyph-name="y"
+         unicode="y" />
+    </font>
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="0.24748737"
+     inkscape:cx="1937.4726"
+     inkscape:cy="351.53309"
+     inkscape:document-units="mm"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     showguides="false"
+     inkscape:guide-bbox="true"
+     inkscape:window-width="1728"
+     inkscape:window-height="999"
+     inkscape:window-x="0"
+     inkscape:window-y="33"
+     inkscape:window-maximized="1"
+     fit-margin-top="0"
+     fit-margin-left="0"
+     fit-margin-right="0"
+     fit-margin-bottom="0"
+     inkscape:showpageshadow="2"
+     inkscape:pagecheckerboard="0"
+     inkscape:deskcolor="#d1d1d1">
+    <sodipodi:guide
+       position="578.43664,-37.112383"
+       orientation="0,1"
+       id="guide949"
+       inkscape:locked="false" />
+    <sodipodi:guide
+       position="578.43664,-37.112383"
+       orientation="1,0"
+       id="guide951"
+       inkscape:locked="false" />
+  </sodipodi:namedview>
+  <metadata
+     id="metadata5">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(655.19845,13.710327)">
+    <g
+       style="fill:#fbaa1d"
+       id="g42"
+       transform="matrix(16.497639,0,0,16.497639,-721.18901,-46.705605)">
+      <g
+         id="g40">
+        <path
+           inkscape:connector-curvature="0"
+           d="M 18,2 H 6 C 4.9,2 4,2.9 4,4 V 15 C 4,15.6 4.3,16.2 4.8,16.6 L 12,22 19.2,16.6 C 19.7,16.2 20,15.6 20,15 V 4 C 20,2.9 19.1,2 18,2 Z M 10,15 6,11 7.2,9.8 10,12.6 16.8,5.8 18,7 Z"
+           id="rnd1" />
+      </g>
+    </g>
+    <text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:266.3px;font-family:Roboto;-inkscape-font-specification:'Roboto Bold';letter-spacing:-8.69973px;fill:#1a1a1a;stroke:#000000;stroke-width:8;stroke-linejoin:miter;stroke-dasharray:none;paint-order:stroke markers fill"
+       x="-418.7981"
+       y="220.97342"
+       id="text1"
+       transform="scale(0.91238461,1.096029)"><tspan
+         sodipodi:role="line"
+         id="tspan1"
+         style="letter-spacing:-8.69973px;stroke-width:8;stroke-linejoin:miter;stroke-dasharray:none"
+         x="-418.7981"
+         y="220.97342"
+         dx="0"
+         dy="0">Dryv</tspan></text>
+  </g>
+</svg>

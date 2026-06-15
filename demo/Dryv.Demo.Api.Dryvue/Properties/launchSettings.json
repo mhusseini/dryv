@@ -1,0 +1,11 @@
+{
+  "profiles": {
+    "Dryv.Demo.Api.Dryvue": {
+      "commandName": "Project",
+      "applicationUrl": "http://localhost:5120",
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

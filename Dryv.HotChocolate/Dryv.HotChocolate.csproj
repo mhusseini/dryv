@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net9.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <Version>9.4.0</Version>
+        <Authors>Munir husseini</Authors>
+        <Company>Munir husseini</Company>
+        <Product>Dryv</Product>
+        <Description>HotChocolate support for Dryv. Dryv provides complex model validation for server and client made easy. Write complex model validation rules in C# once. Dryv will generate JavaScript for client-side validation.</Description>
+        <Copyright>2026 Munir Husseini</Copyright>
+        <PackageProjectUrl>https://github.com/mhusseini/Dryv</PackageProjectUrl>
+        <PackageIcon>dryv.png</PackageIcon>
+        <RepositoryUrl>https://github.com/mhusseini/Dryv.git</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>validation, JavaScript, C#, ASP.NET Core</PackageTags>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <None Update="dryv.png">
+        <Pack>true</Pack>
+        <PackagePath>/</PackagePath>
+      </None>
+    </ItemGroup>
+    
+    <ItemGroup>
+        <PackageReference Include="HotChocolate" Version="16.1.3" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Dryv\Dryv.csproj" />
+    </ItemGroup>
+
+</Project>
