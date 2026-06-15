@@ -30,11 +30,11 @@ jobs:
       - name: Test
         run: dotnet test -c Release --no-build --verbosity normal
 
-      # - name: Pack Dryv
-      #   run: dotnet pack Dryv/Dryv.csproj -c Release --no-build -o ./nupkgs
+      - name: Pack Dryv
+        run: dotnet pack Dryv/Dryv.csproj -c Release --no-build -o ./nupkgs
 
-      # - name: Pack Dryv.AspNetCore
-      #   run: dotnet pack Dryv.AspNetCore/Dryv.AspNetCore.csproj -c Release --no-build -o ./nupkgs
+      - name: Pack Dryv.AspNetCore
+        run: dotnet pack Dryv.AspNetCore/Dryv.AspNetCore.csproj -c Release --no-build -o ./nupkgs
 
       - name: Pack Dryv.HotChocolate
         run: dotnet pack Dryv.HotChocolate/Dryv.HotChocolate.csproj -c Release --no-build -o ./nupkgs
