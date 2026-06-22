@@ -43,7 +43,7 @@ namespace Dryv.AspNetCore.DynamicControllers.Translation
                 return;
             }
 
-            var controller = this.GenerateController(context, expression.ToString(), expression, action);
+            var controller = this.GenerateController(context, Internal.ExpressionStructuralHasher.GetStructuralHash(expression), expression, action);
             var url = this.mvcOptions.Value.EnableEndpointRouting ? this.GetUrlFromEndpoint(controller) : GetUrlFromAttributes(controller);
             var httpMethod = this.options.Value.GetHttpMethod(new DryvControllerGenerationContext(controller, action, context.Rule)).ToString().ToUpper();
             var modelProperties = FindModelPropertiesInExpression(context, expression);

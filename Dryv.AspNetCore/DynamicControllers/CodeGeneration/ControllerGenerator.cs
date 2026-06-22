@@ -35,7 +35,7 @@ namespace Dryv.AspNetCore.DynamicControllers.CodeGeneration
 
         private Assembly CreateAssembly(Expression expression, Type modelType, string action, DryvCompiledRule rule)
         {
-            var assemblyIndex = Md5Helper.CreateMd5(expression.ToString());
+            var assemblyIndex = Md5Helper.CreateMd5(ExpressionStructuralHasher.GetStructuralHash(expression));
             var typeNameBase = $"DryvDynamic{assemblyIndex}";
             var baseType = typeof(DryvDynamicController);
             var currentAssembly = Assembly.GetExecutingAssembly();
