@@ -1,3 +1,9 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
+using System.Threading.Tasks;
 using HotChocolate;
 using HotChocolate.Configuration;
 using HotChocolate.Resolvers;
@@ -45,11 +51,11 @@ internal sealed class DryvValidationTypeInterceptor : TypeInterceptor
                 continue;
             }
 
-            if (!runtimeType.GetCustomAttributes(typeof(DryvValidationAttribute), true).Any())
+            if (!HasDryvValidationAttribute(runtimeType, new HashSet<Type>()))
             {
                 continue;
             }
-
+  
             var value = context.ArgumentValue<object>(argument.Name);
             
             // ReSharper disable once ConditionIsAlwaysTrueOrFalseAccordingToNullableAPIContract
@@ -92,9 +98,50 @@ internal sealed class DryvValidationTypeInterceptor : TypeInterceptor
     {
         return field.HasArguments && field.Arguments.Any(arg =>
         {
-            var type = arg.RuntimeType;
-            return type is not null &&
-                   type.GetCustomAttributes(typeof(DryvValidationAttribute), true).Length > 0;
+            var type = arg.RuntimeType ?? arg.Parameter?.ParameterType;
+            return type is not null && HasDryvValidationAttribute(type, new HashSet<Type>());
         });
+    }
+
+    private static bool HasDryvValidationAttribute(Type type, HashSet<Type> visited)
+    {
+        if (type.IsPrimitive || type == typeof(string) || type.IsEnum || type.Namespace?.StartsWith("System", StringComparison.Ordinal) == true)
+        {
+            return false;
+        }
+
+        if (!visited.Add(type))
+        {
+            return false;
+        }
+
+        if (type.GetCustomAttributes(typeof(DryvValidationAttribute), true).Length > 0)
+        {
+            return true;
+        }
+
+        foreach (var property in type.GetProperties(BindingFlags.Public | BindingFlags.Instance))
+        {
+            var propertyType = UnwrapType(property.PropertyType);
+
+            if (HasDryvValidationAttribute(propertyType, visited))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static Type UnwrapType(Type type)
+    {
+        var underlyingType = Nullable.GetUnderlyingType(type) ?? type;
+
+        if (underlyingType != typeof(string) && typeof(IEnumerable).IsAssignableFrom(underlyingType) && underlyingType.IsGenericType)
+        {
+            return underlyingType.GetGenericArguments()[0];
+        }
+
+        return underlyingType;
     }
 }
