@@ -35,11 +35,13 @@ namespace Dryv.Translation.Translators
 
         protected static void All(MethodTranslationContext context)
         {
+            WriteNegation(context);
             Translate(context, "every");
         }
 
         protected static void Any(MethodTranslationContext context)
         {
+            WriteNegation(context);
             Translate(context, "some");
         }
 
@@ -58,7 +60,7 @@ namespace Dryv.Translation.Translators
             context.Translator.Translate(array, context);
             context.Writer.Write(".indexOf(");
             context.Translator.Translate(item, context);
-            context.Writer.Write(") >= 0");
+            context.Writer.Write(context.Negated ? ") < 0" : ") >= 0");
         }
 
         protected static void Count(MethodTranslationContext context)
@@ -94,6 +96,7 @@ namespace Dryv.Translation.Translators
             var array = context.Expression.Arguments.First();
             var index = context.Expression.Arguments.Skip(1).FirstOrDefault();
 
+            WriteNegation(context);
             context.Translator.Translate(array, context);
             context.Writer.Write("[");
             context.Translator.Translate(index, context);
@@ -105,6 +108,7 @@ namespace Dryv.Translation.Translators
             var array = context.Expression.Arguments.First();
             var index = context.Expression.Arguments.Skip(1).FirstOrDefault();
 
+            WriteNegation(context);
             context.Writer.Write("(function(arr){");
             context.Writer.Write("return arr.length > ");
             context.Translator.Translate(index, context);
@@ -120,6 +124,7 @@ namespace Dryv.Translation.Translators
             var array = context.Expression.Arguments.First();
             var func = context.Expression.Arguments.Skip(1).FirstOrDefault();
 
+            WriteNegation(context);
             context.Writer.Write("(");
             if (func != null)
             {
@@ -135,21 +140,25 @@ namespace Dryv.Translation.Translators
 
         protected static void FirstOrDefault(MethodTranslationContext context)
         {
+            WriteNegation(context);
             TranslateSelect(context, "return arr.length ? arr[0] : null;");
         }
 
         protected static void Last(MethodTranslationContext context)
         {
+            WriteNegation(context);
             TranslateSelect(context, "return arr[arr.length - 1];");
         }
 
         protected static void LastOrDefault(MethodTranslationContext context)
         {
+            WriteNegation(context);
             TranslateSelect(context, "return arr.length ? arr[arr.length - 1] : null;");
         }
 
         protected static void Max(MethodTranslationContext context)
         {
+            WriteNegation(context);
             context.Writer.Write("Math.max.apply(null, ");
             Translate(context, "map");
             context.Writer.Write(")");
@@ -157,6 +166,7 @@ namespace Dryv.Translation.Translators
 
         protected static void Min(MethodTranslationContext context)
         {
+            WriteNegation(context);
             context.Writer.Write("Math.min.apply(null, ");
             Translate(context, "map");
             context.Writer.Write(")");
@@ -169,11 +179,13 @@ namespace Dryv.Translation.Translators
 
         protected static void Single(MethodTranslationContext context)
         {
+            WriteNegation(context);
             TranslateSelect(context, "return arr[0];");
         }
 
         protected static void SingleOrDefault(MethodTranslationContext context)
         {
+            WriteNegation(context);
             TranslateSelect(context, "return arr.length == 1 ? arr[0] : null;");
         }
 
@@ -222,6 +234,14 @@ namespace Dryv.Translation.Translators
             context.Writer.Write($".{funcName}(function({parameter}){{ return ");
             context.Translator.Translate(lambda.Body, context);
             context.Writer.Write("})");
+        }
+
+        private static void WriteNegation(MethodTranslationContext context)
+        {
+            if (context.Negated)
+            {
+                context.Writer.Write("!");
+            }
         }
 
         private static string GetLambdaArgument(LambdaExpression lambda)

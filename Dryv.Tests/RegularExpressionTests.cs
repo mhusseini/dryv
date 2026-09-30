@@ -1,5 +1,6 @@
 using Escape;
 using Escape.Ast;
+using Jurassic;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using System.Text.RegularExpressions;
 
@@ -83,6 +84,36 @@ namespace Dryv.Tests
         }
 
         [TestMethod]
+        public void TranslateIsMatchWithLiteralPattern()
+        {
+            var expression = Expression(m => new Regex(@"^\d+$").IsMatch(m.Text) ? "fail" : DryvValidationResult.Success);
+            var translation = Translate<TestModel>(expression);
+
+            Assert.AreNotEqual(Null.Value, Evaluate(translation, "{text:'123'}"), translation);
+            Assert.AreEqual(Null.Value, Evaluate(translation, "{text:'abc'}"), translation);
+        }
+
+        [TestMethod]
+        public void TranslateNegatedIsMatchWithLiteralPatternAndOptions()
+        {
+            var expression = Expression(m => !new Regex("^abc$", RegexOptions.IgnoreCase).IsMatch(m.Text) ? "fail" : DryvValidationResult.Success);
+            var translation = Translate<TestModel>(expression);
+
+            Assert.AreEqual(Null.Value, Evaluate(translation, "{text:'ABC'}"), translation);
+            Assert.AreNotEqual(Null.Value, Evaluate(translation, "{text:'xyz'}"), translation);
+        }
+
+        [TestMethod]
+        public void TranslateMatchWithLiteralPattern()
+        {
+            var expression = Expression(m => new Regex(@"^\d+$").Match(m.Text).Success ? "fail" : DryvValidationResult.Success);
+            var translation = Translate<TestModel>(expression);
+
+            Assert.AreNotEqual(Null.Value, Evaluate(translation, "{text:'123'}"), translation);
+            Assert.AreEqual(Null.Value, Evaluate(translation, "{text:'abc'}"), translation);
+        }
+
+        [TestMethod]
         public void TranslateStaticMatch()
         {
             var pattern = @"^\d+$";
@@ -100,5 +131,8 @@ namespace Dryv.Tests
             Assert.AreEqual(RegExpFlags.None, regexp?.Flags);
             Assert.AreEqual("test", method.Name);
         }
+
+        private static object Evaluate(string translation, string model) =>
+            new ScriptEngine().Evaluate($"({translation})({model})");
     }
 }

@@ -94,6 +94,7 @@ namespace Dryv.Translation.Translators
                     from f in v?.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Static |
                                                          BindingFlags.Public | BindingFlags.NonPublic |
                                                          BindingFlags.FlattenHierarchy)
+                    where f.CanRead && f.GetIndexParameters().Length == 0
                     select f.GetValue(v))
                 .Union(from exp in expressions.OfType<MemberExpression>()
                     let obj = (exp.Expression as ConstantExpression)?.Value

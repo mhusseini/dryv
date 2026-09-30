@@ -129,6 +129,11 @@ namespace Dryv.Translation
 
         public override void Translate(Expression expression, TranslationContext context, bool negated = false)
         {
+            if (negated && this.TryWriteNegation(expression, context))
+            {
+                return;
+            }
+
             var needsBrackets = this.GetNeedsBrackets(expression);
 
             if (needsBrackets)
@@ -184,21 +189,17 @@ namespace Dryv.Translation
 
         public override void Visit(BinaryExpression expression, TranslationContext context, bool negated = false, bool leftOnly = false)
         {
-            var isEquals = expression.NodeType == ExpressionType.Equal;
-            var isNotEquals = expression.NodeType == ExpressionType.NotEqual;
-
-            var leftType = EnumComparisionModifier.GetTypeOrNullable(expression.Left.Type).GetTypeInfo();
-            var rightType = EnumComparisionModifier.GetTypeOrNullable(expression.Right.Type).GetTypeInfo();
-
-            var leftIsNull = /*!leftType.IsValueType && (isEquals || isNotEquals) &&*/ expression.Left is ConstantExpression c1 && c1.Value == null;
-            var rightIsNull = /*!rightType.IsValueType && (isEquals || isNotEquals) &&*/ expression.Right is ConstantExpression c2 && c2.Value == null;
-
-            if ((leftIsNull || rightIsNull) && !(isNotEquals ^ negated))
+            if (TryWriteInjectedExpression(expression, context))
             {
-                context.Writer.Write("!");
+                return;
             }
 
-            if (TryWriteInjectedExpression(expression, context))
+            if (this.TryWriteNullComparison(expression, context, negated))
+            {
+                return;
+            }
+
+            if (this.TryWriteValueTypeCoalesce(expression, context))
             {
                 return;
             }
@@ -208,19 +209,11 @@ namespace Dryv.Translation
                 this.Translate(expression.Left, context);
             }
 
-            if (rightIsNull)
+            if (!TryWriteTerminal(expression, context.Writer))
             {
-                return;
-            }
-
-            if (!leftIsNull)
-            {
-                if (!TryWriteTerminal(expression, context.Writer))
-                {
-                    throw expression.Method != null
-                        ? (Exception)new DryvMethodNotSupportedException(expression)
-                        : new DryvExpressionNotSupportedException(expression);
-                }
+                throw expression.Method != null
+                    ? (Exception)new DryvMethodNotSupportedException(expression)
+                    : new DryvExpressionNotSupportedException(expression);
             }
 
             if (!leftOnly && !TryWriteInjectedExpression(expression.Right, context))
@@ -256,7 +249,7 @@ namespace Dryv.Translation
 
         public override void Visit(ConstantExpression expression, TranslationContext context, bool negated = false)
         {
-            var text = JavaScriptHelper.TranslateValue(expression.Value);
+            var text = this.TranslateValue(expression.Value);
 
             context.Writer.Write(text);
         }
@@ -264,7 +257,7 @@ namespace Dryv.Translation
         public override void Visit(DefaultExpression expression, TranslationContext context, bool negated = false)
         {
             var value = GetDefaultValue(expression.Type);
-            var text = JavaScriptHelper.TranslateValue(value);
+            var text = this.TranslateValue(value);
 
             context.Writer.Write(text);
         }
@@ -627,6 +620,118 @@ namespace Dryv.Translation
             return context.InjectRuntimeExpression(this.Options, expression, parameters);
         }
 
+        private bool TryWriteNegation(Expression expression, TranslationContext context)
+        {
+            var injected = new StringBuilder();
+
+            if (this.TryWriteInjectedExpression(expression, context.Clone<TranslationContext>(injected)))
+            {
+                context.Writer.Write("!");
+                context.Writer.Write(injected.ToString());
+                return true;
+            }
+
+            if (expression is MemberExpression ||
+                expression is MethodCallExpression ||
+                expression is BinaryExpression binary && GetNullComparisonOperand(binary) != null)
+            {
+                return false;
+            }
+
+            var addBrackets = !this.GetNeedsBrackets(expression);
+
+            context.Writer.Write(addBrackets ? "!(" : "!");
+            this.Translate(expression, context);
+
+            if (addBrackets)
+            {
+                context.Writer.Write(")");
+            }
+
+            return true;
+        }
+
+        private bool TryWriteNullComparison(BinaryExpression expression, TranslationContext context, bool negated)
+        {
+            var operand = GetNullComparisonOperand(expression);
+
+            if (operand == null)
+            {
+                return false;
+            }
+
+            var isNullCheck = (expression.NodeType == ExpressionType.Equal) ^ negated;
+
+            if (operand.Type.GetTypeInfo().IsValueType)
+            {
+                this.WriteValueTypeNullCheck(operand, isNullCheck, context);
+                return true;
+            }
+
+            if (isNullCheck)
+            {
+                context.Writer.Write("!");
+            }
+
+            this.WriteOperand(operand, context);
+            return true;
+        }
+
+        private bool TryWriteValueTypeCoalesce(BinaryExpression expression, TranslationContext context)
+        {
+            if (expression.NodeType != ExpressionType.Coalesce || !expression.Left.Type.GetTypeInfo().IsValueType)
+            {
+                return false;
+            }
+
+            this.WriteValueTypeNullCheck(expression.Left, true, context);
+            context.Writer.Write(" ? ");
+            this.WriteOperand(expression.Right, context);
+            context.Writer.Write(" : ");
+            this.WriteOperand(expression.Left, context);
+
+            return true;
+        }
+
+        private void WriteValueTypeNullCheck(Expression operand, bool isNullCheck, TranslationContext context)
+        {
+            this.WriteOperand(operand, context);
+            context.Writer.Write(isNullCheck ? " == null || " : " != null && ");
+            this.WriteOperand(operand, context);
+            context.Writer.Write(isNullCheck ? " === \"\"" : " !== \"\"");
+        }
+
+        private void WriteOperand(Expression operand, TranslationContext context)
+        {
+            if (!this.TryWriteInjectedExpression(operand, context))
+            {
+                this.Translate(operand, context);
+            }
+        }
+
+        private static Expression GetNullComparisonOperand(BinaryExpression expression)
+        {
+            if (expression.NodeType != ExpressionType.Equal && expression.NodeType != ExpressionType.NotEqual)
+            {
+                return null;
+            }
+
+            return IsNullConstant(expression.Right) ? expression.Left
+                : IsNullConstant(expression.Left) ? expression.Right
+                : null;
+        }
+
+        private static bool IsNullConstant(Expression expression)
+        {
+            while (expression is UnaryExpression { NodeType: ExpressionType.Convert, Method: null } conversion &&
+                   conversion.Type.GetTypeInfo().IsValueType)
+            {
+                expression = conversion.Operand;
+            }
+
+            return expression is ConstantExpression { Value: null };
+        }
+
         private bool GetNeedsBrackets(Expression expression)
         {
             return expression switch
@@ -735,6 +840,14 @@ namespace Dryv.Translation
         {
             if (TryWriteInjectedExpression(expression, context))
             {
+                return;
+            }
+
+            if (expression.Member.Name == nameof(Nullable<int>.Value) &&
+                expression.Expression != null &&
+                Nullable.GetUnderlyingType(expression.Expression.Type) != null)
+            {
+                this.Translate(expression.Expression, context);
                 return;
             }
 

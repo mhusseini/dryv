@@ -194,6 +194,7 @@ namespace Dryv.Translation
                 Rule = rule,
             };
 
+            expression = new NullableMemberModifier().Visit(expression);
             expression = new EnumComparisionModifier().Visit(expression);
             expression = new ConditionConversionModifier().Visit(expression);
             this.Translate(expression, context);

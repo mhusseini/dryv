@@ -17,6 +17,11 @@ namespace Dryv.Translation.Translators
 
         private void Get(MethodTranslationContext context)
         {
+            if (context.Negated)
+            {
+                context.Writer.Write("!");
+            }
+
             context.Writer.Write("$ctx.parameter(");
             context.Translator.Translate(context.Expression.Arguments.First(), context);
             context.Writer.Write(")");

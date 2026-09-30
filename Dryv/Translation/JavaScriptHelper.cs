@@ -15,6 +15,7 @@ namespace Dryv.Translation
                 null => "null",
                 DateTime dateTime => $@"""{dateTime.ToString(CultureInfo.CurrentUICulture)}""",
                 DateTimeOffset dateTime => $@"""{dateTime.ToString(CultureInfo.CurrentUICulture)}""",
+                Guid guid => $@"""{guid}""",
                 _ => value.ToString()
             };
         }

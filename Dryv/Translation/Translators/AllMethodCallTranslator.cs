@@ -15,6 +15,11 @@ namespace Dryv.Translation.Translators
 
         private static void TranslateAnyMethod(MethodTranslationContext context)
         {
+            if (context.Negated)
+            {
+                context.Writer.Write("!");
+            }
+
             context.Translator.Translate(context.Expression.Object, context);
             context.Writer.Write(".");
             context.Writer.Write(context.Expression.Method.Name.ToCamelCase());
