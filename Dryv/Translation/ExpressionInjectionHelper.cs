@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using System.Threading.Tasks;
 using Dryv.Configuration;
 using Dryv.Extensions;
 using Dryv.Reflection;
@@ -83,12 +82,6 @@ namespace Dryv.Translation
             var memberExpression = expression as MemberExpression;
             while (memberExpression?.Expression != null)
             {
-                // TODO: can we delete nect block?
-                if (typeof(Task).IsAssignableFrom(memberExpression.Expression.Type))
-                {
-                    return null;
-                }
-
                 memberExpression = memberExpression.Expression as MemberExpression;
             }
 

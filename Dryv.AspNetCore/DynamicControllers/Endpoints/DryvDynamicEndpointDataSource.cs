@@ -10,24 +10,24 @@ namespace Dryv.AspNetCore.DynamicControllers.Endpoints
 {
     internal class DryvDynamicEndpointDataSource : EndpointDataSource
     {
-        private readonly object _lock = new object();
-        private readonly List<Endpoint> _endpoints = new List<Endpoint>();
-        private CancellationTokenSource _cts = new CancellationTokenSource();
+        private readonly object @lock = new();
+        private readonly List<Endpoint> endpoints = [];
+        private CancellationTokenSource cts = new();
 
         public override IReadOnlyList<Endpoint> Endpoints
         {
             get
             {
-                lock (_lock)
+                lock (@lock)
                 {
-                    return _endpoints.ToArray();
+                    return endpoints.ToArray();
                 }
             }
         }
 
         public override IChangeToken GetChangeToken()
         {
-            return new CancellationChangeToken(_cts.Token);
+            return new CancellationChangeToken(cts.Token);
         }
 
         public void AddEndpoint(string routePattern, RequestDelegate handler, string httpMethod, Action<RouteEndpointBuilder> configure = null)
@@ -36,17 +36,17 @@ namespace Dryv.AspNetCore.DynamicControllers.Endpoints
             {
                 DisplayName = $"Dryv: {routePattern}"
             };
-            builder.Metadata.Add(new HttpMethodMetadata(new[] { httpMethod }));
+            builder.Metadata.Add(new HttpMethodMetadata([httpMethod]));
 
             configure?.Invoke(builder);
 
-            lock (_lock)
+            lock (@lock)
             {
-                _endpoints.Add(builder.Build());
+                endpoints.Add(builder.Build());
             }
 
-            var oldCts = _cts;
-            _cts = new CancellationTokenSource();
+            var oldCts = cts;
+            cts = new CancellationTokenSource();
             oldCts.Cancel();
         }
     }

@@ -11,8 +11,8 @@ namespace Dryv.Translation.Translators
     internal static class MomentJsFormatConverter
     {
         private static readonly Regex KeywordMatchRegex;
-        private static readonly Regex RegexEscapeBackslashes = new Regex(@"(\\)'");
-        private static readonly Regex RegexEscapeQuotes = new Regex(@"(?<!\\)'((?:[^'\\]|\\.)*)'");
+        private static readonly Regex RegexEscapeBackslashes = new(@"(\\)'");
+        private static readonly Regex RegexEscapeQuotes = new(@"(?<!\\)'((?:[^'\\]|\\.)*)'");
         private static readonly Dictionary<string, string> TokenDifferenceLookup;
 
         static MomentJsFormatConverter()

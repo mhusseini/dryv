@@ -16,7 +16,7 @@ namespace Dryv.Translation
     {
         private static readonly MethodInfo DryvValidationResultImplicitConvert = typeof(DryvValidationResult).GetMethod("op_Implicit");
 
-        private static readonly Dictionary<ExpressionType, string> Terminals = new Dictionary<ExpressionType, string>
+        private static readonly Dictionary<ExpressionType, string> Terminals = new()
         {
             //[ExpressionType.ArrayIndex] = "",
             //[ExpressionType.ArrayLength] = "",
@@ -942,7 +942,6 @@ namespace Dryv.Translation
 
                         case ParameterExpression parameterExpression:
                             this.Visit(parameterExpression, context);
-                            context.Writer.Write("$$MODELPATH$$");
                             break;
 
                         default:

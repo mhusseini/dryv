@@ -36,6 +36,6 @@ namespace Dryv
         public string Group { get; set; }
         public string Name { get; set; }
 
-        public static implicit operator DryvRuleSettings(string group) => new DryvRuleSettings(group);
+        public static implicit operator DryvRuleSettings(string group) => new(group);
     }
 }

@@ -147,11 +147,11 @@ namespace Dryv.Tests
         {
             var model = new Model10
             {
-                Children = new[]
-                {
+                Children =
+                [
                     new Model11(),
-                    new Model11(),
-                }
+                    new Model11()
+                ]
             };
 
             var property = typeof(Model11).GetProperty(nameof(Model11.Text));

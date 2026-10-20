@@ -13,7 +13,7 @@ namespace Dryv.RuleDetection
 
         public Type ModelType { get; set; }
 
-        public List<ModelTreeEdge> Children { get; set; } = new List<ModelTreeEdge>();
+        public List<ModelTreeEdge> Children { get; set; } = new();
         public bool IsRecursive { get; set; }
         public List<MemberInfo> Hierarchy { get; set; }
     }

@@ -18,7 +18,7 @@ namespace Dryv.Tests
 {
     public class JavascriptTranslatorTestsBase
     {
-        private static readonly JsonSerializerOptions Options = new JsonSerializerOptions
+        private static readonly JsonSerializerOptions Options = new()
         {
             Converters =
             {
@@ -73,7 +73,7 @@ namespace Dryv.Tests
         {
             if (validationOptions == null)
             {
-                validationOptions = new object[0];
+                validationOptions = [];
             }
 
             var rule = new DryvRuleDefinition
@@ -81,7 +81,7 @@ namespace Dryv.Tests
                 ModelType = typeof(TModel)
             };
 
-            var args = new object[] { "" }.Union(validationOptions).ToArray();
+            var args = validationOptions;
             var translator = CreateTranslator(translators);
             var translation = translator.Translate(expression, null, rule).Factory(null, args, new DryvOptions());
             return translation;

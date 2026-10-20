@@ -85,7 +85,7 @@ namespace Dryv
 
             foreach (var property in properties)
             {
-                var relatedProperties = properties.Except(new[] { property }).ToList();
+                var relatedProperties = properties.Except([property]).ToList();
                 this.Add(property, rule, switchLambda, settings, DryvEvaluationLocation.Server | DryvEvaluationLocation.Client, relatedProperties, groupOverride);
             }
         }
@@ -105,7 +105,7 @@ namespace Dryv
 
             foreach (var property in properties)
             {
-                var relatedProperties = properties.Except(new[] { property }).ToList();
+                var relatedProperties = properties.Except([property]).ToList();
                 this.Add(property, rule, switchLambda, settings, DryvEvaluationLocation.Client, relatedProperties, groupOverride);
             }
         }
@@ -138,7 +138,7 @@ namespace Dryv
 
             foreach (var property in properties)
             {
-                var relatedProperties = properties.Except(new[] { property }).ToList();
+                var relatedProperties = properties.Except([property]).ToList();
                 this.Add(property, lambda, switchLambda, settings, DryvEvaluationLocation.Server, relatedProperties);
             }
         }

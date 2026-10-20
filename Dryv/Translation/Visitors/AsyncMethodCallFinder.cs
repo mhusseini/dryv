@@ -15,7 +15,7 @@ namespace Dryv.Translation.Visitors
             this.translationContext = translationContext;
         }
 
-        public List<MethodCallExpression> AsyncMethodCallsExpressions { get; } = new List<MethodCallExpression>();
+        public List<MethodCallExpression> AsyncMethodCallsExpressions { get; } = new();
 
         public List<MethodCallExpression> FindAsyncMethodCalls(Expression node)
         {

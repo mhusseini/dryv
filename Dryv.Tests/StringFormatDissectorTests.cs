@@ -24,7 +24,7 @@ namespace Dryv.Tests
         public void RecombinePattern()
         {
             var translator = new StringFormatDissector();
-            var parts = translator.Recombine("test {0} is {1} but {{2}} isn't.", new object[] { "pattern", "cool" });
+            var parts = translator.Recombine("test {0} is {1} but {{2}} isn't.", ["pattern", "cool"]);
             var text = string.Concat(parts);
 
             Assert.AreEqual("test (pattern, ) is (cool, ) but {{2}} isn't.", text);

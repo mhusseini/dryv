@@ -16,7 +16,7 @@
     <PackageTags>validation, JavaScript, C#, ASP.NET Core</PackageTags>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
-    <LangVersion>8</LangVersion>
+    <LangVersion>latest</LangVersion>
     <IsPackable>true</IsPackable>
     <ApplicationIcon />
     <OutputType>Library</OutputType>

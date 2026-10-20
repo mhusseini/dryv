@@ -16,7 +16,7 @@ namespace Dryv.Translation.Visitors
             this.translationContext = translationContext;
         }
 
-        public Dictionary<StringBuilder, ParameterExpression> AsyncCalls { get; set; } = new Dictionary<StringBuilder, ParameterExpression>();
+        public Dictionary<StringBuilder, ParameterExpression> AsyncCalls { get; set; } = new();
 
         public TExpression ApplyPromises<TExpression>(TExpression expression)
             where TExpression : Expression

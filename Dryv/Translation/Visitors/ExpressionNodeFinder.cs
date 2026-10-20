@@ -7,13 +7,13 @@ namespace Dryv.Translation.Visitors
     public class ExpressionNodeFinder<TExpression> : ExpressionVisitor
         where TExpression : Expression
     {
-        private Stack<Expression> stack = new Stack<Expression>();
+        private Stack<Expression> stack = new();
 
-        public List<TExpression> BlackList { get; } = new List<TExpression>();
+        public List<TExpression> BlackList { get; } = new();
 
-        public List<TExpression> FoundChildren { get; } = new List<TExpression>();
+        public List<TExpression> FoundChildren { get; } = new();
 
-        public Dictionary<TExpression, ICollection<Expression>> FoundChildrenWithStack { get; } = new Dictionary<TExpression, ICollection<Expression>>();
+        public Dictionary<TExpression, ICollection<Expression>> FoundChildrenWithStack { get; } = new();
 
         public static IList<TExpression> FindChildrenStatic(Expression expression)
         {

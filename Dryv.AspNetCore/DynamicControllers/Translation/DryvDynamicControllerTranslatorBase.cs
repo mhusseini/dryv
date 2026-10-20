@@ -13,7 +13,7 @@ namespace Dryv.AspNetCore.DynamicControllers.Translation
 {
     internal abstract class DryvDynamicControllerTranslatorBase
     {
-        private static readonly ConcurrentDictionary<string, Lazy<string>> EndpointUrls = new ConcurrentDictionary<string, Lazy<string>>();
+        private static readonly ConcurrentDictionary<string, Lazy<string>> EndpointUrls = new();
         private readonly IDryvClientServerCallWriter controllerCallWriter;
         private readonly DryvDynamicEndpointRegistration endpointRegistration;
         private readonly IOptions<DryvDynamicControllerOptions> options;

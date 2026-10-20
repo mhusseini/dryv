@@ -38,7 +38,7 @@ namespace Dryv.Translation
             var format = Expression.Call(null, FormatMethod, pattern, arguments);
             blockExpressions.Add(Expression.Assign(resultVariable, format));
 
-            var block = Expression.Block(new[] {resultVariable}, blockExpressions);
+            var block = Expression.Block([resultVariable], blockExpressions);
             var result = Expression.Lambda<Func<Func<Type, object>, object[], DryvOptions, string>>
                 (block, servicesParameter, parameter, optionsParameter);
 
@@ -86,12 +86,6 @@ namespace Dryv.Translation
             var arrayItems = new List<Expression>();
             var arrayIndexes = new ConcurrentDictionary<int, int>();
 
-            // The first item is the model path.
-            arrayItems.Add(Expression.ArrayAccess(parameter, Expression.Constant(0)));
-
-            // Replace all occurrences of $$MODELPATH$$ with the appropriate formatting placeholder
-            // TODO: remove "$$MODELPATH$$" from all code.
-            code = code.Replace("$$MODELPATH$$", string.Empty);
 
             foreach (var injectedExpression in injectedExpressions)
             {
@@ -99,7 +93,7 @@ namespace Dryv.Translation
                 {
                     // get item from input array (properly casted)
                     var arguments = from p2 in injectedExpression.LambdaExpression.Parameters
-                        let idx2 = Expression.Constant(serviceTypes.IndexOf(p2.Type) + 1)
+                        let idx2 = Expression.Constant(serviceTypes.IndexOf(p2.Type))
                         let arrayAccess = Expression.ArrayAccess(parameter, idx2)
                         select Expression.Convert(arrayAccess, p2.Type);
 
@@ -115,7 +109,7 @@ namespace Dryv.Translation
                     // Add the whole expression to the formatting array
                     arrayItems.Add(Expression.Convert(value, typeof(object)));
 
-                    return arrayIndexes.Count + 1;
+                    return arrayIndexes.Count;
                 });
 
                 // Replace all occurrences of $$...$$ with the appropriate formatting placeholder

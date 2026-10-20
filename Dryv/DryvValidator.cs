@@ -14,7 +14,7 @@ namespace Dryv
 {
     public class DryvValidator
     {
-        private readonly ConcurrentDictionary<Type, GroupedValidation> Cache = new ConcurrentDictionary<Type, GroupedValidation>();
+        private readonly ConcurrentDictionary<Type, GroupedValidation> cache = new();
         private readonly DryvOptions options;
         private readonly DryvRuleFinder ruleFinder;
 
@@ -26,7 +26,7 @@ namespace Dryv
 
         public void ClearCache()
         {
-            this.Cache.Clear();
+            this.cache.Clear();
             this.ruleFinder.ClearCache();
         }
 
@@ -38,7 +38,7 @@ namespace Dryv
             }
 
             var modelType = model.GetType();
-            var validation = Cache.GetOrAdd(modelType, this.GroupValidation);
+            var validation = cache.GetOrAdd(modelType, this.GroupValidation);
 
             var rules = validation.ValidationRules.SelectMany(i => i.Value).Union(validation.DisablingRules.SelectMany(i => i.Value));
             var ruleParameters = await DryvParametersHelper.GetDryvParameters(rules, serviceProvider, parameters);

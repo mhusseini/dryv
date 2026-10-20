@@ -12,7 +12,7 @@ namespace Dryv.AspNetCore.Internal
     /// </summary>
     internal sealed class ExpressionStructuralHasher : ExpressionVisitor
     {
-        private readonly StringBuilder sb = new StringBuilder();
+        private readonly StringBuilder sb = new();
 
         public static string GetStructuralHash(Expression expression)
         {

@@ -5,7 +5,7 @@ namespace Dryv.AspNetCore.DynamicControllers.Translation
 {
     internal class PropertyComparer : IEqualityComparer<PropertyInfo>
     {
-        public static readonly PropertyComparer Default = new PropertyComparer();
+        public static readonly PropertyComparer Default = new();
 
         public bool Equals(PropertyInfo x, PropertyInfo y)
         {

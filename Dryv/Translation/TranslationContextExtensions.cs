@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq.Expressions;
 using Dryv.Configuration;
 
@@ -28,7 +29,7 @@ namespace Dryv.Translation
 
         public static bool InjectRuntimeExpression(this TranslationContext context, DryvOptions options, Expression expression, bool isRawOutput, IList<ParameterExpression> parameters)
         {
-            parameters ??= new ParameterExpression[0];
+            parameters ??= Array.Empty<ParameterExpression>();
 
             var canInject = expression is MethodCallExpression mex
                 ? ExpressionInjectionHelper.CanInjectMethodCall(mex, context, parameters)

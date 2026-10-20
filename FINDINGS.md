@@ -23,12 +23,12 @@ Findings from the architectural analysis, excluding the three high-priority item
 - **Issue:** This single class serves as rule definition, compiled rule, translated rule, and parameter definition. All properties are `internal set` and mutated across multiple pipeline phases, making the class hard to reason about.
 - **Fix:** Split into separate types per phase (e.g. `DryvRuleDefinition` → `DryvCompiledRule` → `DryvTranslatedRule`). Each phase produces the next immutable type.
 
-### M4 — Upgrade `LangVersion` to `latest`
+### (FIXED) M4 — Upgrade `LangVersion` to `latest`
 - **Files:** `Dryv/Dryv.csproj:19`, `Dryv.AspNetCore/Dryv.AspNetCore.csproj:19`
 - **Issue:** Both projects are pinned to C# 8 despite targeting up to `net10.0`. This prevents use of file-scoped namespaces, raw string literals, collection expressions, `required` properties, and improved pattern matching.
 - **Fix:** Change `<LangVersion>8</LangVersion>` to `<LangVersion>latest</LangVersion>` in both csproj files. Modernise code incrementally.
 
-### M5 — Resolve all TODOs and remove dead code
+### (FIXED) M5 — Resolve all TODOs and remove dead code
 - **Locations:**
   - `Dryv/DryvTranslator.cs:73-76` — `// TODO: Update all that code.` — `arguments` array has index 0 wasted ("too cumbersome to update"). Wastes an allocation slot and is confusing.
   - `Dryv/Translation/TranslationCompiler.cs:93-94` — `// TODO: remove "$$MODELPATH$$"` — Dead placeholder still being `.Replace()`'d on every translation.

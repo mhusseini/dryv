@@ -69,11 +69,7 @@ namespace Dryv
             var services = serviceProvider.GetServices(rule, parameters);
             var options = serviceProvider.GetService<DryvOptions>();
 
-            // index 0 was used to transpose the path. It isn't used anymore,
-            // but it was too cumbersome to update all that code :-)
-            // TODO: Update all that code.
-            var arguments = new object[services.Length + 1];
-            services.CopyTo(arguments, 1);
+            var arguments = services;
 
             try
             {

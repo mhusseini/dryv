@@ -11,7 +11,7 @@ namespace Dryv.Tests
     public class JavascriptTranslatorTests : JavascriptTranslatorTestsBase
     {
         private readonly string patternField = @"^\d+$";
-        private readonly Regex regexField = new Regex(@"^\d+$");
+        private readonly Regex regexField = new(@"^\d+$");
         private readonly string var2Field = "fail";
 
         private string PatternProperty => patternField;

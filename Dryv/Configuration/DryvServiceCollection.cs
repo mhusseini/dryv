@@ -6,7 +6,7 @@ namespace Dryv.Configuration
 {
     public class DryvServiceCollection : IEnumerable<Type>
     {
-        private readonly List<Type> items = new List<Type>();
+        private readonly List<Type> items = new();
 
         protected virtual void OnAdd(Type type)
         {
@@ -23,14 +23,7 @@ namespace Dryv.Configuration
 
         public void Add(Type type)
         {
-            //if (!typeof(IDryvCustomTranslator).IsAssignableFrom(type) &&
-            //    !typeof(IDryvMethodCallTranslator).IsAssignableFrom(type))
-            //{
-            //    throw new ArgumentException($"The supplied type must implement {nameof(IDryvCustomTranslator)} or {nameof(IDryvMethodCallTranslator)}.");
-            //}
-
             this.OnAdd(type);
-
             this.items.Add(type);
         }
 

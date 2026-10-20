@@ -8,10 +8,10 @@ namespace Dryv
         public IReadOnlyList<DryvRuleDefinition> DisablingRules => this.InternalDisablingRules;
         public IReadOnlyList<DryvCompiledRule> Parameters => this.InternalParameters;
         public IReadOnlyList<DryvRuleDefinition> ValidationRules => this.InternalValidationRules;
-        internal List<DryvRuleDefinition> InternalDisablingRules { get; } = new List<DryvRuleDefinition>();
-        internal List<DryvCompiledRule> InternalParameters { get; } = new List<DryvCompiledRule>();
-        internal List<DryvRuleDefinition> InternalValidationRules { get; } = new List<DryvRuleDefinition>();
+        internal List<DryvRuleDefinition> InternalDisablingRules { get; } = new();
+        internal List<DryvCompiledRule> InternalParameters { get; } = new();
+        internal List<DryvRuleDefinition> InternalValidationRules { get; } = new();
 
-        public static DryvRules<TModel> For<TModel>() => new DryvRules<TModel>();
+        public static DryvRules<TModel> For<TModel>() => new();
     }
 }

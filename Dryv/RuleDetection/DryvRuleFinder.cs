@@ -15,7 +15,7 @@ using BindingFlags = System.Reflection.BindingFlags;
 
 namespace Dryv.RuleDetection
 {
-    public class DryvRuleFinder
+    public class DryvRuleFinder(ModelTreeBuilder treeBuilder, DryvCompiler compiler, ITranslator translator, IReadOnlyCollection<IDryvRuleAnnotator> annotators, DryvOptions options)
     {
         private const BindingFlags BindingFlagsForProperties = BindingFlags.FlattenHierarchy |
                                                                BindingFlags.Instance |
@@ -27,35 +27,22 @@ namespace Dryv.RuleDetection
                                                           BindingFlags.NonPublic |
                                                           BindingFlags.FlattenHierarchy;
 
-        private readonly ConcurrentDictionary<string, IEnumerable<DryvRuleDefinition>> CompiledRuleCache = new ConcurrentDictionary<string, IEnumerable<DryvRuleDefinition>>();
-        private readonly ConcurrentDictionary<string, IEnumerable<DryvCompiledRule>> CompiledRuleTreeCache = new ConcurrentDictionary<string, IEnumerable<DryvCompiledRule>>();
-        private readonly DryvCompiler compiler;
-        private readonly DryvOptions options;
-        private readonly ITranslator translator;
-        private readonly IReadOnlyCollection<IDryvRuleAnnotator> annotators;
-        private readonly ModelTreeBuilder treeBuilder;
-
-        public DryvRuleFinder(ModelTreeBuilder treeBuilder, DryvCompiler compiler, ITranslator translator, IReadOnlyCollection<IDryvRuleAnnotator> annotators, DryvOptions options)
-        {
-            this.compiler = compiler;
-            this.treeBuilder = treeBuilder;
-            this.translator = translator;
-            this.annotators = annotators ?? new IDryvRuleAnnotator[0];
-            this.options = options;
-        }
+        private readonly ConcurrentDictionary<string, IEnumerable<DryvRuleDefinition>> compiledRuleCache = new();
+        private readonly ConcurrentDictionary<string, IEnumerable<DryvCompiledRule>> compiledRuleTreeCache = new();
+        private readonly IReadOnlyCollection<IDryvRuleAnnotator> annotators = annotators ?? Array.Empty<IDryvRuleAnnotator>();
 
         public void ClearCache()
         {
-            CompiledRuleCache.Clear();
-            CompiledRuleTreeCache.Clear();
+            compiledRuleCache.Clear();
+            compiledRuleTreeCache.Clear();
         }
 
         public IEnumerable<DryvCompiledRule> FindValidationRulesInTree(Type rootType, RuleType ruleType)
         {
-            return CompiledRuleTreeCache.GetOrAdd($"{rootType.FullName}|{ruleType}", _ =>
+            return compiledRuleTreeCache.GetOrAdd($"{rootType.FullName}|{ruleType}", _ =>
             {
                 var result = new List<DryvCompiledRule>();
-                var tree = this.treeBuilder.Build(rootType);
+                var tree = treeBuilder.Build(rootType);
                 var flatTree = tree.Iterate(t => t.Children.Select(c => c.Child).Where(c => c != null)).ToList();
                 var scopedRules = FindRulesInModelTree(rootType, ruleType, new HashSet<Type>(), null).ToList();
 
@@ -138,7 +125,7 @@ namespace Dryv.RuleDetection
 
         private IEnumerable<DryvRuleDefinition> FindRulesOnType(Type type, RuleType ruleType)
         {
-            return CompiledRuleCache.GetOrAdd($"{type.FullName}|{ruleType}", _ =>
+            return compiledRuleCache.GetOrAdd($"{type.FullName}|{ruleType}", _ =>
             {
                 var typeInfo = type.GetTypeInfo();
 
@@ -260,7 +247,7 @@ namespace Dryv.RuleDetection
         private static Type TransposeExpressions(ModelTreeNode node, DryvRuleDefinition rule, out LambdaExpression newValidationExpression, out string transposedPath)
         {
             var firstMember = node.Hierarchy.First();
-            var modelType = firstMember.DeclaringType;
+            var modelType = firstMember.DeclaringType ?? throw new InvalidOperationException($"DeclaringType of member '{firstMember.Name}' is null.");
             var modelParameter = Expression.Parameter(modelType, "$m");
             var modelReplacement = TransposePath(modelParameter, node, out transposedPath);
 
@@ -310,21 +297,14 @@ namespace Dryv.RuleDetection
                 modelType = rule.ModelType;
             }
 
-            if (rule.RelatedProperties != null)
-            {
-                foreach (var relatedProperty in rule.RelatedProperties)
-                {
-                }
-            }
-
             var concreteProperty = node.Hierarchy?.LastOrDefault() as PropertyInfo ?? rule.Property;
             var serviceTypes = rule.ServiceTypes ?? newValidationExpression.Parameters.Skip(1).Select(p => p.Type).ToArray();
 
             var compiledRule = new DryvCompiledRule
             {
                 ModelType = modelType,
-                CompiledEnablingExpression = this.compiler.CompileEnablingExpression(rule, rule.EnablingExpression),
-                CompiledValidationExpression = this.compiler.CompileValidationExpression(rule, newValidationExpression),
+                CompiledEnablingExpression = compiler.CompileEnablingExpression(rule, rule.EnablingExpression),
+                CompiledValidationExpression = compiler.CompileValidationExpression(rule, newValidationExpression),
                 EnablingExpression = rule.EnablingExpression,
                 ValidationExpression = newValidationExpression,
                 EvaluationLocation = rule.EvaluationLocation,
@@ -343,24 +323,19 @@ namespace Dryv.RuleDetection
                     p => GetEffectiveModelPath(p.Value, transposedPath, p.Key)),
             };
 
-            if (compiledRule.EvaluationLocation.HasFlag(DryvEvaluationLocation.Client))
-            {
-                return this.Translate(compiledRule, compiledRule.ValidationExpression);
-            }
-
-            return compiledRule;
+            return compiledRule.EvaluationLocation.HasFlag(DryvEvaluationLocation.Client) ? this.Translate(compiledRule, compiledRule.ValidationExpression) : compiledRule;
         }
 
         private DryvCompiledRule Translate(DryvCompiledRule compiledRule, Expression validationExpression)
         {
-            if (this.translator == null)
+            if (translator == null)
             {
                 return compiledRule;
             }
 
             try
             {
-                var translation = this.translator.Translate(validationExpression, compiledRule.PropertyExpression, compiledRule);
+                var translation = translator.Translate(validationExpression, compiledRule.PropertyExpression, compiledRule);
                 return new DryvTranslatedRule(compiledRule)
                 {
                     TranslatedValidationExpression = translation.Factory,
@@ -371,7 +346,7 @@ namespace Dryv.RuleDetection
             }
             catch (DryvException ex)
             {
-                if (this.options.TranslationErrorBehavior != TranslationErrorBehavior.ValidateOnServer)
+                if (options.TranslationErrorBehavior != TranslationErrorBehavior.ValidateOnServer)
                 {
                     throw new DryvExpressionTranslationException(validationExpression, "An error occurred while translating validation rule.", ex);
                 }

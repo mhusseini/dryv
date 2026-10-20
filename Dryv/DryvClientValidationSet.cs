@@ -6,11 +6,11 @@ namespace Dryv
     {
         public string Name { get; set; }
 
-        public List<Touple2<string, object>> Parameters { get; set; } = new List<Touple2<string, object>>();
+        public List<Touple2<string, object>> Parameters { get; set; } = new();
 
-        public List<Touple2<string, string>> Validators { get; set; } = new List<Touple2<string, string>>();
+        public List<Touple2<string, string>> Validators { get; set; } = new();
 
-        public List<Touple2<string, string>> Disablers { get; set; } = new List<Touple2<string, string>>();
+        public List<Touple2<string, string>> Disablers { get; set; } = new();
     }
 
     public sealed class Touple2<T1, T2>

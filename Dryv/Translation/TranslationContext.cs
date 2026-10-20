@@ -13,9 +13,9 @@ namespace Dryv.Translation
     {
         internal static int ParameterCount = 0;
         private bool isAsync;
-        public Dictionary<object, object> CustomData { get; private set; } = new Dictionary<object, object>();
+        public Dictionary<object, object> CustomData { get; private set; } = new();
         private string DebugView => this.StringBuilder?.Length > 0 ? this.StringBuilder.ToString() : "PARENT: " + this.ParentContext?.DebugView;
-        public List<Func<Expression, TranslationContext, bool>> DynamicTranslation { get; private set; } = new List<Func<Expression, TranslationContext, bool>>();
+        public List<Func<Expression, TranslationContext, bool>> DynamicTranslation { get; private set; } = new();
         public string Group { get; set; }
 
         public bool IsAsync

@@ -20,7 +20,7 @@ namespace Dryv.AspNetCore.Internal
                 this.type = type;
             }
 
-            public List<MemberExpression> FoundMemberExpressions { get; } = new List<MemberExpression>();
+            public List<MemberExpression> FoundMemberExpressions { get; } = new();
 
             protected override Expression VisitMember(MemberExpression node)
             {

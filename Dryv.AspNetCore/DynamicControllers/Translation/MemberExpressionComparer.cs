@@ -5,7 +5,7 @@ namespace Dryv.AspNetCore.DynamicControllers.Translation
 {
     internal class MemberExpressionComparer : IEqualityComparer<MemberExpression>
     {
-        public static readonly MemberExpressionComparer Default = new MemberExpressionComparer();
+        public static readonly MemberExpressionComparer Default = new();
 
         public bool Equals(MemberExpression x, MemberExpression y)
         {
