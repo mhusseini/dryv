@@ -1,0 +1,103 @@
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
+using System.Linq.Expressions;
+using System.Reflection;
+using Dryv.Configuration;
+using Dryv.Extensions;
+
+namespace Dryv.Rules
+{
+    [DebuggerDisplay("{" + nameof(ValidationExpression) + "}")]
+    public class DryvRuleDefinition
+    {
+        internal DryvRuleDefinition()
+        {
+        }
+
+        internal DryvRuleDefinition(DryvRuleDefinition source)
+        {
+            this.Annotations = source.Annotations;
+            this.EnablingExpression = source.EnablingExpression;
+            this.EvaluationLocation = source.EvaluationLocation;
+            this.Group = source.Group;
+            this.ModelPath = source.ModelPath;
+            this.ModelType = source.ModelType;
+            this.Name = source.Name;
+            this.Parameters = source.Parameters;
+            this.Property = source.Property;
+            this.PropertyExpression = source.PropertyExpression;
+            this.RelatedProperties = source.RelatedProperties;
+            this.RuleType = source.RuleType;
+            this.ServiceTypes = source.ServiceTypes;
+            this.ValidationExpression = source.ValidationExpression;
+            this.UniquePath = source.UniquePath;
+        }
+
+        public IDictionary<string, object> Annotations { get; internal set; } = new Dictionary<string, object>();
+        public LambdaExpression EnablingExpression { get; internal set; }
+        public DryvEvaluationLocation EvaluationLocation { get; internal set; }
+        public string Group { get; internal set; }
+        public string ModelPath { get; internal set; }
+        public Type ModelType { get; internal set; }
+        public string Name { get; internal set; }
+        public IReadOnlyList<DryvCompiledRule> Parameters { get; internal set; }
+        public PropertyInfo Property { get; internal set; }
+        public MemberExpression PropertyExpression { get; internal set; }
+        public IDictionary<PropertyInfo, string> RelatedProperties { get; internal set; }
+        public RuleType RuleType { get; internal set; } = RuleType.Validation;
+        public Type[] ServiceTypes { get; internal set; }
+        public LambdaExpression ValidationExpression { get; internal set; }
+        internal string UniquePath { get; set; }
+
+        internal static DryvRuleDefinition Create<TModel, TProperty>(Expression<Func<TModel, TProperty>> propertyExpression, LambdaExpression validationExpression, LambdaExpression enablingExpression, DryvEvaluationLocation ruleLocation, string group)
+        {
+            var memberExpression = propertyExpression.GetMemberExpression();
+            if (memberExpression == null)
+            {
+                return null;
+            }
+
+            var modelPath = memberExpression.GetModelPath(true, out var members);
+            var propertyPath = string.Join(".", members
+                .Skip(1)
+                .Select(e => e.Member.Name + ":" + GetMemberType(e).FullName)
+                .Reverse());
+
+            var parameter = (ParameterExpression)members.Last().Expression;
+            var uniquePath = ":" + (memberExpression.Member.DeclaringType?.FullName ?? parameter?.Type.FullName);
+            if (!string.IsNullOrWhiteSpace(propertyPath))
+            {
+                uniquePath += "." + propertyPath;
+            }
+            else
+            {
+                uniquePath += "." + memberExpression.Member.Name;
+            }
+
+            return new DryvRuleDefinition
+            {
+                EnablingExpression = enablingExpression,
+                EvaluationLocation = ruleLocation,
+                Group = group,
+                UniquePath = uniquePath,
+                ModelPath = modelPath,
+                ModelType = parameter.Type,
+                Property = (PropertyInfo)memberExpression.Member,
+                PropertyExpression = memberExpression,
+                ValidationExpression = validationExpression,
+            };
+        }
+
+        internal static Type GetMemberType(MemberExpression e)
+        {
+            return e.Member switch
+            {
+                PropertyInfo p => p.PropertyType,
+                FieldInfo f => f.FieldType,
+                _ => throw new NotSupportedException($"Member expressions returning {e.Member.GetType().FullName} are not supported.")
+            };
+        }
+    }
+}

@@ -27,7 +27,7 @@ namespace Dryv.AspNetCore.DynamicControllers.Endpoints
             this.options = options;
         }
 
-        public string Register(Expression expression, Type modelType, string action, DryvCompiledRule rule)
+        public string Register(Expression expression, Type modelType, string action, DryvRuleDefinition rule)
         {
             var parameters = DryvExpressionHelper.FindParameters(expression);
 

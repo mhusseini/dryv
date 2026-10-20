@@ -179,7 +179,7 @@ namespace Dryv.Translation
             }
             else if (context2.IsAsync)
             {
-                context.Rule.IsAsync = true;
+                context.IsAsync = true;
             }
 
             if (needsBrackets)
@@ -374,7 +374,12 @@ namespace Dryv.Translation
                     : expression.Test;
 
                 var asyncFinder = new AsyncMethodCallModifier(this, context);
-                var body = asyncFinder.ApplyPromises(context.Rule, asyncExpression);
+                var body = asyncFinder.ApplyPromises(asyncExpression);
+
+                if (asyncFinder.AsyncCalls.Any())
+                {
+                    context.IsAsync = true;
+                }
 
                 foreach (var call in asyncFinder.AsyncCalls)
                 {
@@ -434,7 +439,12 @@ namespace Dryv.Translation
         public override void Visit(MemberExpression expression, TranslationContext context, bool negated = false)
         {
             var asyncFinder = new AsyncMethodCallModifier(this, context);
-            var body = asyncFinder.ApplyPromises(context.Rule, expression);
+            var body = asyncFinder.ApplyPromises(expression);
+
+            if (asyncFinder.AsyncCalls.Any())
+            {
+                context.IsAsync = true;
+            }
 
             foreach (var call in asyncFinder.AsyncCalls)
             {
@@ -476,6 +486,17 @@ namespace Dryv.Translation
 
         public override void Visit(MethodCallExpression expression, TranslationContext context, bool negated = false)
         {
+            // .NET 10 compiles e.g. array.Contains() using ReadOnlySpan<T> with an
+            // implicit conversion operator in the expression tree. Type conversions
+            // are meaningless in JavaScript, so we just translate the operand.
+            if (expression.Method.IsSpecialName &&
+                (expression.Method.Name == "op_Implicit" || expression.Method.Name == "op_Explicit") &&
+                expression.Arguments.Count == 1)
+            {
+                this.Translate(expression.Arguments[0], context, negated);
+                return;
+            }
+
             if (TryWriteInjectedExpression(expression, context))
             {
                 return;
@@ -487,13 +508,18 @@ namespace Dryv.Translation
             foreach (var argument in expression.Arguments)
             {
                 var asyncFinder = new AsyncMethodCallModifier(this, context);
-                var newArgument = asyncFinder.ApplyPromises(context.Rule, argument);
+                var newArgument = asyncFinder.ApplyPromises(argument);
 
                 newArguments.Add(newArgument);
                 asyncCalls.AddRange(asyncFinder.AsyncCalls);
             }
 
             var newExpression = Expression.Call(expression.Object, expression.Method, newArguments);
+
+            if (asyncCalls.Any())
+            {
+                context.IsAsync = true;
+            }
 
             foreach (var call in asyncCalls)
             {
@@ -814,6 +840,11 @@ namespace Dryv.Translation
         private void TranslateMethodCall(MethodCallExpression expression, TranslationContext context, bool negated)
         {
             var objectType = expression.Object?.Type ?? expression.Method.DeclaringType;
+
+            if (objectType == typeof(MemoryExtensions))
+            {
+                objectType = typeof(Enumerable);
+            }
             var context2 = context.Clone<MethodTranslationContext>();
             context2.Translator = this;
             context2.Expression = expression;

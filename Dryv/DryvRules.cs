@@ -5,12 +5,12 @@ namespace Dryv
 {
     public abstract class DryvRules
     {
-        public IReadOnlyList<DryvCompiledRule> DisablingRules => this.InternalDisablingRules;
+        public IReadOnlyList<DryvRuleDefinition> DisablingRules => this.InternalDisablingRules;
         public IReadOnlyList<DryvCompiledRule> Parameters => this.InternalParameters;
-        public IReadOnlyList<DryvCompiledRule> ValidationRules => this.InternalValidationRules;
-        internal List<DryvCompiledRule> InternalDisablingRules { get; } = new List<DryvCompiledRule>();
+        public IReadOnlyList<DryvRuleDefinition> ValidationRules => this.InternalValidationRules;
+        internal List<DryvRuleDefinition> InternalDisablingRules { get; } = new List<DryvRuleDefinition>();
         internal List<DryvCompiledRule> InternalParameters { get; } = new List<DryvCompiledRule>();
-        internal List<DryvCompiledRule> InternalValidationRules { get; } = new List<DryvCompiledRule>();
+        internal List<DryvRuleDefinition> InternalValidationRules { get; } = new List<DryvRuleDefinition>();
 
         public static DryvRules<TModel> For<TModel>() => new DryvRules<TModel>();
     }

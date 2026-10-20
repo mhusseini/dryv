@@ -76,7 +76,7 @@ namespace Dryv.Tests
                 validationOptions = new object[0];
             }
 
-            var rule = new DryvCompiledRule
+            var rule = new DryvRuleDefinition
             {
                 ModelType = typeof(TModel)
             };

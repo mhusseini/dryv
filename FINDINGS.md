@@ -6,19 +6,19 @@ Findings from the architectural analysis, excluding the three high-priority item
 
 ## Medium Priority
 
-### M1 — Replace `(dynamic)` dispatch with pattern-match `switch`
+### (FIXED) M1 — Replace `(dynamic)` dispatch with pattern-match `switch`
 - **File:** `Dryv/Translation/JavaScriptTranslator.cs:152`
 - **Issue:** `this.Visit((dynamic)expression, context2, negated)` uses DLR dynamic dispatch on every expression node during translation. This bypasses compile-time safety, allocates via the DLR call-site cache, and cannot be optimized by the JIT.
 - **Fix:** Replace with a `switch` on the expression type, dispatching to the correct `Visit(...)` overload explicitly.
 
-### M2 — Move static caches to instance-level on singletons
+### (FIXED) M2 — Move static caches to instance-level on singletons
 - **Files:**
   - `Dryv/DryvValidator.cs:17` — `static ConcurrentDictionary<Type, GroupedValidation> Cache`
   - `Dryv/RuleDetection/DryvRuleFinder.cs:30-31` — `static ConcurrentDictionary CompiledRuleCache` and `CompiledRuleTreeCache`
 - **Issue:** Static caches live for the process lifetime, never invalidate, and leak state across unit tests. `DryvValidator` has no `ClearCache()` method at all.
 - **Fix:** Move caches to instance-level fields on the singleton services (or inject an `IRuleCache` abstraction). Since these classes are registered as singletons, the caching lifetime is identical, but testability and invalidation improve.
 
-### M3 — Split `DryvCompiledRule` into phase-specific types
+### (FIXED) M3 — Split `DryvCompiledRule` into phase-specific types
 - **File:** `Dryv/Rules/DryvCompiledRule.cs`
 - **Issue:** This single class serves as rule definition, compiled rule, translated rule, and parameter definition. All properties are `internal set` and mutated across multiple pipeline phases, making the class hard to reason about.
 - **Fix:** Split into separate types per phase (e.g. `DryvRuleDefinition` → `DryvCompiledRule` → `DryvTranslatedRule`). Each phase produces the next immutable type.

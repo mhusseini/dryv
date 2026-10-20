@@ -46,7 +46,7 @@ namespace Dryv
             IEnumerable<Expression<Func<TModel, TProperty>>> relatedProperties,
             string groupOverride = null)
         {
-            var ruleDefinition = DryvCompiledRule.Create(property, rule, enabled, ruleLocation, null);
+            var ruleDefinition = DryvRuleDefinition.Create(property, rule, enabled, ruleLocation, null);
             ruleDefinition.RuleType = RuleType.Validation;
             ruleDefinition.Parameters = this.InternalParameters;
             ruleDefinition.RelatedProperties = relatedProperties.Select(p => p.GetMemberExpression())
@@ -151,7 +151,7 @@ namespace Dryv
             params Type[] services)
         {
             var switchLambda = DelegateToLambda(ruleSwitch, services, true);
-            var ruleDefinition = DryvCompiledRule.Create(property, rule, switchLambda, ruleLocation, null);
+            var ruleDefinition = DryvRuleDefinition.Create(property, rule, switchLambda, ruleLocation, null);
             ruleDefinition.RuleType = RuleType.Disabling;
             ruleDefinition.Parameters = this.Parameters;
 

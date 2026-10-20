@@ -37,7 +37,7 @@ namespace Dryv.Translation
         public IList<Type> InjectedServiceTypes { get; set; }
         public TranslationContext ParentContext { get; set; }
         public Expression PropertyExpression { get; set; }
-        public DryvCompiledRule Rule { get; set; }
+        public DryvRuleDefinition Rule { get; set; }
         public ITranslator Translator { get; set; }
         public bool WhatIfMode { get; set; }
         public StringWriter Writer { get; set; }

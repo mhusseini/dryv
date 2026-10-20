@@ -4,7 +4,7 @@ namespace Dryv.AspNetCore.DynamicControllers
 {
     public class DryvControllerGenerationContext
     {
-        internal DryvControllerGenerationContext(string endpointName, string action, DryvCompiledRule rule)
+        internal DryvControllerGenerationContext(string endpointName, string action, DryvRuleDefinition rule)
         {
             this.ControllerFullName = endpointName;
             this.Controller = endpointName;
@@ -21,7 +21,7 @@ namespace Dryv.AspNetCore.DynamicControllers
         /// </summary>
         public string Action { get; set; }
 
-        public DryvCompiledRule Rule { get; set; }
+        public DryvRuleDefinition Rule { get; set; }
 
         /// <summary>
         /// The short name of the generated controller.

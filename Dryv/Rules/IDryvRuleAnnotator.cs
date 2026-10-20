@@ -4,6 +4,6 @@ namespace Dryv.Rules
 {
     public interface IDryvRuleAnnotator
     {
-        void Annotate(DryvCompiledRule rule, LambdaExpression expression);
+        void Annotate(DryvRuleDefinition rule, LambdaExpression expression);
     }
 }

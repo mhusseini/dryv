@@ -42,7 +42,7 @@ namespace Dryv.Validation
                     writer.Write(JavaScriptHelper.TranslateValue(rule.Rule.Group));
                 }
 
-                if (rule.Rule.IsAsync)
+                if (rule.IsAsync)
                 {
                     keyWriter.Write("async:true");
                 }
