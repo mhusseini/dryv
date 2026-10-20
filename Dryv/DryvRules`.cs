@@ -70,7 +70,7 @@ namespace Dryv
             this.InternalValidationRules.Add(ruleDefinition);
         }
 
-        private void Add<TProperty>(
+        internal void Add<TProperty>(
             LambdaExpression rule,
             IList<Expression<Func<TModel, TProperty>>> properties,
             Delegate ruleSwitch,
