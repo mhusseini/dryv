@@ -235,6 +235,129 @@ public class JsonSchemaTranslatorTests
 
     #endregion
 
+    #region Boolean Properties
+
+    [TestMethod]
+    public void NegatedBoolProp_ProducesConstTrue()
+    {
+        var schema = Translate<TestModel>(m =>
+            !m.AcceptsTerms ? "Must accept terms" : DryvValidationResult.Success);
+
+        var prop = GetPropertyConstraints(schema, "acceptsTerms");
+        Assert.AreEqual(true, prop.GetProperty("const").GetBoolean());
+    }
+
+    #endregion
+
+    #region String Methods
+
+    [TestMethod]
+    public void NegatedContains_ProducesPattern()
+    {
+        var schema = Translate<TestModel>(m =>
+            !m.Email.Contains("@") ? "Must contain @" : DryvValidationResult.Success);
+
+        var prop = GetPropertyConstraints(schema, "email");
+        Assert.IsTrue(prop.TryGetProperty("pattern", out var pattern));
+        Assert.IsTrue(pattern.GetString()!.Contains("@"));
+    }
+
+    [TestMethod]
+    public void NegatedStartsWith_ProducesPattern()
+    {
+        var schema = Translate<TestModel>(m =>
+            !m.Text.StartsWith("http") ? "Must start with http" : DryvValidationResult.Success);
+
+        var prop = GetPropertyConstraints(schema, "text");
+        Assert.IsTrue(prop.TryGetProperty("pattern", out var pattern));
+        Assert.IsTrue(pattern.GetString()!.StartsWith("^"));
+    }
+
+    [TestMethod]
+    public void NegatedEndsWith_ProducesPattern()
+    {
+        var schema = Translate<TestModel>(m =>
+            !m.Text.EndsWith(".com") ? "Must end with .com" : DryvValidationResult.Success);
+
+        var prop = GetPropertyConstraints(schema, "text");
+        Assert.IsTrue(prop.TryGetProperty("pattern", out var pattern));
+        Assert.IsTrue(pattern.GetString()!.EndsWith("$"));
+    }
+
+    #endregion
+
+    #region Trim + Length
+
+    [TestMethod]
+    public void TrimLengthLessThan_ProducesMinLength()
+    {
+        var schema = Translate<TestModel>(m =>
+            m.Text.Trim().Length < 5 ? "Too short" : DryvValidationResult.Success);
+
+        var prop = GetPropertyConstraints(schema, "text");
+        Assert.AreEqual(5, prop.GetProperty("minLength").GetInt32());
+    }
+
+    #endregion
+
+    #region String Equality
+
+    [TestMethod]
+    public void StringNotEqual_ProducesConst()
+    {
+        var schema = Translate<TestModel>(m =>
+            m.AccountType != "business" ? "Must be business" : DryvValidationResult.Success);
+
+        var prop = GetPropertyConstraints(schema, "accountType");
+        Assert.AreEqual("business", prop.GetProperty("const").GetString());
+    }
+
+    #endregion
+
+    #region Collection Constraints
+
+    [TestMethod]
+    public void CollectionCountLessThan_ProducesMinItems()
+    {
+        var schema = Translate<TestModel>(m =>
+            m.Tags.Count < 1 ? "At least one tag" : DryvValidationResult.Success);
+
+        var prop = GetPropertyConstraints(schema, "tags");
+        Assert.AreEqual(1, prop.GetProperty("minItems").GetInt32());
+    }
+
+    #endregion
+
+    #region Exact String Length
+
+    [TestMethod]
+    public void SuccessExactLength_ProducesMinAndMaxLength()
+    {
+        var schema = Translate<TestModel>(m =>
+            m.Text.Length == 5 ? DryvValidationResult.Success : "Must be exactly 5 chars");
+
+        var prop = GetPropertyConstraints(schema, "text");
+        Assert.AreEqual(5, prop.GetProperty("minLength").GetInt32());
+        Assert.AreEqual(5, prop.GetProperty("maxLength").GetInt32());
+    }
+
+    #endregion
+
+    #region Inverted Numeric (constant on left)
+
+    [TestMethod]
+    public void InvertedNumericGreaterThan_ProducesMinimum()
+    {
+        // 18 > m.Age is same as m.Age < 18 → minimum: 18
+        var schema = Translate<TestModel>(m =>
+            18 > m.Age ? "Must be at least 18" : DryvValidationResult.Success);
+
+        var prop = GetPropertyConstraints(schema, "age");
+        Assert.AreEqual(18, prop.GetProperty("minimum").GetInt32());
+    }
+
+    #endregion
+
     #region Helpers
 
     private JsonDocument Translate<TModel>(Expression<Func<TModel, DryvValidationResult>> expression)
@@ -260,6 +383,10 @@ public class JsonSchemaTranslatorTests
         public abstract string Text { get; set; }
         public int Age { get; set; }
         public decimal Price { get; set; }
+        public bool AcceptsTerms { get; set; }
+        public string Email { get; set; } = string.Empty;
+        public string AccountType { get; set; } = string.Empty;
+        public List<string> Tags { get; set; } = new();
     }
 
     #endregion

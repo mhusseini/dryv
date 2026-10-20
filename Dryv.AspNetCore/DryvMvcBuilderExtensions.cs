@@ -76,13 +76,13 @@ namespace Dryv.AspNetCore
             // Register all core services via DryvCoreSetup
             DryvCoreSetup.RegisterServices(
                 options,
-                registerSingleton: (svc, impl) => serviceCollection.TryAddSingleton(svc, impl),
+                registerSingleton: serviceCollection.TryAddSingleton,
                 registerInstance: (svc, inst) => serviceCollection.AddSingleton(svc, inst),
                 registerFactory: (svc, factory) => serviceCollection.AddSingleton(svc, sp => factory(sp.GetService)),
                 registerScopedFactory: (svc, factory) => serviceCollection.AddScoped(svc, sp => factory(sp.GetService)));
 
             // Scoped IDryvServiceResolver wrapping the current scope's IServiceProvider
-            serviceCollection.TryAddScoped<IDryvServiceResolver>(sp => new Internal.ServiceProviderResolver(sp));
+            serviceCollection.TryAddScoped<IDryvServiceResolver>(sp => new ServiceProviderResolver(sp));
 
             // ASP.NET-specific service
             serviceCollection.TryAddSingleton<DryvClientWriter>();

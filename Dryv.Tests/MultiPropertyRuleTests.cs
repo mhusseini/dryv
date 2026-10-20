@@ -202,7 +202,7 @@ namespace Dryv.Tests
         }
 
         [TestMethod]
-        public void MultiPropertyRule_DumpGeneratedOutput()
+        public void MultiPropertyRule_AllProperties_HaveClientRulesWithTranslation()
         {
             var allRules = sut.FindAndTranslateRulesInTree(typeof(AddressModel), RuleType.Validation);
             var options = new DryvOptions();
@@ -215,16 +215,13 @@ namespace Dryv.Tests
                     .Where(r => r.Property == prop && r.EvaluationLocation.HasFlag(DryvEvaluationLocation.Client))
                     .ToList();
 
-                System.Console.WriteLine($"\n=== {propName} (client rules: {clientRules.Count}) ===");
+                Assert.IsTrue(clientRules.Any(), $"{propName} should have at least one client-side rule.");
+
                 foreach (var rule in clientRules)
                 {
                     var code = rule.Translation.TranslatedValidationExpression(_ => null, [""], options);
-                    var related = rule.RelatedProperties?.Any() == true
-                        ? string.Join(", ", rule.RelatedProperties.Values)
-                        : "(none)";
-                    System.Console.WriteLine($"  group: {rule.Group ?? "(none)"}");
-                    System.Console.WriteLine($"  related: [{related}]");
-                    System.Console.WriteLine($"  validate: {code}");
+                    Assert.IsFalse(string.IsNullOrWhiteSpace(code),
+                        $"{propName} should produce non-empty translated JavaScript code.");
                 }
             }
         }

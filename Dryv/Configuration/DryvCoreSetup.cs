@@ -81,9 +81,9 @@ namespace Dryv.Configuration
             registerSingleton(typeof(IValueFormatter), translatorType);
 
             // Core services (factory-based to allow internal constructors)
-            registerFactory(typeof(ModelTreeBuilder), r => new ModelTreeBuilder());
-            registerFactory(typeof(DryvCompiler), r => new DryvCompiler());
-            registerFactory(typeof(RuleDiscovery), r => new RuleDiscovery());
+            registerFactory(typeof(ModelTreeBuilder), _ => new ModelTreeBuilder());
+            registerFactory(typeof(DryvCompiler), _ => new DryvCompiler());
+            registerFactory(typeof(RuleDiscovery), _ => new RuleDiscovery());
             registerFactory(typeof(DryvRuleFinder), r => new DryvRuleFinder(
                 Resolve<ModelTreeBuilder>(r),
                 Resolve<DryvCompiler>(r),
@@ -95,7 +95,7 @@ namespace Dryv.Configuration
                 Resolve<DryvRuleFinder>(r),
                 Resolve<IRuleTranslator>(r),
                 Resolve<DryvOptions>(r)));
-            registerFactory(typeof(RuleResolutionPipeline), r => new RuleResolutionPipeline());
+            registerFactory(typeof(RuleResolutionPipeline), _ => new RuleResolutionPipeline());
             registerFactory(typeof(DryvTranslator), r => new DryvTranslator(
                 Resolve<RuleTranslationPhase>(r),
                 Resolve<RuleResolutionPipeline>(r)));
