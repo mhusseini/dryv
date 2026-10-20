@@ -25,7 +25,7 @@ namespace Dryv.AspNetCore.DynamicControllers.Translation
             this.options = options;
         }
 
-        protected void TranslateToServerCall(TranslationContext context, ITranslator translator, Expression expression, string action)
+        protected void TranslateToServerCall(TranslationContext context, IExpressionWriter translator, Expression expression, string action)
         {
             context.IsAsync = true;
 

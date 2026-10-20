@@ -13,7 +13,7 @@ namespace Dryv.AspNetCore.DynamicControllers.Translation
 {
     internal class DryvClientServerCallWriter : IDryvClientServerCallWriter
     {
-        public void Write(TranslationContext context, ITranslator translator, string url, string httpMethod, IList<MemberExpression> modelMembers)
+        public void Write(TranslationContext context, IExpressionWriter translator, string url, string httpMethod, IList<MemberExpression> modelMembers)
         {
             WritePre(context, url, httpMethod);
 
@@ -27,13 +27,13 @@ namespace Dryv.AspNetCore.DynamicControllers.Translation
             WritePost(context, parameter);
         }
         
-        public void Write(TranslationContext context, ITranslator translator, string url, string httpMethod, ParameterExpression modelParameter)
+        public void Write(TranslationContext context, IExpressionWriter translator, string url, string httpMethod, ParameterExpression modelParameter)
         {
             WritePre(context, url, httpMethod);
             WritePost(context, modelParameter);
         }
 
-        public void Write(TranslationContext context, ITranslator translator, string url, string httpMethod)
+        public void Write(TranslationContext context, IExpressionWriter translator, string url, string httpMethod)
         {
             WritePre(context, url, httpMethod);
             WritePost(context, null);
@@ -67,11 +67,11 @@ namespace Dryv.AspNetCore.DynamicControllers.Translation
         {
             private readonly TranslationContext context;
             private readonly IDictionary<string, Expression> members;
-            private readonly ITranslator translator;
+            private readonly IExpressionWriter translator;
             private readonly Dictionary<Expression, List<Expression>> usedObjects;
             private readonly TextWriter writer;
 
-            public ObjectWriter(ITranslator translator, TranslationContext context, IDictionary<MemberInfo, Expression> members, TextWriter writer)
+            public ObjectWriter(IExpressionWriter translator, TranslationContext context, IDictionary<MemberInfo, Expression> members, TextWriter writer)
             {
                 this.usedObjects = (
                         from expression in members.Values

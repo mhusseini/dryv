@@ -199,10 +199,13 @@ DryvRuleDefinition → DryvCompiledRule → DryvTranslatedRule
 
 ## Issue 7: `ITranslator` Interface Is Too Broad
 
-**Status:** 🔴 Open
+**Status:** ✅ Resolved
 **Risk:** Low
 **Files:**
 - `Dryv/Translation/ITranslator.cs`
+- `Dryv/Translation/IRuleTranslator.cs` *(new)*
+- `Dryv/Translation/IExpressionWriter.cs` *(new)*
+- `Dryv/Translation/IValueFormatter.cs` *(new)*
 
 **Problem:**
 The interface combines:
@@ -212,11 +215,22 @@ The interface combines:
 
 Any consumer needing only high-level translation must also see visitor internals.
 
-**Fix:**
-Split into:
-- `IRuleTranslator` — high-level translation entry point
-- `IExpressionWriter` — low-level visitor used internally
-- `IValueFormatter` — `FormatIdentifier`, `TranslateValue`
+**Resolution:**
+Split into three focused interfaces:
+
+- `IRuleTranslator` — high-level translation entry point (`Translate(Expression, MemberExpression, DryvRuleDefinition)`)
+- `IExpressionWriter` — low-level visitor (`Translate(Expression, TranslationContext, bool)`, `TryWriteTerminal`)
+- `IValueFormatter` — formatting utilities (`FormatIdentifier`, `TranslateValue`)
+
+`ITranslator` now inherits all three for backward compatibility. Consumers
+updated to depend on the narrowest sub-interface:
+
+- `RuleTranslationPhase` → `IRuleTranslator`
+- `MethodCallTranslator.WriteArguments` → `IExpressionWriter`
+- `IDryvClientServerCallWriter` / `DryvClientServerCallWriter` → `IExpressionWriter`
+- `DryvDynamicControllerTranslatorBase.TranslateToServerCall` → `IExpressionWriter`
+
+All three sub-interfaces are registered in DI alongside `ITranslator`.
 
 ---
 
@@ -273,6 +287,6 @@ expressions in an indexed list rather than a hash-keyed dictionary.
 - [x] Issue 4 — Fix `TranslationContext`
 - [x] Issue 5 — Remove JS leaks from `Translator` base
 - [x] Issue 6 — Flatten rule type hierarchy
-- [ ] Issue 7 — Split `ITranslator`
+- [x] Issue 7 — Split `ITranslator`
 - [ ] Issue 8 — Unify rule resolution
 - [ ] Issue 9 — Fix injection key collision risk

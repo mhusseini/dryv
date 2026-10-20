@@ -96,7 +96,11 @@ namespace Dryv.Configuration
             registerSingleton(typeof(IDryvClientValidationFunctionWriter), options.ClientFunctionWriterType ?? DryvOptions.DefaultClientFunctionWriterType);
             registerSingleton(typeof(IDryvClientValidationSetWriter), options.ClientValidationSetWriterType ?? DryvOptions.DefaultClientValidationSetWriterType);
 
-            registerSingleton(typeof(ITranslator), options.TranslatorType ?? typeof(JavaScriptTranslator));
+            var translatorType = options.TranslatorType ?? typeof(JavaScriptTranslator);
+            registerSingleton(typeof(ITranslator), translatorType);
+            registerSingleton(typeof(IRuleTranslator), translatorType);
+            registerSingleton(typeof(IExpressionWriter), translatorType);
+            registerSingleton(typeof(IValueFormatter), translatorType);
 
             // Singleton core services
             foreach (var type in SingletonServiceTypes)

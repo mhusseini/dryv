@@ -18,7 +18,7 @@ namespace Dryv.AspNetCore.DynamicControllers.Translation
         /// <param name="url">The URL of the dynamically generated server endpoint.</param>
         /// <param name="httpMethod">The HTTP method (e.g. POST, GET) for the request.</param>
         /// <param name="modelMembers">The model member expressions whose values should be sent.</param>
-        void Write(TranslationContext context, ITranslator translator, string url, string httpMethod, IList<MemberExpression> modelMembers);
+        void Write(TranslationContext context, IExpressionWriter translator, string url, string httpMethod, IList<MemberExpression> modelMembers);
 
         /// <summary>
         /// Writes client code that sends the entire model object to the server endpoint.
@@ -28,7 +28,7 @@ namespace Dryv.AspNetCore.DynamicControllers.Translation
         /// <param name="url">The URL of the dynamically generated server endpoint.</param>
         /// <param name="httpMethod">The HTTP method (e.g. POST, GET) for the request.</param>
         /// <param name="modelParameter">The parameter expression representing the model.</param>
-        void Write(TranslationContext context, ITranslator translator, string url, string httpMethod, ParameterExpression modelParameter);
+        void Write(TranslationContext context, IExpressionWriter translator, string url, string httpMethod, ParameterExpression modelParameter);
 
         /// <summary>
         /// Writes client code that calls the server endpoint without sending any model data.
@@ -37,6 +37,6 @@ namespace Dryv.AspNetCore.DynamicControllers.Translation
         /// <param name="translator">The translator used to format identifiers and values.</param>
         /// <param name="url">The URL of the dynamically generated server endpoint.</param>
         /// <param name="httpMethod">The HTTP method (e.g. POST, GET) for the request.</param>
-        void Write(TranslationContext context, ITranslator translator, string url, string httpMethod);
+        void Write(TranslationContext context, IExpressionWriter translator, string url, string httpMethod);
     }
 }
