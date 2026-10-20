@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using Dryv.AspNetCore.Internal;
 using Dryv.AspNetCore.Json;
+using Dryv.AspNetCore.PreLoading;
 using Dryv.AspNetCore.Translators;
 using Dryv.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -85,6 +86,10 @@ namespace Dryv.AspNetCore
 
             // ASP.NET-specific service
             serviceCollection.TryAddSingleton<DryvClientWriter>();
+
+            // Preloading
+            serviceCollection.AddSingleton<DryvPreloader>();
+            serviceCollection.AddSingleton(new DryvMvcInitializer(services => services.GetService<DryvPreloader>().Preload(services.AsDryvServiceResolver())));
 
             return options;
         }

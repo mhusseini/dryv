@@ -3,17 +3,16 @@ using System.Collections.Generic;
 using System.Linq;
 using Dryv.RuleDetection;
 using Dryv.Rules;
-using Microsoft.Extensions.Options;
 
 namespace Dryv.AspNetCore.PreLoading
 {
-    internal class DryvPreloader(RuleTranslationPhase ruleTranslationPhase, DryvTranslator translator, IOptions<DryvPreloadingOptions> options)
+    internal class DryvPreloader(RuleTranslationPhase ruleTranslationPhase, DryvTranslator translator)
     {
         private bool hasStarted;
 
         public void Preload(IDryvServiceResolver serviceResolver = null)
         {
-            if (this.hasStarted || !options.Value.IsEnabled)
+            if (this.hasStarted)
             {
                 return;
             }

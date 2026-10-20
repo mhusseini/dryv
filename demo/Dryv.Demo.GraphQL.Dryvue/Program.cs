@@ -11,8 +11,7 @@ builder.Services.AddSingleton<EmailValidator>();
 
 builder.Services
     .AddControllers()
-    .AddDryv()
-    .AddDryvPreloading();
+    .AddDryv();
 
 builder.Services.AddHttpContextAccessor();
 

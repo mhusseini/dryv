@@ -27,8 +27,7 @@ builder.Services
             Console.WriteLine($"Dryv endpoint called: {context.Action}");
             await next(httpContext);
         });
-    })
-    .AddDryvPreloading();
+    });
 
 builder.Services.AddHttpContextAccessor();
 
