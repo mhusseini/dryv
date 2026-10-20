@@ -60,7 +60,7 @@ internal sealed class DryvValidationTypeInterceptor : TypeInterceptor
                 continue;
             }
 
-            var results = await validator.Validate(value, context.Services.GetService);
+            var results = await validator.Validate(value, DryvServiceResolverFactory.FromFunc(context.Services.GetService));
 
             foreach (var (path, result) in results)
             {

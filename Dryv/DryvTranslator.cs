@@ -20,7 +20,7 @@ namespace Dryv
             this.ruleFinder = ruleFinder;
         }
 
-        public async Task<TranslationResult> TranslateValidationRules(Type modelType, Func<Type, object> serviceProvider, IReadOnlyDictionary<string, object> parameters = null)
+        public async Task<TranslationResult> TranslateValidationRules(Type modelType, IDryvServiceResolver serviceResolver, IReadOnlyDictionary<string, object> parameters = null)
         {
             var validationRules = this.ruleFinder
                 .FindValidationRulesInTree(modelType, RuleType.Validation)
@@ -32,23 +32,23 @@ namespace Dryv
                 .Where(r => r.EvaluationLocation.HasFlag(DryvEvaluationLocation.Client))
                 .ToList();
 
-            var ruleParameters = await DryvParametersHelper.GetDryvParameters(validationRules.Union(disablingRules), serviceProvider, parameters);
+            var ruleParameters = await DryvParametersHelper.GetDryvParameters(validationRules.Union(disablingRules), serviceResolver, parameters);
 
             var validationTasks = validationRules.Select(rule =>
-                IsRuleEnabled(rule, serviceProvider, ruleParameters)
+                IsRuleEnabled(rule, serviceResolver, ruleParameters)
                     .ContinueWith(task => task.Result ? rule : null));
 
             var clientValidation = from rule in await Task.WhenAll(validationTasks)
                 where rule != null
-                select Translate(rule, serviceProvider, ruleParameters);
+                select Translate(rule, serviceResolver, ruleParameters);
 
             var disablingTasks = disablingRules.Select(rule =>
-                IsRuleEnabled(rule, serviceProvider, ruleParameters)
+                IsRuleEnabled(rule, serviceResolver, ruleParameters)
                     .ContinueWith(task => task.Result ? rule : null));
 
             var clientDisablers = from rule in await Task.WhenAll(disablingTasks)
                 where rule != null
-                select Translate(rule, serviceProvider, ruleParameters);
+                select Translate(rule, serviceResolver, ruleParameters);
 
             return new TranslationResult
             {
@@ -58,16 +58,16 @@ namespace Dryv
             };
         }
 
-        private static async Task<bool> IsRuleEnabled(DryvCompiledRule rule, Func<Type, object> serviceProvider, IReadOnlyDictionary<IReadOnlyList<DryvCompiledRule>, DryvParameters> parameters)
+        private static async Task<bool> IsRuleEnabled(DryvCompiledRule rule, IDryvServiceResolver serviceResolver, IReadOnlyDictionary<IReadOnlyList<DryvCompiledRule>, DryvParameters> parameters)
         {
-            var arguments = serviceProvider.GetServices(rule, parameters);
+            var arguments = serviceResolver.GetServices(rule, parameters);
             return true.Equals(await TaskValueHelper.GetPossiblyAsyncValue(rule.CompiledEnablingExpression(arguments)));
         }
 
-        private static TranslatedRule Translate(DryvCompiledRule rule, Func<Type, object> serviceProvider, IReadOnlyDictionary<IReadOnlyList<DryvCompiledRule>, DryvParameters> parameters)
+        private static TranslatedRule Translate(DryvCompiledRule rule, IDryvServiceResolver serviceResolver, IReadOnlyDictionary<IReadOnlyList<DryvCompiledRule>, DryvParameters> parameters)
         {
-            var services = serviceProvider.GetServices(rule, parameters);
-            var options = serviceProvider.GetService<DryvOptions>();
+            var services = serviceResolver.GetServices(rule, parameters);
+            var options = serviceResolver.GetService<DryvOptions>();
 
             var arguments = services;
 

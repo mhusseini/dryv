@@ -96,7 +96,7 @@ namespace Dryv.AspNetCore.DynamicControllers.Endpoints
                 {
                     ctx.Response.StatusCode = 400;
                     ctx.Response.ContentType = "application/json; charset=utf-8";
-                    var dryvOpts = ctx.RequestServices.GetRequiredService<IOptions<DryvOptions>>().Value;
+                    var dryvOpts = ctx.RequestServices.GetRequiredService<DryvOptions>();
                     var errorJson = dryvOpts.JsonConversion(new { text = ex.Message, type = "error" });
                     await ctx.Response.WriteAsync(errorJson, Encoding.UTF8);
                     return;
@@ -170,7 +170,7 @@ namespace Dryv.AspNetCore.DynamicControllers.Endpoints
                     : null;
             }
 
-            var dryvOptions = ctx.RequestServices.GetRequiredService<IOptions<DryvOptions>>().Value;
+            var dryvOptions = ctx.RequestServices.GetRequiredService<DryvOptions>();
             var json = dryvOptions.JsonConversion(result);
             ctx.Response.ContentType = "application/json; charset=utf-8";
             await ctx.Response.WriteAsync(json, Encoding.UTF8);

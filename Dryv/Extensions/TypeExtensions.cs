@@ -6,6 +6,25 @@ namespace Dryv.Extensions
 {
     internal static class TypeExtensions
     {
+        public static Type GetElementTypeOrSelf(this Type type)
+        {
+            if (type.IsArray)
+            {
+                return type.GetElementType() ?? type;
+            }
+
+            if (type.IsGenericType && typeof(System.Collections.IEnumerable).IsAssignableFrom(type))
+            {
+                var genericArgs = type.GetGenericArguments();
+                if (genericArgs.Length > 0)
+                {
+                    return genericArgs[0];
+                }
+            }
+
+            return type;
+        }
+
         public static string GetNonGenericName(this Type type)
         {
             return type.FullName;

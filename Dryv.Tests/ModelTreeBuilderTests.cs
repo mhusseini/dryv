@@ -58,9 +58,9 @@ namespace Dryv.Tests
             var modelType = typeof(ParentModel);
             
             var validator = new DryvValidator(ruleFinder, options);
-            var errors = await validator.Validate(m, t => new Thingy());
+            var errors = await validator.Validate(m, DryvServiceResolverFactory.FromFunc(t => new Thingy()));
             var translator = new DryvTranslator(ruleFinder);
-            var code = translator.TranslateValidationRules(m.GetType(), t => null);
+            var code = translator.TranslateValidationRules(m.GetType(), DryvServiceResolverFactory.FromFunc(t => null));
         }
     }
 

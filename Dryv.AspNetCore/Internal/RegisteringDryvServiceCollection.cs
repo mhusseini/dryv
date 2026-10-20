@@ -7,7 +7,8 @@ namespace Dryv.AspNetCore.Internal
     {
         private readonly Action<Type> typeAdded;
 
-        public RegisteringDryvServiceCollection(Action<Type> typeAdded)
+        public RegisteringDryvServiceCollection(Action<Type> typeAdded, params Type[] requiredInterfaces)
+            : base(requiredInterfaces)
         {
             this.typeAdded = typeAdded;
         }

@@ -15,7 +15,7 @@ namespace Dryv.AspNetCore
 
             mvcBuilder.MvcBuilder.Services.AddSingleton(Options.Create(options));
             mvcBuilder.MvcBuilder.Services.AddSingleton<DryvPreloader>();
-            mvcBuilder.MvcBuilder.Services.AddSingleton(new DryvMvcInitializer(services => services.GetService<DryvPreloader>().Preload(services.GetService)));
+            mvcBuilder.MvcBuilder.Services.AddSingleton(new DryvMvcInitializer(services => services.GetService<DryvPreloader>().Preload(services.AsDryvServiceResolver())));
 
             return mvcBuilder;
         }

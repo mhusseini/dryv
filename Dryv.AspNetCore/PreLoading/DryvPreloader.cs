@@ -21,7 +21,7 @@ namespace Dryv.AspNetCore.PreLoading
             this.options = options;
         }
 
-        public void Preload(Func<Type, object> serviceProvider = null)
+        public void Preload(IDryvServiceResolver serviceResolver = null)
         {
             if (this.hasStarted || !this.options.Value.IsEnabled)
             {
@@ -38,14 +38,14 @@ namespace Dryv.AspNetCore.PreLoading
                 this.ruleFinder.FindValidationRulesInTree(type, RuleType.Disabling);
             }
 
-            if (serviceProvider == null)
+            if (serviceResolver == null)
             {
                 return;
             }
 
             foreach (var type in types)
             {
-                this.translator.TranslateValidationRules(type, serviceProvider, new Dictionary<string, object>()).GetAwaiter().GetResult();
+                this.translator.TranslateValidationRules(type, serviceResolver, new Dictionary<string, object>()).GetAwaiter().GetResult();
             }
         }
 

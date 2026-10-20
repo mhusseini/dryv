@@ -15,7 +15,6 @@ using Dryv.Translation.Translators;
 using Dryv.Validation;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Options;
 
 namespace Dryv.AspNetCore
 {
@@ -91,7 +90,6 @@ namespace Dryv.AspNetCore
             serviceCollection.TryAddSingleton<DryvTranslator>();
             serviceCollection.TryAddSingleton<DryvRuleFinder>();
             serviceCollection.TryAddSingleton<DryvClientWriter>();
-            serviceCollection.AddSingleton(Options.Create((DryvOptions)options));
             serviceCollection.AddSingleton(typeof(DryvOptions), options);
 
             serviceCollection.AddSingleton<IReadOnlyCollection<IDryvRuleAnnotator>>(services => new ReadOnlyCollection<IDryvRuleAnnotator>(options.Annotators.Select(services.GetService).Cast<IDryvRuleAnnotator>().ToList()));

@@ -37,26 +37,7 @@ namespace Dryv.RuleDetection
                 _ => throw new InvalidOperationException($"Unsupported member type: {member.GetType()}")
             };
 
-            return GetElementTypeOrSelf(type);
-        }
-
-        private static Type GetElementTypeOrSelf(Type type)
-        {
-            if (type.IsArray)
-            {
-                return type.GetElementType() ?? type;
-            }
-
-            if (type.IsGenericType && typeof(System.Collections.IEnumerable).IsAssignableFrom(type))
-            {
-                var genericArgs = type.GetGenericArguments();
-                if (genericArgs.Length > 0)
-                {
-                    return genericArgs[0];
-                }
-            }
-
-            return type;
+            return type.GetElementTypeOrSelf();
         }
 
         private ModelTreeNode Build(Type type, string uniquePath, string modelPath, IDictionary<Type, ModelTreeNode> processed, Stack<MemberInfo> hierarchy)

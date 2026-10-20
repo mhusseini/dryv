@@ -94,7 +94,7 @@ namespace Dryv.RuleDetection
             }
 
             foreach (var scopedRule in from property in rootType.GetProperties(BindingFlagsForProperties)
-                                 let propertyType = GetElementTypeOrSelf(property.PropertyType)
+                                 let propertyType = property.PropertyType.GetElementTypeOrSelf()
                                  where propertyType.Namespace != typeof(object).Namespace
                                  from scopedRule in FindRulesInModelTree(propertyType, ruleType, processed, currentPath)
                                  select scopedRule)
@@ -205,24 +205,6 @@ namespace Dryv.RuleDetection
             return ruleType == RuleType.Disabling ? rules.DisablingRules : rules.ValidationRules;
         }
 
-        private static Type GetElementTypeOrSelf(Type type)
-        {
-            if (type.IsArray)
-            {
-                return type.GetElementType() ?? type;
-            }
-
-            if (type.IsGenericType && typeof(System.Collections.IEnumerable).IsAssignableFrom(type))
-            {
-                var genericArgs = type.GetGenericArguments();
-                if (genericArgs.Length > 0)
-                {
-                    return genericArgs[0];
-                }
-            }
-
-            return type;
-        }
 
         private static bool HasCollectionInPath(ModelTreeNode node)
         {
@@ -237,7 +219,7 @@ namespace Dryv.RuleDetection
                     FieldInfo f => f.FieldType,
                     _ => null
                 };
-                if (type != null && type != GetElementTypeOrSelf(type))
+                if (type != null && type != type.GetElementTypeOrSelf())
                     return true;
             }
 

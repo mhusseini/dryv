@@ -8,7 +8,7 @@ namespace Dryv
 {
     public class DryvParametersHelper
     {
-        public static async Task<Dictionary<IReadOnlyList<DryvCompiledRule>, DryvParameters>> GetDryvParameters(IEnumerable<DryvCompiledRule> rules, Func<Type, object> serviceProvider, IReadOnlyDictionary<string, object> parameters = null)
+        public static async Task<Dictionary<IReadOnlyList<DryvCompiledRule>, DryvParameters>> GetDryvParameters(IEnumerable<DryvCompiledRule> rules, IDryvServiceResolver serviceResolver, IReadOnlyDictionary<string, object> parameters = null)
         {
             var result = new Dictionary<IReadOnlyList<DryvCompiledRule>, DryvParameters>();
 
@@ -20,7 +20,7 @@ namespace Dryv
                 {
                     if (parameters == null || !parameters.TryGetValue(parameter.Name, out var value))
                     {
-                        var services = serviceProvider.GetServices(parameter.ServiceTypes);
+                        var services = serviceResolver.GetServices(parameter.ServiceTypes);
                         var possiblyAsyncValue = parameter.CompiledValidationExpression(null, services);
                         
                         value = await TaskValueHelper.GetPossiblyAsyncValue(possiblyAsyncValue);
