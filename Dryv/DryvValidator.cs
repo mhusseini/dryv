@@ -10,7 +10,7 @@ using Dryv.Validation;
 
 namespace Dryv
 {
-    public class DryvValidator(DryvValidationCache validationCache, IDryvServiceResolver serviceResolver, DryvOptions options)
+    public class DryvValidator(DryvValidationCache validationCache, IDryvServiceResolver serviceResolver, DryvOptions options, RuleResolutionPipeline pipeline)
     {
         public void ClearCache()
         {
@@ -33,7 +33,7 @@ namespace Dryv
             var validation = validationCache.GetValidation(modelType);
 
             var rules = validation.ValidationRules.SelectMany(i => i.Value).Union(validation.DisablingRules.SelectMany(i => i.Value));
-            var ruleParameters = await DryvParametersHelper.GetDryvParameters(rules, serviceResolver, parameters);
+            var ruleParameters = await pipeline.ResolveParametersAsync(rules, serviceResolver, parameters);
 
             var validationTasks = new List<Task<KeyValuePair<string, DryvValidationResult>?>>();
             foreach (var kvp in validation.ValidationRules)
@@ -79,12 +79,12 @@ namespace Dryv
             {
                 try
                 {
-                    var services = serviceResolver.GetServices(rule, parameters);
-                    if (!true.Equals(await TaskValueHelper.GetPossiblyAsyncValue(rule.CompiledEnablingExpression(services))))
+                    if (!await pipeline.IsRuleEnabledAsync(rule, serviceResolver, parameters))
                     {
                         continue;
                     }
 
+                    var services = serviceResolver.GetServices(rule, parameters);
                     var result = await TryGetValidationResult(model, rule, services);
                     if (result == null)
                     {

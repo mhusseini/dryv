@@ -19,25 +19,26 @@ namespace Dryv.Configuration
         /// <summary>
         /// The core Dryv service types that must be registered as singletons.
         /// </summary>
-        public static readonly Type[] SingletonServiceTypes =
-        {
+        private static readonly Type[] SingletonServiceTypes =
+        [
             typeof(ModelTreeBuilder),
             typeof(DryvValidationCache),
             typeof(DryvCompiler),
             typeof(RuleDiscovery),
             typeof(DryvRuleFinder),
             typeof(RuleTranslationPhase),
-            typeof(DryvTranslator),
-        };
+            typeof(RuleResolutionPipeline),
+            typeof(DryvTranslator)
+        ];
 
         /// <summary>
         /// The core Dryv service types that should be registered as scoped
         /// (or singleton in environments without scoping).
         /// </summary>
-        public static readonly Type[] ScopedServiceTypes =
-        {
-            typeof(DryvValidator),
-        };
+        private static readonly Type[] ScopedServiceTypes =
+        [
+            typeof(DryvValidator)
+        ];
 
         /// <summary>
         /// Populates default configuration on the specified options.
@@ -146,7 +147,7 @@ namespace Dryv.Configuration
         /// <summary>
         /// Builds the annotator collection from the configured options.
         /// </summary>
-        public static IReadOnlyCollection<IDryvRuleAnnotator> BuildAnnotators(
+        private static IReadOnlyCollection<IDryvRuleAnnotator> BuildAnnotators(
             DryvOptions options, Func<Type, object> resolver)
             => new ReadOnlyCollection<IDryvRuleAnnotator>(
                 options.Annotators
@@ -157,7 +158,7 @@ namespace Dryv.Configuration
         /// <summary>
         /// Builds the method-call translator collection from the configured options.
         /// </summary>
-        public static IReadOnlyCollection<IDryvMethodCallTranslator> BuildMethodCallTranslators(
+        private static IReadOnlyCollection<IDryvMethodCallTranslator> BuildMethodCallTranslators(
             DryvOptions options, Func<Type, object> resolver)
             => new ReadOnlyCollection<IDryvMethodCallTranslator>(
                 options.Translators
@@ -169,7 +170,7 @@ namespace Dryv.Configuration
         /// <summary>
         /// Builds the custom translator collection from the configured options.
         /// </summary>
-        public static IReadOnlyCollection<IDryvCustomTranslator> BuildCustomTranslators(
+        private static IReadOnlyCollection<IDryvCustomTranslator> BuildCustomTranslators(
             DryvOptions options, Func<Type, object> resolver)
             => new ReadOnlyCollection<IDryvCustomTranslator>(
                 options.Translators

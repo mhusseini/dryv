@@ -236,11 +236,13 @@ All three sub-interfaces are registered in DI alongside `ITranslator`.
 
 ## Issue 8: `DryvValidator` and `DryvTranslator` Duplicate Rule Resolution
 
-**Status:** 🔴 Open
+**Status:** ✅ Resolved
 **Risk:** Low
 **Files:**
-- `Dryv/DryvValidator.cs` (lines ~107–121)
-- `Dryv/DryvTranslator.cs` (lines ~16–28)
+- `Dryv/RuleResolutionPipeline.cs` *(new)*
+- `Dryv/DryvValidator.cs`
+- `Dryv/DryvTranslator.cs`
+- `Dryv/Configuration/DryvCoreSetup.cs`
 
 **Problem:**
 Both classes independently:
@@ -250,10 +252,21 @@ Both classes independently:
 4. Check enabling expressions
 5. Handle `DryvParameters`
 
-**Fix:**
-Extract a `RuleResolutionPipeline` that handles: find → filter by location → check
-enablement → resolve services. Both `DryvValidator` and `DryvTranslator` consume
-the pipeline output.
+**Resolution:**
+Extracted a `RuleResolutionPipeline` class with three shared operations:
+
+- `ResolveParametersAsync` — delegates to `DryvParametersHelper.GetDryvParameters`,
+  giving both consumers a single entry point for parameter resolution
+- `IsRuleEnabledAsync` — encapsulates the service-resolution + enabling-expression
+  check pattern that was duplicated in both classes
+- `FilterEnabledRulesAsync` — batch-filters a rule list to only enabled rules
+  (used by `DryvTranslator`; `DryvValidator` uses the per-rule `IsRuleEnabledAsync`)
+
+`DryvTranslator` removed its private `IsRuleEnabled` method and now delegates
+entirely to the pipeline. `DryvValidator` replaced its inline enablement check
+in `GetFirstValidationError` and its direct `DryvParametersHelper` call with
+pipeline methods. `RuleResolutionPipeline` is registered as a singleton in
+`DryvCoreSetup`.
 
 ---
 
@@ -288,5 +301,5 @@ expressions in an indexed list rather than a hash-keyed dictionary.
 - [x] Issue 5 — Remove JS leaks from `Translator` base
 - [x] Issue 6 — Flatten rule type hierarchy
 - [x] Issue 7 — Split `ITranslator`
-- [ ] Issue 8 — Unify rule resolution
+- [x] Issue 8 — Unify rule resolution
 - [ ] Issue 9 — Fix injection key collision risk

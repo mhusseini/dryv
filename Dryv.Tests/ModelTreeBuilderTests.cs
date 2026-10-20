@@ -61,9 +61,10 @@ namespace Dryv.Tests
             
             var validationCache = new DryvValidationCache(ruleFinder);
             var serviceResolver = DryvServiceResolverFactory.FromFunc(t => new Thingy());
-            var validator = new DryvValidator(validationCache, serviceResolver, options);
+            var pipeline = new RuleResolutionPipeline();
+            var validator = new DryvValidator(validationCache, serviceResolver, options, pipeline);
             var errors = await validator.Validate(m);
-            var translator = new DryvTranslator(ruleTranslationPhase);
+            var translator = new DryvTranslator(ruleTranslationPhase, pipeline);
             var code = translator.TranslateValidationRules(m.GetType(), DryvServiceResolverFactory.FromFunc(t => null));
         }
     }
