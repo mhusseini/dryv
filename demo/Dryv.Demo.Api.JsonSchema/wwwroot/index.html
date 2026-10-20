@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+<!--suppress JSUnresolvedLibraryURL -->
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -7,7 +8,6 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css" />
     <style>
         .error { color: #e74c3c; font-size: 0.85em; display: block; margin-top: 0.25em; }
-        .input-error { border-color: #e74c3c; }
         .success { color: #27ae60; font-weight: bold; }
         form > div { margin-bottom: 1rem; }
         pre { background: #1a1a2e; color: #e0e0e0; padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: 0.85em; }
@@ -64,53 +64,52 @@
 
     <div id="successMessage" class="success" style="display:none;"></div>
 
-    <!-- Ajv JSON Schema validator (browser bundle) -->
-    <script src="https://cdn.jsdelivr.net/npm/ajv@8/dist/ajv2020.bundle.min.js"></script>
-
-    <script>
+    <script type="module">
+        import Ajv2020 from 'https://esm.sh/ajv/dist/2020';
         (async function () {
             // ── 1. Fetch JSON Schema from the server ──────────────────────
-            var response = await fetch('/api/json-schema');
-            var schema = await response.json();
+            const response = await fetch('/api/json-schema');
+            const schema = await response.json();
 
             document.getElementById('schemaDisplay').textContent = JSON.stringify(schema, null, 2);
 
             // ── 2. Compile the schema with Ajv ────────────────────────────
-            var ajv = new ajv2020({ allErrors: true });
-            var validate = ajv.compile(schema);
+            const ajv = new Ajv2020({ allErrors: true });
+            const validate = ajv.compile(schema);
 
             // ── 3. Human-readable error messages per keyword ──────────────
-            var messages = {
+            // noinspection JSUnusedGlobalSymbols
+            const messages = {
                 required: function (err) {
-                    var field = err.params.missingProperty;
+                    const field = err.params.missingProperty;
                     return capitalize(field) + ' is required.';
                 },
                 minLength: function (err) {
-                    var field = fieldName(err);
+                    const field = fieldName(err);
                     return capitalize(field) + ' must be at least ' + err.params.limit + ' character(s).';
                 },
                 maxLength: function (err) {
-                    var field = fieldName(err);
+                    const field = fieldName(err);
                     return capitalize(field) + ' must be at most ' + err.params.limit + ' character(s).';
                 },
                 pattern: function (err) {
-                    var field = fieldName(err);
+                    const field = fieldName(err);
                     return capitalize(field) + ' has an invalid format.';
                 },
                 minimum: function (err) {
-                    var field = fieldName(err);
+                    const field = fieldName(err);
                     return capitalize(field) + ' must be at least ' + err.params.limit + '.';
                 },
                 maximum: function (err) {
-                    var field = fieldName(err);
+                    const field = fieldName(err);
                     return capitalize(field) + ' must be at most ' + err.params.limit + '.';
                 },
                 exclusiveMinimum: function (err) {
-                    var field = fieldName(err);
+                    const field = fieldName(err);
                     return capitalize(field) + ' must be greater than ' + err.params.limit + '.';
                 },
                 exclusiveMaximum: function (err) {
-                    var field = fieldName(err);
+                    const field = fieldName(err);
                     return capitalize(field) + ' must be less than ' + err.params.limit + '.';
                 }
             };
@@ -126,13 +125,13 @@
             }
 
             function formatError(err) {
-                var fn = messages[err.keyword];
+                const fn = messages[err.keyword];
                 return fn ? fn(err) : err.message;
             }
 
             // ── 4. Form handling ──────────────────────────────────────────
-            var form = document.getElementById('registrationForm');
-            var successDiv = document.getElementById('successMessage');
+            const form = document.getElementById('registrationForm');
+            const successDiv = document.getElementById('successMessage');
 
             function getModel() {
                 return {
@@ -151,8 +150,8 @@
             }
 
             function showError(field, message) {
-                var errorSpan = document.getElementById('error-' + field);
-                var input = document.getElementById(field);
+                const errorSpan = document.getElementById('error-' + field);
+                const input = document.getElementById(field);
                 if (errorSpan) {
                     // Append if there are already errors for this field
                     if (errorSpan.textContent) errorSpan.textContent += ' ';
@@ -165,13 +164,13 @@
                 e.preventDefault();
                 clearErrors();
 
-                var model = getModel();
-                var valid = validate(model);
+                const model = getModel();
+                const valid = validate(model);
 
                 if (!valid) {
                     // Group errors by field and display
                     validate.errors.forEach(function (err) {
-                        var field;
+                        let field;
                         if (err.keyword === 'required') {
                             field = err.params.missingProperty;
                         } else {
@@ -183,13 +182,13 @@
                 }
 
                 // Client validation passed — submit to server
-                var response = await fetch('/api/register', {
+                const response = await fetch('/api/register', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(model)
                 });
 
-                var data = await response.json();
+                const data = await response.json();
 
                 if (response.ok) {
                     successDiv.textContent = data.message;
