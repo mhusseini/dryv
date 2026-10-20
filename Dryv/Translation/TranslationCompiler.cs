@@ -13,9 +13,7 @@ namespace Dryv.Translation
     {
         private static readonly MethodInfo FormatMethod = typeof(string).GetMethod(nameof(string.Format), typeof(string), typeof(object[]));
 
-        private static readonly MethodInfo TranslateValueMethod = typeof(JavaScriptTranslator).GetMethod(nameof(JavaScriptTranslator.TranslateValue), typeof(object), typeof(DryvOptions));
-
-        public TranslationResult GenerateTranslationDelegate(string code, IEnumerable<InjectedExpression> optionDelegates, IList<Type> serviceTypes)
+        public TranslationResult GenerateTranslationDelegate(string code, IEnumerable<InjectedExpression> optionDelegates, IList<Type> serviceTypes, MethodInfo translateValueMethod)
         {
             // Escape curly braces for usage within string.Format().
             code = code
@@ -27,7 +25,7 @@ namespace Dryv.Translation
             var optionsParameter = Expression.Parameter(typeof(DryvOptions));
 
             // Create an array that will be used as parameters for string.Format().
-            var arrayItems = this.GenerateFormatArgumentExpressions(optionDelegates, serviceTypes, parameter, optionsParameter, ref code);
+            var arrayItems = this.GenerateFormatArgumentExpressions(optionDelegates, serviceTypes, parameter, optionsParameter, translateValueMethod, ref code);
 
             // create the following code: string.Format("...", new[]{ ... })
             var pattern = Expression.Constant(code);
@@ -81,6 +79,7 @@ namespace Dryv.Translation
             IList<Type> serviceTypes,
             Expression parameter,
             ParameterExpression parameterExpression,
+            MethodInfo translateValueMethod,
             ref string code)
         {
             var arrayItems = new List<Expression>();
@@ -103,7 +102,7 @@ namespace Dryv.Translation
                     if (!injectedExpression.IsRawOutput)
                     {
                         // translate result of lambda to JavaScript
-                        value = Expression.Call(null, TranslateValueMethod, value, parameterExpression);
+                        value = Expression.Call(null, translateValueMethod, value, parameterExpression);
                     }
 
                     // Add the whole expression to the formatting array

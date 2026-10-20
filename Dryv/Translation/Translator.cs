@@ -1,25 +1,17 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Text;
 using Dryv.Configuration;
-using Dryv.Extensions;
 using Dryv.Rules;
-using Dryv.Translation.Visitors;
 
 namespace Dryv.Translation
 {
     public abstract class Translator : ITranslator
     {
-        private readonly TranslationCompiler translationCompiler;
-
         protected Translator(DryvOptions options)
         {
             this.Options = options;
-            this.translationCompiler = new TranslationCompiler();
         }
 
         protected DryvOptions Options { get; }
@@ -29,13 +21,7 @@ namespace Dryv.Translation
             return name;
         }
 
-        public virtual TranslationResult Translate(Expression expression, MemberExpression propertyExpression, DryvRuleDefinition rule)
-        {
-            var result = this.GenerateJavaScriptCode(expression, propertyExpression, rule);
-            var translationResult = this.translationCompiler.GenerateTranslationDelegate(result.Code, result.OptionDelegates, result.ServiceTypes);
-            translationResult.IsAsync = result.IsAsync;
-            return translationResult;
-        }
+        public abstract TranslationResult Translate(Expression expression, MemberExpression propertyExpression, DryvRuleDefinition rule);
 
         public virtual void Translate(Expression expression, TranslationContext context, bool negated = false)
         {
@@ -163,70 +149,6 @@ namespace Dryv.Translation
                 throw new InvalidOperationException("Cannot get a default value for type 'void'.");
             }
             return type.GetTypeInfo().IsValueType ? Activator.CreateInstance(type) : null;
-        }
-
-        private GeneratedJavaScriptCode GenerateJavaScriptCode(
-            Expression expression,
-            MemberExpression propertyExpression,
-            DryvRuleDefinition rule)
-        {
-            // Find all service types used in the validation expression.
-            var serviceTypes = ((LambdaExpression)expression).GetInjectedServiceTypes();
-            var injectedServiceTypes = serviceTypes.ToList();
-            if (this.Options.DisableParameterInjection && injectedServiceTypes.Contains(typeof(DryvParameters)))
-            {
-                injectedServiceTypes.Remove(typeof(DryvParameters));
-            }
-
-            // Collect delegates that use options from withing the validation expression.
-            var optionDelegates = new Dictionary<int, InjectedExpression>();
-            var sb = new StringBuilder();
-
-            using var writer = new StringWriter(sb);
-            var context = new TranslationContext
-            {
-                InjectedServiceTypes = injectedServiceTypes,
-                Writer = writer,
-                InjectedExpressions = optionDelegates,
-                ModelType = rule.ModelType,
-                PropertyExpression = propertyExpression?.Expression,
-                Group = rule.Group,
-                StringBuilder = sb,
-                Rule = rule,
-            };
-
-            expression = new NullableMemberModifier().Visit(expression);
-            expression = new EnumComparisionModifier().Visit(expression);
-            expression = new ConditionConversionModifier().Visit(expression);
-            this.Translate(expression, context);
-
-            return new GeneratedJavaScriptCode
-            (
-                sb.ToString(),
-                serviceTypes,
-                context.InjectedExpressions.Values.ToList(),
-                context.IsAsync
-            );
-        }
-
-        private struct GeneratedJavaScriptCode
-        {
-            public GeneratedJavaScriptCode(
-                string code,
-                IList<Type> serviceTypes,
-                IList<InjectedExpression> optionDelegates,
-                bool isAsync)
-            {
-                this.Code = code;
-                this.ServiceTypes = serviceTypes;
-                this.OptionDelegates = optionDelegates;
-                this.IsAsync = isAsync;
-            }
-
-            public string Code { get; }
-            public bool IsAsync { get; }
-            public IList<InjectedExpression> OptionDelegates { get; }
-            public IList<Type> ServiceTypes { get; }
         }
     }
 }

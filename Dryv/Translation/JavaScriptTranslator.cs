@@ -7,6 +7,8 @@ using System.Reflection;
 using System.Text;
 using Dryv.Configuration;
 using Dryv.Extensions;
+using Dryv.Reflection;
+using Dryv.Rules;
 using Dryv.Translation.Translators;
 using Dryv.Translation.Visitors;
 
@@ -15,6 +17,10 @@ namespace Dryv.Translation
     public class JavaScriptTranslator : Translator
     {
         private static readonly MethodInfo DryvValidationResultImplicitConvert = typeof(DryvValidationResult).GetMethod("op_Implicit");
+
+        private static readonly MethodInfo TranslateValueMethodInfo = typeof(JavaScriptTranslator).GetMethod(nameof(TranslateValue), typeof(object), typeof(DryvOptions));
+
+        private readonly TranslationCompiler translationCompiler = new();
 
         private static readonly Dictionary<ExpressionType, string> Terminals = new()
         {
@@ -131,6 +137,14 @@ namespace Dryv.Translation
                 : name;
         }
 
+        public override TranslationResult Translate(Expression expression, MemberExpression propertyExpression, DryvRuleDefinition rule)
+        {
+            var result = this.GenerateJavaScriptCode(expression, propertyExpression, rule);
+            var translationResult = this.translationCompiler.GenerateTranslationDelegate(result.Code, result.OptionDelegates, result.ServiceTypes, TranslateValueMethodInfo);
+            translationResult.IsAsync = result.IsAsync;
+            return translationResult;
+        }
+
         public override void Translate(Expression expression, TranslationContext context, bool negated = false)
         {
             if (negated && this.TryWriteNegation(expression, context))
@@ -244,7 +258,7 @@ namespace Dryv.Translation
             if (!TryWriteTerminal(expression, context.Writer))
             {
                 throw expression.Method != null
-                    ? (Exception)new DryvMethodNotSupportedException(expression)
+                    ? new DryvMethodNotSupportedException(expression)
                     : new DryvExpressionNotSupportedException(expression);
             }
 
@@ -701,6 +715,50 @@ namespace Dryv.Translation
             throw new DryvMethodNotSupportedException(expression);
         }
 
+        private GeneratedJavaScriptCode GenerateJavaScriptCode(
+            Expression expression,
+            MemberExpression propertyExpression,
+            DryvRuleDefinition rule)
+        {
+            // Find all service types used in the validation expression.
+            var serviceTypes = ((LambdaExpression)expression).GetInjectedServiceTypes();
+            var injectedServiceTypes = serviceTypes.ToList();
+            if (this.Options.DisableParameterInjection && injectedServiceTypes.Contains(typeof(DryvParameters)))
+            {
+                injectedServiceTypes.Remove(typeof(DryvParameters));
+            }
+
+            // Collect delegates that use options from withing the validation expression.
+            var optionDelegates = new Dictionary<int, InjectedExpression>();
+            var sb = new StringBuilder();
+
+            using var writer = new StringWriter(sb);
+            var context = new TranslationContext
+            {
+                InjectedServiceTypes = injectedServiceTypes,
+                Writer = writer,
+                InjectedExpressions = optionDelegates,
+                ModelType = rule.ModelType,
+                PropertyExpression = propertyExpression?.Expression,
+                Group = rule.Group,
+                StringBuilder = sb,
+                Rule = rule,
+            };
+
+            expression = new NullableMemberModifier().Visit(expression);
+            expression = new EnumComparisionModifier().Visit(expression);
+            expression = new ConditionConversionModifier().Visit(expression);
+            this.Translate(expression, context);
+
+            return new GeneratedJavaScriptCode
+            (
+                sb.ToString(),
+                serviceTypes,
+                context.InjectedExpressions.Values.ToList(),
+                context.IsAsync
+            );
+        }
+
         private static string TranslateValidationResultObject(DryvValidationResult result, DryvOptions options)
         {
             if (result.Type == DryvResultType.Success)
@@ -734,5 +792,24 @@ namespace Dryv.Translation
             return sb.ToString();
         }
 
+        private struct GeneratedJavaScriptCode
+        {
+            public GeneratedJavaScriptCode(
+                string code,
+                IList<Type> serviceTypes,
+                IList<InjectedExpression> optionDelegates,
+                bool isAsync)
+            {
+                this.Code = code;
+                this.ServiceTypes = serviceTypes;
+                this.OptionDelegates = optionDelegates;
+                this.IsAsync = isAsync;
+            }
+
+            public string Code { get; }
+            public bool IsAsync { get; }
+            public IList<InjectedExpression> OptionDelegates { get; }
+            public IList<Type> ServiceTypes { get; }
+        }
     }
 }

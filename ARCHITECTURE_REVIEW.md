@@ -136,23 +136,26 @@ and method-call translation
 
 ## Issue 5: `Translator` Base Class Leaks JavaScript Concerns
 
-**Status:** 🔴 Open
+**Status:** ✅ Resolved
 **Risk:** Medium
 **Files:**
-- `Dryv/Translation/Translator.cs` (method `GenerateJavaScriptCode`, struct `GeneratedJavaScriptCode`)
-- `Dryv/Translation/TranslationCompiler.cs` (hard-codes `JavaScriptTranslator.TranslateValue`)
+- `Dryv/Translation/Translator.cs`
+- `Dryv/Translation/TranslationCompiler.cs`
+- `Dryv/Translation/JavaScriptTranslator.cs`
 
 **Problem:**
 The *abstract* base class contains `GenerateJavaScriptCode` and `GeneratedJavaScriptCode`.
 `TranslationCompiler` references `JavaScriptTranslator.TranslateValue` via reflection.
 This makes it impossible to add another target language without modifying the base.
 
-**Fix:**
+**Resolution:**
 
-- Move `GenerateJavaScriptCode` out of the abstract base into the JS-specific subclass
-  or into a composition-based `ICodeGenerationStrategy`
-- `TranslationCompiler` should accept a value-translation delegate instead of
-  hard-coding `JavaScriptTranslator`
+- Moved `GenerateJavaScriptCode`, `GeneratedJavaScriptCode`, and the `TranslationCompiler`
+  field out of `Translator` into `JavaScriptTranslator`; the base-class `Translate` overload
+  is now `abstract`, keeping the base language-agnostic
+- `TranslationCompiler.GenerateTranslationDelegate` now accepts a `MethodInfo
+  translateValueMethod` parameter instead of hard-coding `JavaScriptTranslator.TranslateValue`
+  via a static field — any future target-language translator can supply its own value formatter
 
 ---
 
@@ -264,7 +267,7 @@ expressions in an indexed list rather than a hash-keyed dictionary.
 - [x] Issue 2 — Split `DryvRuleFinder`
 - [x] Issue 3 — Break up `JavaScriptTranslator`
 - [x] Issue 4 — Fix `TranslationContext`
-- [ ] Issue 5 — Remove JS leaks from `Translator` base
+- [x] Issue 5 — Remove JS leaks from `Translator` base
 - [ ] Issue 6 — Flatten rule type hierarchy
 - [ ] Issue 7 — Split `ITranslator`
 - [ ] Issue 8 — Unify rule resolution
