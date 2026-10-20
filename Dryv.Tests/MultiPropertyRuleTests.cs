@@ -55,7 +55,7 @@ namespace Dryv.Tests
 
                 Assert.IsTrue(clientRules.Any(), $"{propName} should have client-side rules");
 
-                var code = ((DryvTranslatedRule)clientRules.First()).TranslatedValidationExpression(_ => null, [""], options);
+                var code = clientRules.First().Translation.TranslatedValidationExpression(_ => null, [""], options);
                 Assert.IsTrue(code.Contains("Address is incomplete"), $"{propName} should have the full validation logic in client code");
             }
         }
@@ -125,7 +125,7 @@ namespace Dryv.Tests
             Assert.IsTrue(string.IsNullOrWhiteSpace(clientRules.First().Group),
                 "Single-property rule should not have a group set");
 
-            var code = ((DryvTranslatedRule)clientRules.First()).TranslatedValidationExpression(_ => null, [""], new DryvOptions());
+            var code = clientRules.First().Translation.TranslatedValidationExpression(_ => null, [""], new DryvOptions());
             Assert.IsTrue(code.Contains("Email is required"), "Single-property rule should retain full validation logic");
         }
 
@@ -151,7 +151,7 @@ namespace Dryv.Tests
             {
                 var prop = typeof(AddressModel).GetProperty(propName);
                 var clientRules = allRules.Where(r => r.Property == prop && r.EvaluationLocation.HasFlag(DryvEvaluationLocation.Client)).ToList();
-                var code = ((DryvTranslatedRule)clientRules.First()).TranslatedValidationExpression(_ => null, [""], options);
+                var code = clientRules.First().Translation.TranslatedValidationExpression(_ => null, [""], options);
 
                 Assert.IsTrue(code.Contains("group: \"street\""),
                     $"{propName}'s generated JS validation result should contain group: \"street\", but got: {code}");
@@ -165,7 +165,7 @@ namespace Dryv.Tests
             var allRules = sut.FindAndTranslateRulesInTree(typeof(AddressModel), RuleType.Validation);
             var clientRules = allRules.Where(r => r.Property == emailProperty && r.EvaluationLocation.HasFlag(DryvEvaluationLocation.Client)).ToList();
 
-            var code = ((DryvTranslatedRule)clientRules.First()).TranslatedValidationExpression(_ => null, [""], new DryvOptions());
+            var code = clientRules.First().Translation.TranslatedValidationExpression(_ => null, [""], new DryvOptions());
 
             Assert.IsFalse(code.Contains("group:"),
                 $"Single-property rule should not have group in JS validation result, but got: {code}");
@@ -179,7 +179,7 @@ namespace Dryv.Tests
 
             var prop = typeof(ModelWithExplicitGroup).GetProperty(nameof(ModelWithExplicitGroup.Field1));
             var clientRules = allRules.Where(r => r.Property == prop && r.EvaluationLocation.HasFlag(DryvEvaluationLocation.Client)).ToList();
-            var code = ((DryvTranslatedRule)clientRules.First()).TranslatedValidationExpression(_ => null, [""], options);
+            var code = clientRules.First().Translation.TranslatedValidationExpression(_ => null, [""], options);
 
             Assert.IsTrue(code.Contains("group: \"my-custom-group\""),
                 $"Explicit group should appear in JS validation result, but got: {code}");
@@ -195,7 +195,7 @@ namespace Dryv.Tests
             var clientRules = allRules.Where(r => r.Property == prop && r.EvaluationLocation.HasFlag(DryvEvaluationLocation.Client)).ToList();
 
             Assert.IsTrue(clientRules.Any(), "Name should have client-side rules");
-            var code = ((DryvTranslatedRule)clientRules.First()).TranslatedValidationExpression(_ => null, [""], options);
+            var code = clientRules.First().Translation.TranslatedValidationExpression(_ => null, [""], options);
 
             Assert.IsTrue(code.Contains("group: \"name\""),
                 $"Implicit string conversion should include group in JS result, but got: {code}");
@@ -218,7 +218,7 @@ namespace Dryv.Tests
                 System.Console.WriteLine($"\n=== {propName} (client rules: {clientRules.Count}) ===");
                 foreach (var rule in clientRules)
                 {
-                    var code = ((DryvTranslatedRule)rule).TranslatedValidationExpression(_ => null, [""], options);
+                    var code = rule.Translation.TranslatedValidationExpression(_ => null, [""], options);
                     var related = rule.RelatedProperties?.Any() == true
                         ? string.Join(", ", rule.RelatedProperties.Values)
                         : "(none)";

@@ -40,13 +40,14 @@ namespace Dryv.RuleDetection
             try
             {
                 var translation = translator.Translate(validationExpression, compiledRule.PropertyExpression, compiledRule);
-                return new DryvTranslatedRule(compiledRule)
-                {
-                    TranslatedValidationExpression = translation.Factory,
-                    ServiceTypes = translation.InjectedServiceTypes,
-                    CodeTemplate = translation.CodeTemplate,
-                    IsAsync = translation.IsAsync,
-                };
+                return compiledRule.WithTranslation(
+                    new TranslationOutput
+                    {
+                        TranslatedValidationExpression = translation.Factory,
+                        CodeTemplate = translation.CodeTemplate,
+                        IsAsync = translation.IsAsync,
+                    },
+                    translation.InjectedServiceTypes);
             }
             catch (DryvException ex)
             {
@@ -55,10 +56,7 @@ namespace Dryv.RuleDetection
                     throw new DryvExpressionTranslationException(validationExpression, "An error occurred while translating validation rule.", ex);
                 }
 
-                return new DryvTranslatedRule(compiledRule)
-                {
-                    TranslationError = ex,
-                };
+                return compiledRule.WithTranslation(new TranslationOutput { TranslationError = ex });
             }
             catch (Exception ex)
             {

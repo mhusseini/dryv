@@ -16,25 +16,6 @@ namespace Dryv.Rules
         {
         }
 
-        internal DryvRuleDefinition(DryvRuleDefinition source)
-        {
-            this.Annotations = source.Annotations;
-            this.EnablingExpression = source.EnablingExpression;
-            this.EvaluationLocation = source.EvaluationLocation;
-            this.Group = source.Group;
-            this.ModelPath = source.ModelPath;
-            this.ModelType = source.ModelType;
-            this.Name = source.Name;
-            this.Parameters = source.Parameters;
-            this.Property = source.Property;
-            this.PropertyExpression = source.PropertyExpression;
-            this.RelatedProperties = source.RelatedProperties;
-            this.RuleType = source.RuleType;
-            this.ServiceTypes = source.ServiceTypes;
-            this.ValidationExpression = source.ValidationExpression;
-            this.UniquePath = source.UniquePath;
-        }
-
         public IDictionary<string, object> Annotations { get; internal set; } = new Dictionary<string, object>();
         public LambdaExpression EnablingExpression { get; internal set; }
         public DryvEvaluationLocation EvaluationLocation { get; internal set; }

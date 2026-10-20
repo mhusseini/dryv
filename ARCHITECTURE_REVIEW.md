@@ -161,12 +161,14 @@ This makes it impossible to add another target language without modifying the ba
 
 ## Issue 6: Deep Inheritance Chain for Rule Types
 
-**Status:** 🔴 Open
+**Status:** ✅ Resolved
 **Risk:** Low–Medium
 **Files:**
 - `Dryv/Rules/DryvRuleDefinition.cs`
 - `Dryv/Rules/DryvCompiledRule.cs`
-- `Dryv/Rules/DryvTranslatedRule.cs`
+- `Dryv/Rules/DryvTranslatedRule.cs` *(deleted)*
+- `Dryv/Rules/TranslationOutput.cs` *(new)*
+- `Dryv/Rules/DryvParameterFactory.cs` *(new)*
 
 **Problem:**
 
@@ -180,16 +182,18 @@ DryvRuleDefinition → DryvCompiledRule → DryvTranslatedRule
 - A `DryvTranslatedRule` can have a `TranslationError` but no
   `TranslatedValidationExpression` — ambiguous state
 
-**Fix:**
-Use composition over inheritance:
+**Resolution:**
 
-```
-DryvRule (definition/metadata)
-├── CompiledExpressions  (compiled delegates)
-└── TranslationOutput?   (JS code + error, nullable/optional)
-```
-
-Alternatively, use C# records with `with` expressions for immutable copies.
+- Eliminated `DryvTranslatedRule` entirely; translation state is now a nullable
+  `TranslationOutput` composition property on `DryvCompiledRule` — no more ambiguous
+  state (either `Translation` is `null` or it contains a complete result/error)
+- Removed all fragile copy constructors from the chain; `DryvCompiledRule.WithTranslation`
+  uses `MemberwiseClone()` which automatically picks up new fields, eliminating the
+  field-by-field copy maintenance burden
+- Extracted `CreateParameter` into a dedicated `DryvParameterFactory` static class,
+  so `DryvCompiledRule` is no longer responsible for parameter construction
+- Updated `RuleTranslationPhase`, `DryvTranslator`, and all tests to use the new
+  composition-based `Translation` property instead of type casts
 
 ---
 
@@ -268,7 +272,7 @@ expressions in an indexed list rather than a hash-keyed dictionary.
 - [x] Issue 3 — Break up `JavaScriptTranslator`
 - [x] Issue 4 — Fix `TranslationContext`
 - [x] Issue 5 — Remove JS leaks from `Translator` base
-- [ ] Issue 6 — Flatten rule type hierarchy
+- [x] Issue 6 — Flatten rule type hierarchy
 - [ ] Issue 7 — Split `ITranslator`
 - [ ] Issue 8 — Unify rule resolution
 - [ ] Issue 9 — Fix injection key collision risk

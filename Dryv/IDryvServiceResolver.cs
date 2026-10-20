@@ -9,6 +9,11 @@ namespace Dryv
     /// </summary>
     public interface IDryvServiceResolver
     {
+        /// <summary>
+        /// Resolves a service instance of the specified <paramref name="serviceType"/>.
+        /// </summary>
+        /// <param name="serviceType">The type of service to resolve.</param>
+        /// <returns>The resolved service instance, or <c>null</c> if unavailable.</returns>
         object GetService(Type serviceType);
     }
 

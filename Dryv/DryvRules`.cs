@@ -122,7 +122,7 @@ namespace Dryv
                 ? Expression.Lambda<Func<object, object[], object>>(Expression.Convert(Expression.Call(m, args), typeof(object)), u, p)
                 : Expression.Lambda<Func<object, object[], object>>(Expression.Convert(Expression.Call(Expression.Constant(o), m, args), typeof(object)), u, p);
 
-            var ruleDefinition = DryvCompiledRule.CreateParameter(name, lambda, services);
+            var ruleDefinition = DryvParameterFactory.CreateParameter(name, lambda, services);
             this.InternalParameters.Add(ruleDefinition);
         }
 

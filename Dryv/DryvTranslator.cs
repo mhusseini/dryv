@@ -66,10 +66,10 @@ namespace Dryv
 
             try
             {
-                var translatedRule = rule as DryvTranslatedRule;
-                var code = translatedRule?.TranslatedValidationExpression(_ => null, arguments, options);
+                var translation = rule.Translation;
+                var code = translation?.TranslatedValidationExpression(_ => null, arguments, options);
 
-                return new TranslatedRule { Rule = rule, ClientCode = code, IsAsync = translatedRule?.IsAsync ?? false };
+                return new TranslatedRule { Rule = rule, ClientCode = code, IsAsync = translation?.IsAsync ?? false };
             }
             catch (Exception ex)
             {
