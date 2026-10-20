@@ -35,7 +35,7 @@ namespace Dryv.Translation
         }
 
         public Type ModelType { get; set; }
-        public IDictionary<int, InjectedExpression> InjectedExpressions { get; set; }
+        public IDictionary<string, InjectedExpression> InjectedExpressions { get; set; }
         public IList<Type> InjectedServiceTypes { get; set; }
         public TranslationContext ParentContext { get; set; }
         public Expression PropertyExpression { get; set; }

@@ -83,7 +83,7 @@ namespace Dryv.Translation
             ref string code)
         {
             var arrayItems = new List<Expression>();
-            var arrayIndexes = new ConcurrentDictionary<int, int>();
+            var arrayIndexes = new ConcurrentDictionary<string, int>();
 
 
             foreach (var injectedExpression in injectedExpressions)

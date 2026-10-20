@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
+using System.Security.Cryptography;
+using System.Text;
 using Dryv.Configuration;
 
 namespace Dryv.Translation
@@ -40,21 +42,31 @@ namespace Dryv.Translation
                 return false;
             }
 
-            var hash = expression.ToString().GetHashCode();
+            var key = ComputeSha256Hex(expression.ToString());
 
-            if (!context.InjectedExpressions.ContainsKey(hash))
+            if (!context.InjectedExpressions.ContainsKey(key))
             {
-                context.InjectedExpressions.Add(hash, new InjectedExpression
+                context.InjectedExpressions.Add(key, new InjectedExpression
                 {
                     LambdaExpression = Expression.Lambda(expression, parameters),
                     IsRawOutput = isRawOutput,
-                    Index = hash,
+                    Index = key,
                 });
             }
 
-            context.Writer.Write($"$${hash}$$");
+            context.Writer.Write($"$${key}$$");
 
             return true;
+        }
+
+        private static string ComputeSha256Hex(string input)
+        {
+            using var sha256 = SHA256.Create();
+            var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
+            var sb = new StringBuilder(hashBytes.Length * 2);
+            foreach (var b in hashBytes)
+                sb.Append(b.ToString("x2"));
+            return sb.ToString();
         }
     }
 }

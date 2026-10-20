@@ -727,7 +727,7 @@ namespace Dryv.Translation
             }
 
             // Collect delegates that use options from withing the validation expression.
-            var optionDelegates = new Dictionary<int, InjectedExpression>();
+            var optionDelegates = new Dictionary<string, InjectedExpression>();
             var sb = new StringBuilder();
 
             using var writer = new StringWriter(sb);

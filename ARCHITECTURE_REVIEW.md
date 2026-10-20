@@ -272,10 +272,14 @@ pipeline methods. `RuleResolutionPipeline` is registered as a singleton in
 
 ## Issue 9: Expression Injection Uses Hash Codes as Keys
 
-**Status:** 🔴 Open
+**Status:** ✅ Resolved
 **Risk:** Low (rare but dangerous)
 **Files:**
-- `Dryv/Translation/TranslationContextExtensions.cs` (line 43)
+- `Dryv/Translation/TranslationContextExtensions.cs`
+- `Dryv/Translation/OptionDelegate.cs` (`InjectedExpression`)
+- `Dryv/Translation/TranslationContext.cs`
+- `Dryv/Translation/TranslationCompiler.cs`
+- `Dryv/Translation/JavaScriptTranslator.cs`
 
 **Problem:**
 
@@ -286,9 +290,17 @@ var hash = expression.ToString().GetHashCode();
 `GetHashCode()` is not guaranteed to be unique — hash collisions would silently produce
 incorrect JavaScript. The `$$hash$$` placeholder pattern is also fragile.
 
-**Fix:**
-Use an incrementing counter per translation session (avoids collisions entirely) and store
-expressions in an indexed list rather than a hash-keyed dictionary.
+**Resolution:**
+Replaced `expression.ToString().GetHashCode()` with a SHA-256 hex hash of
+`expression.ToString()`. This is:
+
+- **Deterministic** — equal expressions produce the same key
+- **Collision-free** — different expressions produce different keys (SHA-256)
+- **URL-safe** — hex characters only, suitable for dynamic endpoint names
+
+Changed `InjectedExpression.Index` and `InjectedExpressions` dictionary key from
+`int` to `string` throughout the pipeline (`TranslationContext`, `TranslationCompiler`,
+`JavaScriptTranslator`).
 
 ---
 
@@ -302,4 +314,4 @@ expressions in an indexed list rather than a hash-keyed dictionary.
 - [x] Issue 6 — Flatten rule type hierarchy
 - [x] Issue 7 — Split `ITranslator`
 - [x] Issue 8 — Unify rule resolution
-- [ ] Issue 9 — Fix injection key collision risk
+- [x] Issue 9 — Fix injection key collision risk
