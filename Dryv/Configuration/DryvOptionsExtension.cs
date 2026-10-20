@@ -1,9 +1,15 @@
-﻿using Dryv.Validation;
+﻿using Dryv.Translation;
+using Dryv.Validation;
 
 namespace Dryv.Configuration
 {
     public static class DryvOptionsExtension
     {
+        public static void UseTranslator<T>(this DryvOptions options) where T : ITranslator
+        {
+            options.TranslatorType = typeof(T);
+        }
+
         public static void UseClientValidationFunctionWriter<T>(this DryvOptions options) where T : IDryvClientValidationFunctionWriter
         {
             options.ClientFunctionWriterType = typeof(T);

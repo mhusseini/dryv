@@ -51,17 +51,6 @@ namespace Dryv.AspNetCore
         {
             var options = new DryvMvcCoreOptions(t => serviceCollection.AddSingleton(t, t));
 
-            options.Translators.Add<DryvValidationResultTranslator>();
-            options.Translators.Add<DateTimeTranslator>();
-            options.Translators.Add<StringTranslator>();
-            options.Translators.Add<ToStringTranslator>();
-            options.Translators.Add<EnumerableTranslator>();
-            options.Translators.Add<RegexTranslator>();
-            options.Translators.Add<DryvParametersTranslator>();
-            options.Translators.Add<CustomCodeTranslator>();
-            options.Translators.Add<FormFileCollectionTranslator>();
-            options.Translators.Add<FormFileTranslator>();
-
             setupAction?.Invoke(options);
 
             if (options.JsonConversion == null)
@@ -83,7 +72,24 @@ namespace Dryv.AspNetCore
 
             serviceCollection.TryAddSingleton(typeof(IDryvClientValidationFunctionWriter), options.ClientFunctionWriterType ?? DryvOptions.DefaultClientFunctionWriterType);
             serviceCollection.TryAddSingleton(typeof(IDryvClientValidationSetWriter), options.ClientValidationSetWriterType ?? DryvOptions.DefaultClientValidationSetWriterType);
-            serviceCollection.TryAddSingleton<ITranslator, JavaScriptTranslator>();
+            if (options.TranslatorType != null)
+            {
+                serviceCollection.TryAddSingleton(typeof(ITranslator), options.TranslatorType);
+            }
+            else
+            {
+                serviceCollection.TryAddSingleton<ITranslator, JavaScriptTranslator>();
+                options.Translators.Add<DryvValidationResultTranslator>();
+                options.Translators.Add<DateTimeTranslator>();
+                options.Translators.Add<StringTranslator>();
+                options.Translators.Add<ToStringTranslator>();
+                options.Translators.Add<EnumerableTranslator>();
+                options.Translators.Add<RegexTranslator>();
+                options.Translators.Add<DryvParametersTranslator>();
+                options.Translators.Add<CustomCodeTranslator>();
+                options.Translators.Add<FormFileCollectionTranslator>();
+                options.Translators.Add<FormFileTranslator>();
+            }
             serviceCollection.TryAddSingleton<ModelTreeBuilder>();
             serviceCollection.TryAddSingleton<DryvValidator>();
             serviceCollection.TryAddSingleton<DryvCompiler>();

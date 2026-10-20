@@ -12,6 +12,7 @@ namespace Dryv.Configuration
         public virtual DryvServiceCollection Annotators { get; } = new(typeof(IDryvRuleAnnotator));
         public Type ClientFunctionWriterType { get; internal set; } = DefaultClientFunctionWriterType;
         public Type ClientValidationSetWriterType { get; internal set; } = DefaultClientValidationSetWriterType;
+        public Type TranslatorType { get; internal set; }
         public bool DisableAutomaticValidation { get; set; }
         public bool IncludeModelDataInExceptions { get; set; }
         public Func<object, string> JsonConversion { get; set; }

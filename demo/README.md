@@ -1,6 +1,6 @@
 # Dryv Demo Projects
 
-This folder contains four demo projects illustrating how to use **Dryv**, **DryvJS**, and **Dryvue** in different application architectures. All demos implement the same registration form with shared validation rules defined once in C#.
+This folder contains five demo projects illustrating how to use **Dryv**, **DryvJS**, **Dryvue**, and **Dryv.JsonSchema** in different application architectures. Demos 1–4 implement the same registration form with shared validation rules defined once in C#. Demo 5 shows how to swap the translator to produce JSON Schema instead of JavaScript.
 
 ---
 
@@ -90,7 +90,42 @@ npm run dev
 
 ---
 
-## Validation Rules (shared across all demos)
+## Demo 5: REST API + JSON Schema (Dryv.JsonSchema)
+
+**`Dryv.Demo.Api.JsonSchema`** — Minimal API that translates Dryv validation rules into JSON Schema.
+
+- Demonstrates how to replace the default `JavaScriptTranslator` with `JsonSchemaTranslator`
+- `GET /api/json-schema` returns a merged JSON Schema document derived from the model's Dryv rules
+- `POST /api/register` validates the model on the server (same as other demos)
+- Frontend is a single `index.html` that uses **[Ajv](https://ajv.js.org)** (JSON Schema validator) for client-side validation — no DryvJS, no custom validation code
+- Shows the pluggable translator architecture: register `ITranslator` **before** `AddDryv()` to override the default
+
+### Configuration
+
+```csharp
+// Register the translator BEFORE AddDryv() — TryAddSingleton skips the default.
+builder.Services.AddSingleton<ITranslator>(sp =>
+    new JsonSchemaTranslator(sp.GetRequiredService<DryvOptions>()));
+
+// Configure the writers via AddDryv options.
+builder.Services.AddControllers().AddDryv(options =>
+{
+    options.UseClientValidationFunctionWriter<JsonSchemaFunctionWriter>();
+    options.UseClientValidationSetWriter<JsonSchemaSetWriter>();
+});
+```
+
+### Run
+
+```bash
+cd demo/Dryv.Demo.Api.JsonSchema
+dotnet run
+# Open http://localhost:5120
+```
+
+---
+
+## Validation Rules (shared across demos 1–4)
 
 All demos define the same `RegistrationModel` rules in C#:
 
