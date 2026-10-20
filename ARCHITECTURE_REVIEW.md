@@ -69,10 +69,13 @@ Split into three focused classes:
 
 ## Issue 3: `JavaScriptTranslator` Is a God Class (963 lines)
 
-**Status:** 🔴 Open
+**Status:** ✅ Resolved
 **Risk:** Medium–High (large surface area)
 **Files:**
 - `Dryv/Translation/JavaScriptTranslator.cs`
+- `Dryv/Translation/NullComparisonWriter.cs` *(new)*
+- `Dryv/Translation/AsyncPromiseWriter.cs` *(new)*
+- `Dryv/Translation/MemberAccessWriter.cs` *(new)*
 
 **Problem:**
 The class has at least five distinct responsibilities:
@@ -83,14 +86,18 @@ The class has at least five distinct responsibilities:
 - **Expression injection** — `TryWriteInjectedExpression`, `TryWriteNegation`
 - **Member access resolution** — `WriteMember` with its own sub-dispatch
 
-**Fix:**
-Break into focused components:
+**Resolution:**
+Extracted three focused writer classes composed by `JavaScriptTranslator`:
 
-- `ExpressionDispatcher` — routes expressions to handlers (replaces the switch)
-- `NullComparisonWriter` — null / value-type semantics
-- `AsyncPromiseWriter` — (from Issue 1)
-- `MemberAccessWriter` — member access + identifier formatting
-- Keep `JavaScriptTranslator` as a thin orchestrator that delegates
+- `NullComparisonWriter` — owns `TryWriteNullComparison`, `TryWriteValueTypeCoalesce`,
+  `WriteValueTypeNullCheck`, `GetNullComparisonOperand`, `IsNullConstant`, and `WriteOperand`
+- `AsyncPromiseWriter` — owns `WriteAsyncPromiseChain`, `TranslateAsyncBooleanChain`,
+  and `TranslateAsyncBooleanOperand`
+- `MemberAccessWriter` — owns the `WriteMember` method with its sub-dispatch
+
+`JavaScriptTranslator` is now a thinner orchestrator (738 lines, down from 943) that
+composes the three writers and retains only expression dispatching, injection, negation,
+and method-call translation
 
 ---
 
@@ -245,7 +252,7 @@ expressions in an indexed list rather than a hash-keyed dictionary.
 
 - [x] Issue 1 — Extract async promise writing
 - [x] Issue 2 — Split `DryvRuleFinder`
-- [ ] Issue 3 — Break up `JavaScriptTranslator`
+- [x] Issue 3 — Break up `JavaScriptTranslator`
 - [ ] Issue 4 — Fix `TranslationContext`
 - [ ] Issue 5 — Remove JS leaks from `Translator` base
 - [ ] Issue 6 — Flatten rule type hierarchy
