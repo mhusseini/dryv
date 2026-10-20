@@ -29,6 +29,14 @@
     </div>
 
     <div>
+      <label>Phone Number</label>
+      <input type="tel" v-model="validatable.phoneNumber.value" />
+      <span v-if="validatable.phoneNumber.hasWarnings" class="warning">
+        {{ validatable.phoneNumber.text }}
+      </span>
+    </div>
+
+    <div>
       <label>Email<span v-if="validatable.email.required">*</span></label>
       <input type="email" v-model="validatable.email.value" />
       <span v-if="validatable.email.hasErrors" class="error">
@@ -52,6 +60,32 @@
       </span>
     </div>
 
+    <div>
+      <label>Account Type</label>
+      <select v-model="validatable.accountType.value">
+        <option value="personal">Personal</option>
+        <option value="business">Business</option>
+      </select>
+    </div>
+
+    <div v-if="data.accountType === 'business'">
+      <label>Company Name<span v-if="validatable.companyName.required">*</span></label>
+      <input v-model="validatable.companyName.value" />
+      <span v-if="validatable.companyName.hasErrors" class="error">
+        {{ validatable.companyName.text }}
+      </span>
+    </div>
+
+    <div>
+      <label>
+        <input type="checkbox" v-model="validatable.acceptsTerms.value" />
+        I accept the terms and conditions
+      </label>
+      <span v-if="validatable.acceptsTerms.hasErrors" class="error">
+        {{ validatable.acceptsTerms.text }}
+      </span>
+    </div>
+
     <button type="submit" :disabled="submitting">
       {{ submitting ? 'Submitting...' : 'Register' }}
     </button>
@@ -65,9 +99,13 @@ import { useDryv } from 'dryvue'
 const data = reactive({
   firstName: '',
   lastName: '',
+  phoneNumber: '',
   email: '',
   password: '',
-  confirmPassword: ''
+  confirmPassword: '',
+  accountType: 'personal',
+  companyName: '',
+  acceptsTerms: false
 })
 
 const { validatable, validate, setValidationResult } = useDryv(data, 'registration')
@@ -101,14 +139,19 @@ function resetForm() {
   successMessage.value = ''
   data.firstName = ''
   data.lastName = ''
+  data.phoneNumber = ''
   data.email = ''
   data.password = ''
   data.confirmPassword = ''
+  data.accountType = 'personal'
+  data.companyName = ''
+  data.acceptsTerms = false
 }
 </script>
 
 <style>
 .error { color: #e74c3c; font-size: 0.85em; display: block; margin-top: 0.25em; }
+.warning { color: #f39c12; font-size: 0.85em; display: block; margin-top: 0.25em; }
 .success { color: #27ae60; }
 form > div { margin-bottom: 1rem; }
 </style>

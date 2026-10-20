@@ -50,6 +50,7 @@ For straightforward rules (like `[Required]` or `[StringLength]`), ASP.NET Core'
   - [3. Render Client Validation](#3-render-client-validation)
 - [Writing Validation Rules](#writing-validation-rules)
   - [Basic Rules](#basic-rules)
+  - [Fluent Rule Builder](#fluent-rule-builder)
   - [Multi-Property Rules](#multi-property-rules)
   - [Async Rules](#async-rules)
   - [Server-Only Rules](#server-only-rules)
@@ -140,21 +141,18 @@ public class Address
 {
     public static readonly DryvRules Rules = DryvRules
         .For<Address>()
-        .Rule(
-            a => a.City,
-            a => string.IsNullOrWhiteSpace(a.City)
+        .Rule(a => a.City, rule => rule
+            .Validate(a => string.IsNullOrWhiteSpace(a.City)
                 ? "Please enter a city."
-                : null)
-        .Rule(
-            a => a.ZipCode,
-            a => string.IsNullOrWhiteSpace(a.ZipCode)
+                : null))
+        .Rule(a => a.ZipCode, rule => rule
+            .Validate(a => string.IsNullOrWhiteSpace(a.ZipCode)
                 ? "Please enter a ZIP code."
-                : null)
-        .Rule(
-            a => a.ZipCode,
-            a => a.ZipCode.Trim().Length < 5
+                : null))
+        .Rule(a => a.ZipCode, rule => rule
+            .Validate(a => a.ZipCode.Trim().Length < 5
                 ? "ZIP code must have at least 5 characters."
-                : null);
+                : null));
 
     public string City { get; set; }
     public string ZipCode { get; set; }
@@ -201,26 +199,65 @@ This renders a `<script>` tag containing the translated JavaScript validation fu
 
 ### Basic Rules
 
-A standard rule targets a specific property. It returns an error message (or a `DryvValidationResult`) if validation fails, and `null` (or `DryvValidationResult.Success`) if it succeeds:
+A standard rule targets a specific property. The `Rule` method selects the property, and a callback configures the rule using the fluent builder. The `Validate` expression returns an error message (or a `DryvValidationResult`) if validation fails, and `null` (or `DryvValidationResult.Success`) if it succeeds:
 
 ```csharp
 public static readonly DryvRules Rules = DryvRules
     .For<MyModel>()
-    .Rule(
-        m => m.Email,
-        m => string.IsNullOrWhiteSpace(m.Email)
+    .Rule(m => m.Email, rule => rule
+        .Validate(m => string.IsNullOrWhiteSpace(m.Email)
             ? DryvValidationResult.Error("Email is required")
-            : DryvValidationResult.Success);
+            : DryvValidationResult.Success));
 ```
 
 Strings are implicitly converted to `DryvValidationResult`, so you can also write:
 
 ```csharp
-.Rule(
-    m => m.Email,
-    m => string.IsNullOrWhiteSpace(m.Email)
+.Rule(m => m.Email, rule => rule
+    .Validate(m => string.IsNullOrWhiteSpace(m.Email)
         ? "Email is required"
+        : null))
+```
+
+### Fluent Rule Builder
+
+The `Rule` method accepts a property selector and a configuration callback. Inside the callback you have access to the `DryvRuleBuilder<TModel>` which exposes the following fluent methods:
+
+| Method | Description |
+|--------|-------------|
+| `.Validate(expression)` | Adds a validation rule. Supports sync and async expressions, and up to 5 injected service type parameters. |
+| `.ServerValidate(func)` | Adds a server-only validation rule using a `Func<>` delegate (not an expression). Use inside a `ServerRule` callback. |
+| `.Disable(expression)` | Sets an enabling condition on the preceding validation rule. When the condition returns `true`, the rule is skipped. |
+| `.EvaluateOn(location)` | Restricts where the rule runs (`DryvEvaluationLocation.Server`, `Client`, or both). |
+| `.Group(name)` | Assigns an explicit group name for deduplication in multi-property scenarios. |
+| `.Name(name)` | Assigns a name to the rule (included in the generated JavaScript output). |
+| `.RelatedTo(properties...)` | Explicitly sets related properties that should trigger re-validation. |
+| `.Annotate(key, value)` | Adds custom metadata to the rule (available in the generated JavaScript). |
+
+All methods return the builder, so they can be chained:
+
+```csharp
+.Rule(m => m.Email, rule => rule
+    .Validate<EmailValidator>((m, v) => v.IsValid(m.Email)
+        ? DryvValidationResult.Success
+        : "Invalid email domain.")
+    .Disable<FeatureFlags>((m, f) => !f.ValidateEmailDomains)
+    .EvaluateOn(DryvEvaluationLocation.Server)
+    .Group("email-validation")
+    .Name("email-domain-check")
+    .Annotate("severity", "warning"))
+```
+
+You can call `.Validate()` multiple times within a single `Rule` callback to register several validation expressions for the same property:
+
+```csharp
+.Rule(m => m.Password, rule => rule
+    .Validate(m => string.IsNullOrWhiteSpace(m.Password)
+        ? "Please enter a password."
         : null)
+    .Validate(m => m.Password.Trim().Length < 8
+        ? "Password must be at least 8 characters."
+        : null))
 ```
 
 ### Multi-Property Rules
@@ -228,13 +265,12 @@ Strings are implicitly converted to `DryvValidationResult`, so you can also writ
 A single rule can govern multiple properties at once. If any of the specified properties change, the rule is automatically re-evaluated for all of them:
 
 ```csharp
-.Rule(
-    m => m.Street, m => m.City, m => m.Zip,
-    m => string.IsNullOrWhiteSpace(m.Street)
+.Rule(m => m.Street, m => m.City, m => m.Zip, rule => rule
+    .Validate(m => string.IsNullOrWhiteSpace(m.Street)
       || string.IsNullOrWhiteSpace(m.City)
       || string.IsNullOrWhiteSpace(m.Zip)
         ? DryvValidationResult.Error("Address is incomplete")
-        : DryvValidationResult.Success)
+        : DryvValidationResult.Success))
 ```
 
 Multi-property rules are smart. They automatically:
@@ -246,32 +282,58 @@ Multi-property rules are smart. They automatically:
 Rules can handle asynchronous operations by returning a `Task<DryvValidationResult>`:
 
 ```csharp
-.Rule(
-    m => m.Email,
-    async m => await emailService.IsAvailable(m.Email)
+.Rule(m => m.Email, rule => rule
+    .Validate(async m => await emailService.IsAvailable(m.Email)
         ? DryvValidationResult.Success
-        : "Email is already taken")
+        : "Email is already taken"))
 ```
 
 On the client side, Dryv automatically routes any async rules requiring server interaction through seamlessly generated [dynamic endpoints](#dynamic-endpoints-for-async-rules).
 
 ### Server-Only Rules
 
-Use `ServerRule` for rules that should only run on the server and never be translated to JavaScript:
+Use `ServerRule` with `ServerValidate` for rules that should only run on the server and never be translated to JavaScript. `ServerValidate` accepts `Func<>` delegates (not just `Expression<>`), so you can use imperative logic like `if/else`, loops, etc.:
 
 ```csharp
-.ServerRule(
-    m => m.Email,
-    m => m.Email.Contains("@")
+.ServerRule(m => m.Email, rule => rule
+    .ServerValidate(m => m.Email.Contains("@")
         ? DryvValidationResult.Success
-        : DryvValidationResult.Error("Invalid email"))
+        : DryvValidationResult.Error("Invalid email")))
 ```
 
-Server-only rules can use `Func<>` delegates (not just `Expression<>`) since they don't need translation.
+`ServerValidate` also supports dependency injection, just like `Validate`:
+
+```csharp
+.ServerRule(m => m.Email, rule => rule
+    .ServerValidate<IEmailValidator>((m, validator) =>
+        validator.IsValid(m.Email)
+            ? DryvValidationResult.Success
+            : DryvValidationResult.Error("Invalid email")))
+```
+
+Alternatively, you can restrict a regular expression-based rule to server-side execution using `.EvaluateOn(DryvEvaluationLocation.Server)`:
+
+```csharp
+.Rule(m => m.Email, rule => rule
+    .Validate(m => m.Email.Contains("@")
+        ? DryvValidationResult.Success
+        : DryvValidationResult.Error("Invalid email"))
+    .EvaluateOn(DryvEvaluationLocation.Server))
+```
 
 ### Disabling Rules
 
-You can conditionally disable all validation rules for a property (or subtree):
+To conditionally disable a specific rule, use `.Disable()` in the rule builder. When the condition returns `true`, that rule is skipped:
+
+```csharp
+.Rule(m => m.Email, rule => rule
+    .Validate(m => string.IsNullOrWhiteSpace(m.Email)
+        ? "Email is required"
+        : null)
+    .Disable(m => m.UsePhoneInstead))
+```
+
+To disable **all** validation rules for an entire property or subtree, use `DisableRules` on `DryvRules`:
 
 ```csharp
 .DisableRules(
@@ -283,15 +345,14 @@ When `SameAsBillingAddress` is `true`, all rules under `ShippingAddress` are ski
 
 ### Rule Groups
 
-Multi-property rules automatically receive a group. You can also set an explicit group:
+Multi-property rules automatically receive a group. You can also set an explicit group using the fluent `.Group()` method:
 
 ```csharp
-.Rule(
-    m => m.Field1, m => m.Field2,
-    m => string.IsNullOrWhiteSpace(m.Field1)
+.Rule(m => m.Field1, m => m.Field2, rule => rule
+    .Validate(m => string.IsNullOrWhiteSpace(m.Field1)
         ? DryvValidationResult.Error("error")
-        : DryvValidationResult.Success,
-    new DryvRuleSettings("my-custom-group"))
+        : DryvValidationResult.Success)
+    .Group("my-custom-group"))
 ```
 
 Groups are included in the generated JavaScript validation result, allowing client-side UI frameworks to show a single error for a group of related fields.
@@ -313,19 +374,19 @@ DryvValidationResult.Warning("warning", customData)
 Rules can accept injected services as additional parameters. Service types are resolved from the DI container at validation time:
 
 ```csharp
-.Rule<IOptions<MyAppSettings>>(
-    m => m.Name,
-    (m, options) => m.Name == options.Value.ForbiddenName
-        ? "This name is not allowed"
-        : null)
+.Rule(m => m.Name, rule => rule
+    .Validate<IOptions<MyAppSettings>>((m, options) =>
+        m.Name == options.Value.ForbiddenName
+            ? "This name is not allowed"
+            : null))
 ```
 
 You can inject up to 5 services:
 
 ```csharp
-.Rule<IValidator, IOptions<Settings>>(
-    m => m.Email,
-    (m, validator, settings) => validator.Check(m.Email, settings.Value))
+.Rule(m => m.Email, rule => rule
+    .Validate<IValidator, IOptions<Settings>>((m, validator, settings) =>
+        validator.Check(m.Email, settings.Value)))
 ```
 
 Injected services whose values are known at translation time (e.g. `IOptions<T>`) are **inlined** into the generated JavaScript. Services that cannot be inlined cause the rule to be routed through a dynamic controller endpoint instead.
@@ -343,11 +404,11 @@ Parameters are named values resolved via DI and sent to the client alongside val
 In rules, parameters are accessed via `DryvParameters`:
 
 ```csharp
-.Rule(
-    m => m.Name,
-    (m, p) => m.Name.Length > p.Get<int>("maxLength")
-        ? "Name is too long"
-        : null)
+.Rule(m => m.Name, rule => rule
+    .Validate<DryvParameters>((m, p) =>
+        m.Name.Length > p.Get<int>("maxLength")
+            ? "Name is too long"
+            : null))
 ```
 
 On the client, parameters are available through the `$ctx.parameter("maxLength")` function.
@@ -430,7 +491,8 @@ public class ChildRules
 {
     public static DryvRules Rules = DryvRules
         .For<ChildModel>()
-        .Rule(m => m.Name, m => string.IsNullOrWhiteSpace(m.Name) ? "Required" : null);
+        .Rule(m => m.Name, rule => rule
+            .Validate(m => string.IsNullOrWhiteSpace(m.Name) ? "Required" : null));
 }
 ```
 
@@ -453,10 +515,10 @@ public static class EmailRules
 {
     public static readonly DryvRules Rules = DryvRules
         .For<IHasEmail>()
-        .Rule(m => m.Email,
-            m => string.IsNullOrWhiteSpace(m.Email)
+        .Rule(m => m.Email, rule => rule
+            .Validate(m => string.IsNullOrWhiteSpace(m.Email)
                 ? DryvValidationResult.Error("Email is required")
-                : DryvValidationResult.Success);
+                : DryvValidationResult.Success));
 }
 
 // Any class implementing IHasEmail gets these rules automatically
@@ -481,10 +543,10 @@ public class Employee : PersonBase
 {
     public static DryvRules Rules = DryvRules
         .For<PersonBase>()
-        .Rule(m => m.Name,
-            m => m.Name != null
+        .Rule(m => m.Name, rule => rule
+            .Validate(m => m.Name != null
                 ? DryvValidationResult.Success
-                : DryvValidationResult.Error("Name is required"));
+                : DryvValidationResult.Error("Name is required")));
 
     public override string Name { get; set; }
 }
@@ -500,10 +562,10 @@ public class Product
     // Discovered as a static method returning DryvRules
     public static DryvRules Rules() => DryvRules
         .For<Product>()
-        .Rule(m => m.Name,
-            m => m.Name != null
+        .Rule(m => m.Name, rule => rule
+            .Validate(m => m.Name != null
                 ? DryvValidationResult.Success
-                : DryvValidationResult.Error("error"));
+                : DryvValidationResult.Error("error")));
 
     public string Name { get; set; }
 }
@@ -527,8 +589,10 @@ public class AddressValidation
 {
     public static DryvRules Rules = DryvRules
         .For<Address>()
-        .Rule(m => m.City, m => string.IsNullOrWhiteSpace(m.City) ? "Required" : null)
-        .Rule(m => m.ZipCode, m => string.IsNullOrWhiteSpace(m.ZipCode) ? "Required" : null);
+        .Rule(m => m.City, rule => rule
+            .Validate(m => string.IsNullOrWhiteSpace(m.City) ? "Required" : null))
+        .Rule(m => m.ZipCode, rule => rule
+            .Validate(m => string.IsNullOrWhiteSpace(m.ZipCode) ? "Required" : null));
 }
 ```
 
@@ -564,10 +628,10 @@ public class ContactDetails
 {
     public static DryvRules Rules = DryvRules
         .For<ContactDetails>()
-        .Rule(m => m.Email,
-            m => string.IsNullOrWhiteSpace(m.Email)
+        .Rule(m => m.Email, rule => rule
+            .Validate(m => string.IsNullOrWhiteSpace(m.Email)
                 ? "Email required"
-                : null);
+                : null));
 
     public string Email { get; set; }
 }
@@ -582,10 +646,10 @@ public class Parent
 {
     public static DryvRules Rules = DryvRules
         .For<Parent>()
-        .Rule(m => m.Child.Child.Text,
-            m => m.Child.Child.Text != null
+        .Rule(m => m.Child.Child.Text, rule => rule
+            .Validate(m => m.Child.Child.Text != null
                 ? DryvValidationResult.Success
-                : DryvValidationResult.Error("error"));
+                : DryvValidationResult.Error("error")));
 
     public Child Child { get; set; }
 }
@@ -605,10 +669,10 @@ public class CartItem
 {
     public static DryvRules Rules = DryvRules
         .For<CartItem>()
-        .Rule(m => m.Name,
-            m => string.IsNullOrWhiteSpace(m.Name)
+        .Rule(m => m.Name, rule => rule
+            .Validate(m => string.IsNullOrWhiteSpace(m.Name)
                 ? "Item name is required"
-                : null);
+                : null));
 
     public string Name { get; set; }
 }
@@ -640,14 +704,16 @@ public class NameRules
 {
     public static DryvRules Rules = DryvRules
         .For<ChildModel>()
-        .Rule(m => m.Name, m => string.IsNullOrWhiteSpace(m.Name) ? "Name is required" : null);
+        .Rule(m => m.Name, rule => rule
+            .Validate(m => string.IsNullOrWhiteSpace(m.Name) ? "Name is required" : null));
 }
 
 public class AddressRules
 {
     public static DryvRules Rules = DryvRules
         .For<ChildModel>()
-        .Rule(m => m.Address, m => string.IsNullOrWhiteSpace(m.Address) ? "Address is required" : null);
+        .Rule(m => m.Address, rule => rule
+            .Validate(m => string.IsNullOrWhiteSpace(m.Address) ? "Address is required" : null));
 }
 ```
 
@@ -1892,10 +1958,10 @@ Dryv's `StringTranslator` handles most `System.String` methods. All examples ass
 
 ```csharp
 // C# rule:
-.Rule(m => m.Text,
-    m => string.IsNullOrWhiteSpace(m.Text)
+.Rule(m => m.Text, rule => rule
+    .Validate(m => string.IsNullOrWhiteSpace(m.Text)
         ? "Text is required"
-        : DryvValidationResult.Success)
+        : DryvValidationResult.Success))
 
 // Translated JavaScript:
 function ($m, $ctx) {
@@ -1907,10 +1973,10 @@ function ($m, $ctx) {
 
 ```csharp
 // Case-insensitive equality check:
-.Rule(m => m.Text,
-    m => m.Text.Equals("Oscorp", StringComparison.OrdinalIgnoreCase)
+.Rule(m => m.Text, rule => rule
+    .Validate(m => m.Text.Equals("Oscorp", StringComparison.OrdinalIgnoreCase)
         ? "fail"
-        : DryvValidationResult.Success)
+        : DryvValidationResult.Success))
 
 // JavaScript:
 function ($m, $ctx) {
@@ -1978,10 +2044,10 @@ Dryv's `RegexTranslator` converts C# `System.Text.RegularExpressions.Regex` to J
 
 ```csharp
 // Instance with options:
-.Rule(m => m.Text,
-    m => !new Regex(@"^\d+$", RegexOptions.IgnoreCase | RegexOptions.Singleline).IsMatch(m.Text)
+.Rule(m => m.Text, rule => rule
+    .Validate(m => !new Regex(@"^\d+$", RegexOptions.IgnoreCase | RegexOptions.Singleline).IsMatch(m.Text)
         ? "Must be numeric"
-        : DryvValidationResult.Success)
+        : DryvValidationResult.Success))
 
 // JavaScript:
 function ($m, $ctx) {
@@ -1998,10 +2064,10 @@ Dryv captures `Regex` patterns from fields, properties, and local variables at t
 ```csharp
 private static readonly string Pattern = @"^\d+$";
 
-.Rule(m => m.Text,
-    m => new Regex(Pattern).IsMatch(m.Text)
+.Rule(m => m.Text, rule => rule
+    .Validate(m => new Regex(Pattern).IsMatch(m.Text)
         ? DryvValidationResult.Success
-        : "Invalid format")
+        : "Invalid format"))
 
 // The pattern value "^\d+$" is extracted and inlined into the JavaScript regex literal.
 ```
@@ -2035,10 +2101,10 @@ Dryv's `EnumerableTranslator` translates LINQ extension methods on `IEnumerable<
 
 ```csharp
 // C# — all items must start with "x":
-.Rule(m => m.Items,
-    m => m.Items.All(s => s.StartsWith("x"))
+.Rule(m => m.Items, rule => rule
+    .Validate(m => m.Items.All(s => s.StartsWith("x"))
         ? null
-        : "All items must start with x")
+        : "All items must start with x"))
 
 // JavaScript:
 function ($m, $ctx) {
@@ -2074,10 +2140,10 @@ Dryv's `DateTimeTranslator` translates `DateTime` and `DateTimeOffset` compariso
 
 ```csharp
 // C# — comparing two DateTime values:
-.Rule(m => m.StartDate,
-    m => m.StartDate > m.EndDate
+.Rule(m => m.StartDate, rule => rule
+    .Validate(m => m.StartDate > m.EndDate
         ? "Start date must be before end date"
-        : null)
+        : null))
 
 // JavaScript (conceptual):
 function ($m, $ctx) {
@@ -2100,10 +2166,10 @@ Enum values are serialized using the configured JSON serialization strategy (typ
 // C#:
 public enum Status { Draft, Published, Archived }
 
-.Rule(m => m.Status,
-    m => m.Status != Status.Published
+.Rule(m => m.Status, rule => rule
+    .Validate(m => m.Status != Status.Published
         ? null
-        : "Cannot modify published items")
+        : "Cannot modify published items"))
 
 // JavaScript (with string enum serialization):
 function ($m, $ctx) {
@@ -2145,11 +2211,11 @@ $m.text === "test"
 
 ```csharp
 // C#:
-.Rule<DryvParameters>(
-    m => m.Text,
-    (m, p) => m.Text == p.Get<string>("testParameter")
-        ? DryvValidationResult.Success
-        : DryvValidationResult.Error("Parameter value doesn't match"))
+.Rule(m => m.Text, rule => rule
+    .Validate<DryvParameters>((m, p) =>
+        m.Text == p.Get<string>("testParameter")
+            ? DryvValidationResult.Success
+            : DryvValidationResult.Error("Parameter value doesn't match")))
 
 // JavaScript:
 function ($m, $ctx) {
@@ -2165,11 +2231,11 @@ When a rule injects `IOptions<T>`, the `Value` properties are **evaluated at tra
 
 ```csharp
 // C# rule with IOptions:
-.Rule<IOptions<TestOptions>>(
-    m => m.Text,
-    (m, o) => m.Text == o.Value.Text
-        ? DryvValidationResult.Success
-        : "fail")
+.Rule(m => m.Text, rule => rule
+    .Validate<IOptions<TestOptions>>((m, o) =>
+        m.Text == o.Value.Text
+            ? DryvValidationResult.Success
+            : "fail"))
 
 // If options.Value.Text is "hello" at translation time, JavaScript becomes:
 function ($m, $ctx) {
@@ -2209,8 +2275,8 @@ When a rule expression contains calls to static methods or accesses static field
 // C# — the Regex pattern is in a static field:
 private static readonly Regex EmailRegex = new Regex(@"^[^@]+@[^@]+$");
 
-.Rule(m => m.Email,
-    m => EmailRegex.IsMatch(m.Email) ? null : "Invalid email")
+.Rule(m => m.Email, rule => rule
+    .Validate(m => EmailRegex.IsMatch(m.Email) ? null : "Invalid email"))
 
 // The Regex object is captured at translation time. JavaScript:
 function ($m, $ctx) {
@@ -2232,9 +2298,9 @@ For cases where you need to embed raw JavaScript that has no C# equivalent, use 
 using Dryv.Rules;
 
 // Inject raw JavaScript into the validation output:
-.Rule(m => m.Field,
-    m => DryvClientCode.Raw("window.customValidator($m.field)")
-        + DryvValidationResult.Success)
+.Rule(m => m.Field, rule => rule
+    .Validate(m => DryvClientCode.Raw("window.customValidator($m.field)")
+        + DryvValidationResult.Success))
 ```
 
 `DryvClientCode.Raw(string)` is a **marker method** that is never called at runtime — it throws `InvalidOperationException` if called. It only exists for the translator. The string argument is injected verbatim into the generated JavaScript.
@@ -2361,21 +2427,23 @@ builder.Services.AddDryv(options =>
 Dryv's `JavaScriptTranslator` is powerful, but it doesn't support every C# language feature.
 - **Use ternary operators (`? :`)** instead of `if/else` statements.
 - **Avoid local variables** inside the validation expressions.
-- **Extract complex logic:** If a rule requires complex imperative logic that cannot be translated, either write it as a `.ServerRule(...)` (if it only needs to run on the server) or put the logic in an injected service. Un-translatable logic in a standard `.Rule()` will trigger the generation of a dynamic controller, resulting in an HTTP round-trip on the client.
+- **Extract complex logic:** If a rule requires complex imperative logic that cannot be translated, use `.ServerRule(...)` with `.ServerValidate(...)` for `Func<>` delegates that don't need translation, or restrict an expression-based rule using `.EvaluateOn(DryvEvaluationLocation.Server)`. Un-translatable logic in a standard `.Rule()` will trigger the generation of a dynamic controller, resulting in an HTTP round-trip on the client.
 
 ### 2. Never Hard-Code Dynamic Values (Like Dates)
 If you hard-code `DateTime.Today` in your rule, it will be translated to a static JavaScript date representing the exact moment the rule was translated (typically server startup).
 
 **❌ Bad:**
 ```csharp
-.Rule(m => m.BirthDate, m => m.BirthDate > DateTime.Today ? "Invalid" : null)
+.Rule(m => m.BirthDate, rule => rule
+    .Validate(m => m.BirthDate > DateTime.Today ? "Invalid" : null))
 ```
 
 **✅ Good:**
 Use `.Parameter()` to ensure the value is evaluated at runtime:
 ```csharp
 .Parameter("Today", () => DateTime.Today)
-.Rule<DryvParameters>(m => m.BirthDate, (m, p) => m.BirthDate > p.Get<DateTime>("Today") ? "Invalid" : null)
+.Rule(m => m.BirthDate, rule => rule
+    .Validate<DryvParameters>((m, p) => m.BirthDate > p.Get<DateTime>("Today") ? "Invalid" : null))
 ```
 
 ### 3. Use Constants for Parameter Names
@@ -2384,7 +2452,8 @@ To avoid typos when retrieving parameters in your rules, use `nameof()` or strin
 private const string MaxAgeParam = nameof(MaxAgeParam);
 
 .Parameter(MaxAgeParam, () => 18)
-.Rule<DryvParameters>(m => m.Age, (m, p) => m.Age > p.Get<int>(MaxAgeParam) ? "Too old" : null)
+.Rule(m => m.Age, rule => rule
+    .Validate<DryvParameters>((m, p) => m.Age > p.Get<int>(MaxAgeParam) ? "Too old" : null))
 ```
 
 ### 4. Create Reusable Regex Patterns
@@ -2397,7 +2466,8 @@ public static class Patterns
 }
 
 // In your rule:
-.Rule(m => m.Zip, m => Regex.IsMatch(m.Zip, Patterns.ZipCode) ? null : "Invalid ZIP")
+.Rule(m => m.Zip, rule => rule
+    .Validate(m => Regex.IsMatch(m.Zip, Patterns.ZipCode) ? null : "Invalid ZIP"))
 ```
 
 ### 5. Managing Large Rule Sets
@@ -2413,7 +2483,8 @@ public class OrderModel
 public class OrderValidationRules 
 {
     public static DryvRules Rules = DryvRules.For<OrderModel>()
-        .Rule(m => m.OrderNumber, m => string.IsNullOrWhiteSpace(m.OrderNumber) ? "Error" : null);
+        .Rule(m => m.OrderNumber, rule => rule
+            .Validate(m => string.IsNullOrWhiteSpace(m.OrderNumber) ? "Error" : null));
 }
 ```
 
@@ -2421,21 +2492,21 @@ public class OrderValidationRules
 Chain conditions with `&&` and `||` instead of nesting ternaries:
 
 ```csharp
-.Rule(m => m.Email,
-    m => !string.IsNullOrWhiteSpace(m.Email)
+.Rule(m => m.Email, rule => rule
+    .Validate(m => !string.IsNullOrWhiteSpace(m.Email)
       && new Regex(@"^[^@]+@[^@]+\.[^@]+$").IsMatch(m.Email)
         ? null
-        : "Enter a valid email address")
+        : "Enter a valid email address"))
 ```
 
 ### 7. Use `DryvValidationResult.Warning` for Soft Validation
 Not every issue should block form submission. Use warnings for advisory messages:
 
 ```csharp
-.Rule(m => m.Phone,
-    m => string.IsNullOrWhiteSpace(m.Phone)
+.Rule(m => m.Phone, rule => rule
+    .Validate(m => string.IsNullOrWhiteSpace(m.Phone)
         ? DryvValidationResult.Warning("A phone number is recommended but not required")
-        : DryvValidationResult.Success)
+        : DryvValidationResult.Success))
 ```
 
 On the client, check `result.type === "warning"` to display the message without preventing submission.
@@ -2454,8 +2525,10 @@ public static class NameRules
 {
     public static readonly DryvRules Rules = DryvRules
         .For<IHasName>()
-        .Rule(m => m.FirstName, m => string.IsNullOrWhiteSpace(m.FirstName) ? "Required" : null)
-        .Rule(m => m.LastName, m => string.IsNullOrWhiteSpace(m.LastName) ? "Required" : null);
+        .Rule(m => m.FirstName, rule => rule
+            .Validate(m => string.IsNullOrWhiteSpace(m.FirstName) ? "Required" : null))
+        .Rule(m => m.LastName, rule => rule
+            .Validate(m => string.IsNullOrWhiteSpace(m.LastName) ? "Required" : null));
 }
 
 public class Customer : IHasName
@@ -2508,12 +2581,12 @@ Always guard against `null` when accessing properties on potentially null object
 
 ```csharp
 // ✅ Safe:
-.Rule(m => m.Name,
-    m => m.Name != null && m.Name.Length > 100 ? "Too long" : null)
+.Rule(m => m.Name, rule => rule
+    .Validate(m => m.Name != null && m.Name.Length > 100 ? "Too long" : null))
 
 // ❌ Will throw NullReferenceException at runtime if Name is null:
-.Rule(m => m.Name,
-    m => m.Name.Length > 100 ? "Too long" : null)
+.Rule(m => m.Name, rule => rule
+    .Validate(m => m.Name.Length > 100 ? "Too long" : null))
 ```
 
 ### 12. Preloading for Production
@@ -2538,7 +2611,7 @@ builder.Services
 3. **Using `var` or local variables** — Dryv translates expression trees, which don't support statement-level constructs.
 
 **Solutions:**
-- Move un-translatable logic into a `.ServerRule(...)`.
+- Move un-translatable logic into a `.ServerRule(...)` with `.ServerValidate(...)`, or restrict an expression-based rule to the server with `.EvaluateOn(DryvEvaluationLocation.Server)`.
 - Write a custom translator for your method/type.
 - Simplify the expression to use only supported constructs (ternary, method calls, property access, operators).
 - Set `TranslationErrorBehavior = TranslationErrorBehavior.Ignore` to silently skip untranslatable rules (they'll run server-side only via dynamic controllers).

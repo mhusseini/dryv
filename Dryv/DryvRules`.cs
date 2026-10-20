@@ -126,7 +126,7 @@ namespace Dryv
             this.InternalParameters.Add(ruleDefinition);
         }
 
-        private void AddServer<TProperty>(
+        internal void AddServer<TProperty>(
             Delegate rule,
             IList<Expression<Func<TModel, TProperty>>> properties,
             Delegate ruleSwitch,

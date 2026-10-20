@@ -3,4 +3,13 @@
 <h2>Registration Successful!</h2>
 <p>Welcome, <strong>@Model.FirstName @Model.LastName</strong>!</p>
 <p>Your email: @Model.Email</p>
+@if (!string.IsNullOrWhiteSpace(Model.PhoneNumber))
+{
+    <p>Phone: @Model.PhoneNumber</p>
+}
+<p>Account type: @Model.AccountType</p>
+@if (Model.AccountType == "business")
+{
+    <p>Company: @Model.CompanyName</p>
+}
 <a href="/">Back to form</a>

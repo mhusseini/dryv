@@ -66,6 +66,9 @@ namespace Dryv.Generators
                 if (!hasOptions)
                 {
                     // Single overload: no ruleSwitch
+                    sb.AppendLine($"        /// <summary>Disables all validation rules for the specified properties when the <paramref name=\"rule\"/> expression returns <c>true</c>.</summary>");
+                    sb.AppendLine($"        /// <param name=\"rule\">An expression that returns <c>true</c> to disable rules.</param>");
+                    sb.AppendLine($"        /// <returns>This rules instance for further chaining.</returns>");
                     sb.AppendLine($"        public DryvRules<TModel> DisableRules(");
                     sb.Append(propParams);
                     sb.AppendLine($"            Expression<Func<TModel, bool>> rule)");
@@ -82,6 +85,8 @@ namespace Dryv.Generators
                     var ruleType = $"Expression<Func<TModel, {optPfx}bool>>";
 
                     // With sync ruleSwitch
+                    sb.AppendLine($"        /// <summary>Disables all validation rules for the specified properties when the <paramref name=\"rule\"/> expression returns <c>true</c>.</summary>");
+                    sb.AppendLine($"        /// <returns>This rules instance for further chaining.</returns>");
                     sb.AppendLine($"        public DryvRules<TModel> DisableRules{gen}(");
                     sb.Append(propParams);
                     sb.AppendLine($"            {ruleType} rule,");
@@ -93,6 +98,8 @@ namespace Dryv.Generators
                     sb.AppendLine();
 
                     // Without ruleSwitch
+                    sb.AppendLine($"        /// <summary>Disables all validation rules for the specified properties when the <paramref name=\"rule\"/> expression returns <c>true</c>.</summary>");
+                    sb.AppendLine($"        /// <returns>This rules instance for further chaining.</returns>");
                     sb.AppendLine($"        public DryvRules<TModel> DisableRules{gen}(");
                     sb.Append(propParams);
                     sb.AppendLine($"            {ruleType} rule)");
@@ -103,6 +110,8 @@ namespace Dryv.Generators
                     sb.AppendLine();
 
                     // With async ruleSwitch
+                    sb.AppendLine($"        /// <summary>Disables all validation rules for the specified properties when the <paramref name=\"rule\"/> expression returns <c>true</c>.</summary>");
+                    sb.AppendLine($"        /// <returns>This rules instance for further chaining.</returns>");
                     sb.AppendLine($"        public DryvRules<TModel> DisableRules{gen}(");
                     sb.Append(propParams);
                     sb.AppendLine($"            {ruleType} rule,");
@@ -180,6 +189,11 @@ namespace Dryv.Generators
             string switchArg,
             string switchType = null)
         {
+            var isClient = methodName.StartsWith("Client");
+            var desc = isClient ? "client-only " : "";
+            sb.AppendLine($"        /// <summary>Registers a {desc}validation rule expression for the selected properties.</summary>");
+            sb.AppendLine($"        /// <param name=\"rule\">The validation expression that returns a <see cref=\"DryvValidationResult\"/>.</param>");
+            sb.AppendLine($"        /// <returns>This rules instance for further chaining.</returns>");
             sb.AppendLine($"        public DryvRules<TModel> {methodName}{genericParams}(");
             sb.Append(propParams);
             if (switchType != null)
@@ -265,6 +279,9 @@ namespace Dryv.Generators
             string ruleType,
             string switchType)
         {
+            sb.AppendLine($"        /// <summary>Registers a server-only validation rule using a <c>Func</c> delegate for the selected properties. Server rules are never translated to JavaScript.</summary>");
+            sb.AppendLine($"        /// <param name=\"rule\">The server-side validation delegate.</param>");
+            sb.AppendLine($"        /// <returns>This rules instance for further chaining.</returns>");
             sb.AppendLine($"        public DryvRules<TModel> ServerRule{genericParams}(");
             sb.Append(propParams);
             if (switchType != null)
@@ -312,6 +329,10 @@ namespace Dryv.Generators
             var typeOfArgs = TypeOfArgs(optionCount);
 
             // Sync
+            sb.AppendLine($"        /// <summary>Registers a named parameter whose value is computed at runtime and made available to client-side rules via <c>$ctx.parameter(name)</c>.</summary>");
+            sb.AppendLine($"        /// <param name=\"name\">The parameter name.</param>");
+            sb.AppendLine($"        /// <param name=\"parameter\">A factory that produces the parameter value.</param>");
+            sb.AppendLine($"        /// <returns>This rules instance for further chaining.</returns>");
             sb.AppendLine($"        public DryvRules<TModel> Parameter<{optPfx}TResult>(string name, Func<{optPfx}TResult> parameter)");
             sb.AppendLine( "        {");
             sb.AppendLine($"            this.AddParameter(name, parameter{typeOfArgs});");
@@ -320,6 +341,10 @@ namespace Dryv.Generators
             sb.AppendLine();
 
             // Async
+            sb.AppendLine($"        /// <summary>Registers a named parameter whose value is computed asynchronously at runtime and made available to client-side rules via <c>$ctx.parameter(name)</c>.</summary>");
+            sb.AppendLine($"        /// <param name=\"name\">The parameter name.</param>");
+            sb.AppendLine($"        /// <param name=\"parameter\">An async factory that produces the parameter value.</param>");
+            sb.AppendLine($"        /// <returns>This rules instance for further chaining.</returns>");
             sb.AppendLine($"        public DryvRules<TModel> Parameter<{optPfx}TResult>(string name, Func<{optPfx}Task<TResult>> parameter)");
             sb.AppendLine( "        {");
             sb.AppendLine($"            this.AddParameter(name, parameter{typeOfArgs});");
@@ -350,6 +375,12 @@ namespace Dryv.Generators
             {
                 WriteBuilderEntryPoint(sb, p);
             }
+
+            // ── ServerRule entry points on DryvRules<TModel> ──
+            for (int p = 1; p < MaxPropertyCount; p++)
+            {
+                WriteServerBuilderEntryPoint(sb, p);
+            }
             sb.AppendLine("    }");
             sb.AppendLine();
 
@@ -357,11 +388,13 @@ namespace Dryv.Generators
             sb.AppendLine("    partial class DryvRuleBuilder<TModel>");
             sb.AppendLine("    {");
 
-            // Validate and Disable methods
+            // Validate, ServerValidate, and Disable methods
             for (int o = 0; o < MaxOptionCount; o++)
             {
                 WriteBuilderValidateMethod(sb, o, sync: true);
                 WriteBuilderValidateMethod(sb, o, sync: false);
+                WriteBuilderServerValidateMethod(sb, o, sync: true);
+                WriteBuilderServerValidateMethod(sb, o, sync: false);
                 WriteBuilderDisableMethod(sb, o);
             }
 
@@ -372,6 +405,11 @@ namespace Dryv.Generators
 
         private static void WriteBuilderEntryPoint(StringBuilder sb, int propCount)
         {
+            sb.AppendLine($"        /// <summary>Selects {(propCount == 1 ? "a property" : propCount + " properties")} and configures one or more validation rules via the <paramref name=\"configure\"/> callback.</summary>");
+            for (int k = 1; k <= propCount; k++)
+                sb.AppendLine($"        /// <param name=\"property{k}\">A property selector expression.</param>");
+            sb.AppendLine($"        /// <param name=\"configure\">A callback that receives a <see cref=\"DryvRuleBuilder{{TModel}}\"/> for fluent rule configuration.</param>");
+            sb.AppendLine($"        /// <returns>This rules instance for further chaining.</returns>");
             sb.AppendLine($"        public DryvRules<TModel> Rule(");
             for (int j = 1; j <= propCount; j++)
             {
@@ -398,7 +436,12 @@ namespace Dryv.Generators
             var optPfx = OptionsPrefix(optionCount);
             var typeOfArgs = TypeOfArgs(optionCount);
             var returnType = sync ? "DryvValidationResult" : "Task<DryvValidationResult>";
+            var asyncNote = sync ? "" : " asynchronous";
+            var diNote = optionCount > 0 ? $" Injected service types are resolved from the DI container at validation time." : "";
 
+            sb.AppendLine($"        /// <summary>Registers an{asyncNote} expression-based validation rule for the selected properties.{diNote} The expression is translatable to JavaScript for client-side validation.</summary>");
+            sb.AppendLine($"        /// <param name=\"rule\">The validation expression.</param>");
+            sb.AppendLine($"        /// <returns>This builder instance for further chaining.</returns>");
             sb.AppendLine($"        public DryvRuleBuilder<TModel> Validate{gen}(");
             sb.AppendLine($"            Expression<Func<TModel, {optPfx}{returnType}>> rule)");
             sb.AppendLine("        {");
@@ -408,11 +451,63 @@ namespace Dryv.Generators
             sb.AppendLine();
         }
 
+        private static void WriteServerBuilderEntryPoint(StringBuilder sb, int propCount)
+        {
+            sb.AppendLine($"        /// <summary>Selects {(propCount == 1 ? "a property" : propCount + " properties")} and configures one or more server-only validation rules via the <paramref name=\"configure\"/> callback. Rules registered here are never translated to JavaScript.</summary>");
+            for (int k = 1; k <= propCount; k++)
+                sb.AppendLine($"        /// <param name=\"property{k}\">A property selector expression.</param>");
+            sb.AppendLine($"        /// <param name=\"configure\">A callback that receives a <see cref=\"DryvRuleBuilder{{TModel}}\"/> for fluent rule configuration.</param>");
+            sb.AppendLine($"        /// <returns>This rules instance for further chaining.</returns>");
+            sb.AppendLine($"        public DryvRules<TModel> ServerRule(");
+            for (int j = 1; j <= propCount; j++)
+            {
+                sb.AppendLine($"            Expression<Func<TModel, object>> property{j},");
+            }
+            sb.AppendLine($"            Action<DryvRuleBuilder<TModel>> configure)");
+            sb.AppendLine("        {");
+            sb.Append("            var builder = new DryvRuleBuilder<TModel>(this, ");
+            for (int j = 1; j <= propCount; j++)
+            {
+                if (j > 1) sb.Append(", ");
+                sb.Append($"property{j}");
+            }
+            sb.AppendLine(");");
+            sb.AppendLine("            configure(builder);");
+            sb.AppendLine("            return this;");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+        }
+
+        private static void WriteBuilderServerValidateMethod(StringBuilder sb, int optionCount, bool sync)
+        {
+            var gen = GenericParams(optionCount);
+            var optPfx = OptionsPrefix(optionCount);
+            var typeOfArgs = TypeOfArgs(optionCount);
+            var returnType = sync ? "DryvValidationResult" : "Task<DryvValidationResult>";
+            var asyncNote = sync ? "" : " asynchronous";
+            var diNote = optionCount > 0 ? $" Injected service types are resolved from the DI container at validation time." : "";
+
+            sb.AppendLine($"        /// <summary>Registers an{asyncNote} server-only validation rule using a <c>Func</c> delegate.{diNote} Unlike <c>Validate</c>, the delegate is not an expression tree and is never translated to JavaScript.</summary>");
+            sb.AppendLine($"        /// <param name=\"rule\">The server-side validation delegate.</param>");
+            sb.AppendLine($"        /// <returns>This builder instance for further chaining.</returns>");
+            sb.AppendLine($"        public DryvRuleBuilder<TModel> ServerValidate{gen}(");
+            sb.AppendLine($"            Func<TModel, {optPfx}{returnType}> rule)");
+            sb.AppendLine("        {");
+            sb.AppendLine($"            this.AddServerRule(rule{typeOfArgs});");
+            sb.AppendLine("            return this;");
+            sb.AppendLine("        }");
+            sb.AppendLine();
+        }
+
         private static void WriteBuilderDisableMethod(StringBuilder sb, int optionCount)
         {
             var gen = GenericParams(optionCount);
             var optPfx = OptionsPrefix(optionCount);
+            var diNote = optionCount > 0 ? $" Injected service types are resolved from the DI container at validation time." : "";
 
+            sb.AppendLine($"        /// <summary>Sets a disabling condition on the preceding validation rule. When the condition returns <c>true</c>, the rule is skipped.{diNote}</summary>");
+            sb.AppendLine($"        /// <param name=\"condition\">An expression that returns <c>true</c> to disable the rule.</param>");
+            sb.AppendLine($"        /// <returns>This builder instance for further chaining.</returns>");
             sb.AppendLine($"        public DryvRuleBuilder<TModel> Disable{gen}(");
             sb.AppendLine($"            Expression<Func<TModel, {optPfx}bool>> condition)");
             sb.AppendLine("        {");
