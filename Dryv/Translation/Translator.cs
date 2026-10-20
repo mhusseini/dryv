@@ -50,9 +50,9 @@ namespace Dryv.Translation
         {
         }
 
-        public virtual void Visit(BlockExpression expression, TranslationContext context, bool negated = false)
+        protected virtual void Visit(BlockExpression expression, TranslationContext context, bool negated = false)
         {
-            foreach (dynamic child in expression.Expressions)
+            foreach (var child in expression.Expressions)
             {
                 this.Translate(child, context);
             }
@@ -66,7 +66,7 @@ namespace Dryv.Translation
         {
         }
 
-        public virtual void Visit(DebugInfoExpression expression, TranslationContext context, bool negated = false)
+        protected virtual void Visit(DebugInfoExpression expression, TranslationContext context, bool negated = false)
         {
         }
 

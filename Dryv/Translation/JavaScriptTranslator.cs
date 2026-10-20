@@ -147,7 +147,35 @@ namespace Dryv.Translation
             if (!this.customTranslators.Any(t => t.TryTranslate(context2)) &&
                 !context.DynamicTranslation.Any(t => t(expression, context2)))
             {
-                this.Visit((dynamic)expression, context2, negated);
+                switch (expression)
+                {
+                    case BinaryExpression e: this.Visit(e, context2, negated); break;
+                    case BlockExpression e: this.Visit(e, context2, negated); break;
+                    case ConditionalExpression e: this.Visit(e, context2, negated); break;
+                    case ConstantExpression e: this.Visit(e, context2, negated); break;
+                    case DebugInfoExpression e: this.Visit(e, context2, negated); break;
+                    case DefaultExpression e: this.Visit(e, context2, negated); break;
+                    case DynamicExpression e: this.Visit(e, context2, negated); break;
+                    case GotoExpression e: this.Visit(e, context2, negated); break;
+                    case IndexExpression e: this.Visit(e, context2, negated); break;
+                    case InvocationExpression e: this.Visit(e, context2, negated); break;
+                    case LabelExpression e: this.Visit(e, context2, negated); break;
+                    case LambdaExpression e: this.Visit(e, context2, negated); break;
+                    case ListInitExpression e: this.Visit(e, context2, negated); break;
+                    case LoopExpression e: this.Visit(e, context2, negated); break;
+                    case MemberExpression e: this.Visit(e, context2, negated); break;
+                    case MemberInitExpression e: this.Visit(e, context2, negated); break;
+                    case MethodCallExpression e: this.Visit(e, context2, negated); break;
+                    case NewArrayExpression e: this.Visit(e, context2, negated); break;
+                    case NewExpression e: this.Visit(e, context2, negated); break;
+                    case ParameterExpression e: this.Visit(e, context2, negated); break;
+                    case RuntimeVariablesExpression e: this.Visit(e, context2, negated); break;
+                    case SwitchExpression e: this.Visit(e, context2, negated); break;
+                    case TryExpression e: this.Visit(e, context2, negated); break;
+                    case TypeBinaryExpression e: this.Visit(e, context2, negated); break;
+                    case UnaryExpression e: this.Visit(e, context2, negated); break;
+                    default: throw new NotSupportedException($"Expression type '{expression.GetType().Name}' is not supported.");
+                }
             }
             else if (context2.IsAsync)
             {
@@ -220,7 +248,7 @@ namespace Dryv.Translation
             }
         }
 
-        public override void Visit(BlockExpression expression, TranslationContext context, bool negated = false)
+        protected override void Visit(BlockExpression expression, TranslationContext context, bool negated = false)
         {
             if (TryWriteInjectedExpression(expression, context))
             {
