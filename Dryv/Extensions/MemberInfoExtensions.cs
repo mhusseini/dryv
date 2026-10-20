@@ -11,7 +11,8 @@ namespace Dryv.Extensions
             {
                 PropertyInfo pi => pi.PropertyType,
                 FieldInfo fi => fi.FieldType,
-                MethodInfo fi => fi.ReturnType,
+                MethodInfo mi => mi.ReturnType,
+                _ => throw new NotSupportedException($"Unsupported member type: {member.GetType()}")
             };
         }
     }

@@ -36,9 +36,19 @@ namespace Dryv
 
             var rules = validation.ValidationRules.SelectMany(i => i.Value).Union(validation.DisablingRules.SelectMany(i => i.Value));
             var ruleParameters = await DryvParametersHelper.GetDryvParameters(rules, serviceProvider, parameters);
-            var taskResults = await Task.WhenAll(from kvp in validation.ValidationRules
-                                                 where !this.IsSubtreeDisabled(model, kvp.Key, validation.DisablingRules, serviceProvider, ruleParameters)
-                                                 select this.GetFirstValidationError(model, serviceProvider, kvp, ruleParameters));
+
+            var validationTasks = new List<Task<KeyValuePair<string, DryvValidationResult>?>>();
+            foreach (var kvp in validation.ValidationRules)
+            {
+                if (await this.IsSubtreeDisabledAsync(model, kvp.Key, validation.DisablingRules, serviceProvider, ruleParameters))
+                {
+                    continue;
+                }
+
+                validationTasks.Add(this.GetFirstValidationError(model, serviceProvider, kvp, ruleParameters));
+            }
+
+            var taskResults = await Task.WhenAll(validationTasks);
 
             return (from result in taskResults
                     where result.HasValue
@@ -112,22 +122,33 @@ namespace Dryv
             };
         }
 
-        private bool IsSubtreeDisabled(object model, string modelPath, IReadOnlyDictionary<string, List<DryvCompiledRule>> disablingRules, Func<Type, object> serviceProvider, Dictionary<IReadOnlyList<DryvCompiledRule>, DryvParameters> parameters)
+        private async Task<bool> IsSubtreeDisabledAsync(object model, string modelPath, IReadOnlyDictionary<string, List<DryvCompiledRule>> disablingRules, Func<Type, object> serviceProvider, Dictionary<IReadOnlyList<DryvCompiledRule>, DryvParameters> parameters)
         {
-            return FindDisablingRules(modelPath, disablingRules)?.Any(rule =>
+            var rules = FindDisablingRules(modelPath, disablingRules);
+            if (rules == null)
+            {
+                return false;
+            }
+
+            foreach (var rule in rules)
             {
                 try
                 {
                     var services = serviceProvider.GetServices(rule, parameters);
-                    var o = rule.CompiledValidationExpression(model, services);
+                    var o = await TaskValueHelper.GetPossiblyAsyncValue(rule.CompiledValidationExpression(model, services));
 
-                    return !(o is bool) || (bool)o;
+                    if (!(o is bool) || (bool)o)
+                    {
+                        return true;
+                    }
                 }
                 catch (Exception ex)
                 {
                     throw this.ThrowValidationException(model, rule, ex, RuleType.Disabling);
                 }
-            }) == true;
+            }
+
+            return false;
         }
 
         private List<DryvCompiledRule> FindDisablingRules(string modelPath, IReadOnlyDictionary<string, List<DryvCompiledRule>> disablingRules)

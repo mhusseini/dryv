@@ -2,13 +2,12 @@
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using Dryv.Reflection;
 
 namespace Dryv.Translation.Visitors
 {
     internal class EnumComparisionModifier : ExpressionVisitor
     {
-        public static bool Equals(object a, object b) => object.Equals(a, b);
+        public new static bool Equals(object a, object b) => object.Equals(a, b);
 
         protected override Expression VisitBinary(BinaryExpression node)
         {
@@ -71,6 +70,7 @@ namespace Dryv.Translation.Visitors
             {
                 PropertyInfo p => p.PropertyType,
                 FieldInfo f => f.FieldType,
+                _ => throw new NotSupportedException($"Unsupported member type: {memberExpression.Member.GetType()}")
             };
 
             if (IsNullable(memberType))

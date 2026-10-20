@@ -1,6 +1,4 @@
-﻿using Dryv.Translation;
-
-namespace Dryv.Configuration
+﻿namespace Dryv.Configuration
 {
     /// <summary>
     /// An interface for configuring Dryv services.

@@ -1,18 +1,10 @@
-using System;
 using System.Collections.ObjectModel;
-using System.Linq;
-using System.Runtime.InteropServices;
 using System.Threading.Tasks;
-using Dryv.AspNetCore.DynamicControllers.Translation;
 using Dryv.Configuration;
-using Dryv.Extensions;
 using Dryv.RuleDetection;
-using Dryv.Rules;
 using Dryv.Translation;
 using Dryv.Translation.Translators;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Moq;
-using Moq.Language.Flow;
 
 namespace Dryv.Tests
 {

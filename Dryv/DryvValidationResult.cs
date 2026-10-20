@@ -37,7 +37,7 @@ namespace Dryv
 
         public static DryvValidationResult Warning(string text) => Warning(text, null);
 
-        public static DryvValidationResult From(string? text) => string.IsNullOrWhiteSpace(text)
+        public static DryvValidationResult From(string text) => string.IsNullOrWhiteSpace(text)
             ? Success
             : Error(text);
     }

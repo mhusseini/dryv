@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
@@ -159,7 +158,7 @@ namespace Dryv.Translation
         {
             if (type == typeof(void))
             {
-                Debugger.Break();
+                throw new InvalidOperationException("Cannot get a default value for type 'void'.");
             }
             return type.GetTypeInfo().IsValueType ? Activator.CreateInstance(type) : null;
         }

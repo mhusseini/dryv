@@ -5,7 +5,6 @@ using Dryv.AspNetCore.DynamicControllers;
 using Dryv.Demo.Api.Dryvue.Models;
 using Dryv.Demo.Api.Dryvue.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Routing;
 
 var builder = WebApplication.CreateBuilder(args);
 

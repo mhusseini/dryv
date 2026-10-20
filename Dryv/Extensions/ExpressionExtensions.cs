@@ -35,6 +35,7 @@ namespace Dryv.Extensions
                     PropertyInfo m => m.GetMethod.IsStatic,
                     FieldInfo m => m.IsStatic,
                     MethodInfo m => m.IsStatic,
+                    _ => false,
                 });
         }
 
