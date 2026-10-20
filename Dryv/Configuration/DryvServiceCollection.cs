@@ -5,15 +5,10 @@ using System.Linq;
 
 namespace Dryv.Configuration
 {
-    public class DryvServiceCollection : IEnumerable<Type>
+    public class DryvServiceCollection(params Type[] requiredInterfaces) : IEnumerable<Type>
     {
         private readonly List<Type> items = new();
-        private readonly Type[] requiredInterfaces;
-
-        public DryvServiceCollection(params Type[] requiredInterfaces)
-        {
-            this.requiredInterfaces = requiredInterfaces ?? Array.Empty<Type>();
-        }
+        private readonly Type[] requiredInterfaces = requiredInterfaces ?? Array.Empty<Type>();
 
         protected virtual void OnAdd(Type type)
         {

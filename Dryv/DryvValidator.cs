@@ -12,22 +12,14 @@ using Dryv.Validation;
 
 namespace Dryv
 {
-    public class DryvValidator
+    public class DryvValidator(DryvRuleFinder ruleFinder, DryvOptions options)
     {
         private readonly ConcurrentDictionary<Type, GroupedValidation> cache = new();
-        private readonly DryvOptions options;
-        private readonly DryvRuleFinder ruleFinder;
-
-        public DryvValidator(DryvRuleFinder ruleFinder, DryvOptions options)
-        {
-            this.ruleFinder = ruleFinder;
-            this.options = options;
-        }
 
         public void ClearCache()
         {
             this.cache.Clear();
-            this.ruleFinder.ClearCache();
+            ruleFinder.ClearCache();
         }
 
         public async Task<IDictionary<string, DryvValidationResult>> Validate(object model, IDryvServiceResolver serviceResolver, IReadOnlyDictionary<string, object> parameters = null)
@@ -116,12 +108,12 @@ namespace Dryv
         {
             return new GroupedValidation
             {
-                ValidationRules = this.ruleFinder.FindValidationRulesInTree(type, RuleType.Validation)
+                ValidationRules = ruleFinder.FindValidationRulesInTree(type, RuleType.Validation)
                     .Where(r => r.EvaluationLocation.HasFlag(DryvEvaluationLocation.Server))
                     .GroupBy(r => r.ModelPath)
                     .ToDictionary(g => g.Key, g => g.ToList()),
 
-                DisablingRules = this.ruleFinder.FindValidationRulesInTree(type, RuleType.Disabling)
+                DisablingRules = ruleFinder.FindValidationRulesInTree(type, RuleType.Disabling)
                     .Where(r => r.EvaluationLocation.HasFlag(DryvEvaluationLocation.Server))
                     .GroupBy(r => r.ModelPath)
                     .ToDictionary(g => g.Key, g => g.ToList())
@@ -187,9 +179,9 @@ namespace Dryv
                 ? $"{rule.Property.DeclaringType?.Name ?? "Unknown"}.{rule.Property.Name}" 
                 : "unknown property";
             var sb = new StringBuilder($"An error occurred executing the {ruleType.ToString().ToLowerInvariant()} expression '{expressionText}' for property '{propertyName}'. See the inner exception for details.");
-            if (this.options?.IncludeModelDataInExceptions == true)
+            if (options?.IncludeModelDataInExceptions == true)
             {
-                var json = this.options.JsonConversion?.Invoke(model) ?? model?.ToString();
+                var json = options.JsonConversion?.Invoke(model) ?? model?.ToString();
                 sb.AppendLine("The model being validated is:");
                 sb.Append(json);
             }

@@ -11,23 +11,16 @@ using Dryv.Translation;
 
 namespace Dryv
 {
-    public class DryvTranslator
+    public class DryvTranslator(DryvRuleFinder ruleFinder)
     {
-        private readonly DryvRuleFinder ruleFinder;
-
-        public DryvTranslator(DryvRuleFinder ruleFinder)
-        {
-            this.ruleFinder = ruleFinder;
-        }
-
         public async Task<TranslationResult> TranslateValidationRules(Type modelType, IDryvServiceResolver serviceResolver, IReadOnlyDictionary<string, object> parameters = null)
         {
-            var validationRules = this.ruleFinder
+            var validationRules = ruleFinder
                 .FindValidationRulesInTree(modelType, RuleType.Validation)
                 .Where(r => r.EvaluationLocation.HasFlag(DryvEvaluationLocation.Client))
                 .ToList();
 
-            var disablingRules = this.ruleFinder
+            var disablingRules = ruleFinder
                 .FindValidationRulesInTree(modelType, RuleType.Disabling)
                 .Where(r => r.EvaluationLocation.HasFlag(DryvEvaluationLocation.Client))
                 .ToList();

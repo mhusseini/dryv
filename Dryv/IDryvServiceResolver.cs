@@ -15,14 +15,9 @@ namespace Dryv
     /// <summary>
     /// Wraps a <see cref="Func{Type, Object}"/> delegate as an <see cref="IDryvServiceResolver"/>.
     /// </summary>
-    internal sealed class FuncServiceResolver : IDryvServiceResolver
+    internal sealed class FuncServiceResolver(Func<Type, object> resolver) : IDryvServiceResolver
     {
-        private readonly Func<Type, object> resolver;
-
-        public FuncServiceResolver(Func<Type, object> resolver)
-        {
-            this.resolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
-        }
+        private readonly Func<Type, object> resolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
 
         public object GetService(Type serviceType) => this.resolver(serviceType);
     }
