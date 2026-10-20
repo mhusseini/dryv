@@ -1,12 +1,8 @@
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reflection;
-using Dryv.Configuration;
 using Dryv.RuleDetection;
 using Dryv.Rules;
-using Dryv.Translation;
-using Dryv.Translation.Translators;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Dryv.Tests
@@ -19,27 +15,11 @@ namespace Dryv.Tests
         [TestInitialize]
         public void Initialize()
         {
-            var methodCallTranslators = new Collection<IDryvMethodCallTranslator>
-            {
-                new RegexTranslator(),
-                new DryvValidationResultTranslator(),
-                new StringTranslator(),
-                new EnumerableTranslator()
-            };
-
-            var customTranslators = new Collection<IDryvCustomTranslator>
-            {
-                new RegexTranslator(),
-                new DryvValidationResultTranslator(),
-                new ObjectTranslator()
-            };
-
-            var options = new DryvOptions();
             var treeBuilder = new ModelTreeBuilder();
             var compiler = new DryvCompiler();
-            var translator = new JavaScriptTranslator(customTranslators, methodCallTranslators, options);
+            var ruleDiscovery = new RuleDiscovery();
 
-            sut = new DryvRuleFinder(treeBuilder, compiler, translator, null, options);
+            sut = new DryvRuleFinder(treeBuilder, compiler, ruleDiscovery, null);
         }
 
         private interface IModel

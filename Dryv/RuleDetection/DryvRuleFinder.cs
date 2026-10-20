@@ -5,35 +5,27 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
-using Dryv.Configuration;
 using Dryv.Extensions;
 using Dryv.Reflection;
 using Dryv.Rules;
-using Dryv.Translation;
 using Dryv.Translation.Visitors;
 using BindingFlags = System.Reflection.BindingFlags;
 
 namespace Dryv.RuleDetection
 {
-    public class DryvRuleFinder(ModelTreeBuilder treeBuilder, DryvCompiler compiler, ITranslator translator, IReadOnlyCollection<IDryvRuleAnnotator> annotators, DryvOptions options)
+    public class DryvRuleFinder(ModelTreeBuilder treeBuilder, DryvCompiler compiler, RuleDiscovery ruleDiscovery, IReadOnlyCollection<IDryvRuleAnnotator> annotators)
     {
         private const BindingFlags BindingFlagsForProperties = BindingFlags.FlattenHierarchy |
                                                                BindingFlags.Instance |
                                                                BindingFlags.Public |
                                                                BindingFlags.NonPublic;
 
-        private const BindingFlags BindingFlagsForRules = BindingFlags.Static |
-                                                          BindingFlags.Public |
-                                                          BindingFlags.NonPublic |
-                                                          BindingFlags.FlattenHierarchy;
-
-        private readonly ConcurrentDictionary<string, IEnumerable<DryvRuleDefinition>> compiledRuleCache = new();
         private readonly ConcurrentDictionary<string, IEnumerable<DryvCompiledRule>> compiledRuleTreeCache = new();
         private readonly IReadOnlyCollection<IDryvRuleAnnotator> annotators = annotators ?? Array.Empty<IDryvRuleAnnotator>();
 
         public void ClearCache()
         {
-            compiledRuleCache.Clear();
+            ruleDiscovery.ClearCache();
             compiledRuleTreeCache.Clear();
         }
 
@@ -78,7 +70,7 @@ namespace Dryv.RuleDetection
                 .ToList();
 
             foreach (var rule in from type in baseTypes
-                                 from rule in FindRulesOnType(type, ruleType)
+                                 from rule in ruleDiscovery.FindRulesOnType(type, ruleType)
                                  select rule)
             {
                 yield return (rule, currentPath);
@@ -121,33 +113,6 @@ namespace Dryv.RuleDetection
             {
                 yield return scopedRule;
             }
-        }
-
-        private IEnumerable<DryvRuleDefinition> FindRulesOnType(Type type, RuleType ruleType)
-        {
-            return compiledRuleCache.GetOrAdd($"{type.FullName}|{ruleType}", _ =>
-            {
-                var typeInfo = type.GetTypeInfo();
-
-                var fromFields = from p in typeInfo.GetFields(BindingFlagsForRules)
-                                 where typeof(DryvRules).IsAssignableFrom(p.FieldType)
-                                 select p.GetValue(null) as DryvRules;
-
-                var fromProperties = from p in typeInfo.GetProperties(BindingFlagsForRules)
-                                     where typeof(DryvRules).IsAssignableFrom(p.PropertyType)
-                                     select p.GetValue(null) as DryvRules;
-
-                var fromMethods = from m in typeInfo.GetMethods(BindingFlagsForRules)
-                                  where m.IsStatic
-                                        && !m.GetParameters().Any()
-                                        && typeof(DryvRules).IsAssignableFrom(m.ReturnType)
-                                        && !m.ContainsGenericParameters
-                                  select m.Invoke(null, null) as DryvRules;
-
-                return (from rules in fromFields.Union(fromProperties).Union(fromMethods)
-                        from rule in GetRulesOfType(rules, ruleType)
-                        select rule).ToList();
-            });
         }
 
         private static string GetEffectiveModelPath(string originalPath, string transposedPath, PropertyInfo property)
@@ -199,12 +164,6 @@ namespace Dryv.RuleDetection
                 return true;
             });
         }
-
-        private static IEnumerable<DryvRuleDefinition> GetRulesOfType(DryvRules rules, RuleType ruleType)
-        {
-            return ruleType == RuleType.Disabling ? rules.DisablingRules : rules.ValidationRules;
-        }
-
 
         private static bool HasCollectionInPath(ModelTreeNode node)
         {
@@ -305,43 +264,7 @@ namespace Dryv.RuleDetection
                     p => GetEffectiveModelPath(p.Value, transposedPath, p.Key)),
             };
 
-            return compiledRule.EvaluationLocation.HasFlag(DryvEvaluationLocation.Client) ? this.Translate(compiledRule, compiledRule.ValidationExpression) : compiledRule;
-        }
-
-        private DryvCompiledRule Translate(DryvCompiledRule compiledRule, Expression validationExpression)
-        {
-            if (translator == null)
-            {
-                return compiledRule;
-            }
-
-            try
-            {
-                var translation = translator.Translate(validationExpression, compiledRule.PropertyExpression, compiledRule);
-                return new DryvTranslatedRule(compiledRule)
-                {
-                    TranslatedValidationExpression = translation.Factory,
-                    ServiceTypes = translation.InjectedServiceTypes,
-                    CodeTemplate = translation.CodeTemplate,
-                    IsAsync = translation.IsAsync,
-                };
-            }
-            catch (DryvException ex)
-            {
-                if (options.TranslationErrorBehavior != TranslationErrorBehavior.ValidateOnServer)
-                {
-                    throw new DryvExpressionTranslationException(validationExpression, "An error occurred while translating validation rule.", ex);
-                }
-
-                return new DryvTranslatedRule(compiledRule)
-                {
-                    TranslationError = ex,
-                };
-            }
-            catch (Exception ex)
-            {
-                throw new DryvExpressionTranslationException(validationExpression, "An error occurred while translating validation rule.", ex);           
-            }
+            return compiledRule;
         }
     }
 }

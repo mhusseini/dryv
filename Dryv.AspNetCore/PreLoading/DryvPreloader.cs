@@ -7,7 +7,7 @@ using Microsoft.Extensions.Options;
 
 namespace Dryv.AspNetCore.PreLoading
 {
-    internal class DryvPreloader(DryvRuleFinder ruleFinder, DryvTranslator translator, IOptions<DryvPreloadingOptions> options)
+    internal class DryvPreloader(RuleTranslationPhase ruleTranslationPhase, DryvTranslator translator, IOptions<DryvPreloadingOptions> options)
     {
         private bool hasStarted;
 
@@ -24,8 +24,8 @@ namespace Dryv.AspNetCore.PreLoading
 
             foreach (var type in types)
             {
-                ruleFinder.FindValidationRulesInTree(type, RuleType.Validation);
-                ruleFinder.FindValidationRulesInTree(type, RuleType.Disabling);
+                ruleTranslationPhase.FindAndTranslateRulesInTree(type, RuleType.Validation);
+                ruleTranslationPhase.FindAndTranslateRulesInTree(type, RuleType.Disabling);
             }
 
             if (serviceResolver == null)

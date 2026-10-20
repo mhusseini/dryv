@@ -35,10 +35,12 @@ via an `Action` callback for the body translation.
 
 ## Issue 2: `DryvRuleFinder` Has Too Many Responsibilities
 
-**Status:** 🔴 Open
+**Status:** ✅ Resolved
 **Risk:** Medium
 **Files:**
 - `Dryv/RuleDetection/DryvRuleFinder.cs`
+- `Dryv/RuleDetection/RuleDiscovery.cs` *(new)*
+- `Dryv/RuleDetection/RuleTranslationPhase.cs` *(new)*
 
 **Problem:**
 This single class (347 lines) handles six concerns:
@@ -53,13 +55,15 @@ This single class (347 lines) handles six concerns:
 Most critically, `ApplyRuleToNode` mixes compilation and translation into a single step —
 a rule *finder* should not know about JavaScript translation.
 
-**Fix:**
-Split into focused classes:
+**Resolution:**
+Split into three focused classes:
 
-- `RuleDiscovery` — finds `DryvRules` instances on types via reflection
-- `RuleResolver` — walks the model tree, matches rules to nodes, transposes expressions
-- Move translation call out of the finder into a separate `RuleTranslationPhase`
-- Extract caching into a dedicated `RuleCache` or use a generic caching decorator
+- `RuleDiscovery` — finds `DryvRules` instances on types via reflection (extracted
+  `FindRulesOnType`, `GetRulesOfType`, and the per-type discovery cache)
+- `RuleTranslationPhase` — owns the `Translate` method and a separate translated-rule
+  cache; `DryvTranslator` and `DryvPreloader` now consume this instead of the finder
+- `DryvRuleFinder` — reduced to tree walking, node matching, transposition, and
+  compilation only; no longer depends on `ITranslator` or `DryvOptions`
 
 ---
 
@@ -240,7 +244,7 @@ expressions in an indexed list rather than a hash-keyed dictionary.
 ## Checklist
 
 - [x] Issue 1 — Extract async promise writing
-- [ ] Issue 2 — Split `DryvRuleFinder`
+- [x] Issue 2 — Split `DryvRuleFinder`
 - [ ] Issue 3 — Break up `JavaScriptTranslator`
 - [ ] Issue 4 — Fix `TranslationContext`
 - [ ] Issue 5 — Remove JS leaks from `Translator` base

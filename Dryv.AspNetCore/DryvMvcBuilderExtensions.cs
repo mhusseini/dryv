@@ -87,8 +87,10 @@ namespace Dryv.AspNetCore
             serviceCollection.TryAddSingleton<ModelTreeBuilder>();
             serviceCollection.TryAddSingleton<DryvValidator>();
             serviceCollection.TryAddSingleton<DryvCompiler>();
-            serviceCollection.TryAddSingleton<DryvTranslator>();
+            serviceCollection.TryAddSingleton<RuleDiscovery>();
             serviceCollection.TryAddSingleton<DryvRuleFinder>();
+            serviceCollection.TryAddSingleton<RuleTranslationPhase>();
+            serviceCollection.TryAddSingleton<DryvTranslator>();
             serviceCollection.TryAddSingleton<DryvClientWriter>();
             serviceCollection.AddSingleton(typeof(DryvOptions), options);
 

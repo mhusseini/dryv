@@ -12,7 +12,7 @@ namespace Dryv.Tests
     [TestClass]
     public class MultiPropertyRuleTests
     {
-        private DryvRuleFinder sut;
+        private RuleTranslationPhase sut;
 
         [TestInitialize]
         public void Initialize()
@@ -35,15 +35,17 @@ namespace Dryv.Tests
             var options = new DryvOptions();
             var treeBuilder = new ModelTreeBuilder();
             var compiler = new DryvCompiler();
+            var ruleDiscovery = new RuleDiscovery();
             var translator = new JavaScriptTranslator(customTranslators, methodCallTranslators, options);
+            var ruleFinder = new DryvRuleFinder(treeBuilder, compiler, ruleDiscovery, null);
 
-            sut = new DryvRuleFinder(treeBuilder, compiler, translator, null, options);
+            sut = new RuleTranslationPhase(ruleFinder, translator, options);
         }
 
         [TestMethod]
         public void MultiPropertyRule_AllProperties_HaveClientRulesWithFullValidation()
         {
-            var allRules = sut.FindValidationRulesInTree(typeof(AddressModel), RuleType.Validation);
+            var allRules = sut.FindAndTranslateRulesInTree(typeof(AddressModel), RuleType.Validation);
             var options = new DryvOptions();
 
             foreach (var propName in new[] { "Street", "City", "Zip" })
@@ -61,7 +63,7 @@ namespace Dryv.Tests
         [TestMethod]
         public void MultiPropertyRule_AllProperties_HaveRelatedProperties()
         {
-            var allRules = sut.FindValidationRulesInTree(typeof(AddressModel), RuleType.Validation);
+            var allRules = sut.FindAndTranslateRulesInTree(typeof(AddressModel), RuleType.Validation);
 
             var streetProp = typeof(AddressModel).GetProperty(nameof(AddressModel.Street));
             var cityProp = typeof(AddressModel).GetProperty(nameof(AddressModel.City));
@@ -80,7 +82,7 @@ namespace Dryv.Tests
         [TestMethod]
         public void MultiPropertyRule_AllProperties_HaveGroupSetToFirstPropertyPath()
         {
-            var allRules = sut.FindValidationRulesInTree(typeof(AddressModel), RuleType.Validation);
+            var allRules = sut.FindAndTranslateRulesInTree(typeof(AddressModel), RuleType.Validation);
 
             foreach (var propName in new[] { "Street", "City", "Zip" })
             {
@@ -100,7 +102,7 @@ namespace Dryv.Tests
             var cityProperty = typeof(AddressModel).GetProperty(nameof(AddressModel.City));
             var zipProperty = typeof(AddressModel).GetProperty(nameof(AddressModel.Zip));
 
-            var allRules = sut.FindValidationRulesInTree(typeof(AddressModel), RuleType.Validation);
+            var allRules = sut.FindAndTranslateRulesInTree(typeof(AddressModel), RuleType.Validation);
 
             foreach (var prop in new[] { streetProperty, cityProperty, zipProperty })
             {
@@ -116,7 +118,7 @@ namespace Dryv.Tests
         public void MultiPropertyRule_SinglePropertyRule_HasNoGroup()
         {
             var emailProperty = typeof(AddressModel).GetProperty(nameof(AddressModel.Email));
-            var allRules = sut.FindValidationRulesInTree(typeof(AddressModel), RuleType.Validation);
+            var allRules = sut.FindAndTranslateRulesInTree(typeof(AddressModel), RuleType.Validation);
             var clientRules = allRules.Where(r => r.Property == emailProperty && r.EvaluationLocation.HasFlag(DryvEvaluationLocation.Client)).ToList();
 
             Assert.IsTrue(clientRules.Any(), "Single-property rule should have client-side rule");
@@ -130,7 +132,7 @@ namespace Dryv.Tests
         [TestMethod]
         public void MultiPropertyRule_ExplicitGroupIsNotOverridden()
         {
-            var allRules = sut.FindValidationRulesInTree(typeof(ModelWithExplicitGroup), RuleType.Validation);
+            var allRules = sut.FindAndTranslateRulesInTree(typeof(ModelWithExplicitGroup), RuleType.Validation);
             var prop = typeof(ModelWithExplicitGroup).GetProperty(nameof(ModelWithExplicitGroup.Field1));
             var clientRules = allRules.Where(r => r.Property == prop && r.EvaluationLocation.HasFlag(DryvEvaluationLocation.Client)).ToList();
 
@@ -142,7 +144,7 @@ namespace Dryv.Tests
         [TestMethod]
         public void MultiPropertyRule_GroupAppearsInJavaScriptValidationResult()
         {
-            var allRules = sut.FindValidationRulesInTree(typeof(AddressModel), RuleType.Validation);
+            var allRules = sut.FindAndTranslateRulesInTree(typeof(AddressModel), RuleType.Validation);
             var options = new DryvOptions();
 
             foreach (var propName in new[] { "Street", "City", "Zip" })
@@ -160,7 +162,7 @@ namespace Dryv.Tests
         public void MultiPropertyRule_SinglePropertyRule_NoGroupInJavaScriptResult()
         {
             var emailProperty = typeof(AddressModel).GetProperty(nameof(AddressModel.Email));
-            var allRules = sut.FindValidationRulesInTree(typeof(AddressModel), RuleType.Validation);
+            var allRules = sut.FindAndTranslateRulesInTree(typeof(AddressModel), RuleType.Validation);
             var clientRules = allRules.Where(r => r.Property == emailProperty && r.EvaluationLocation.HasFlag(DryvEvaluationLocation.Client)).ToList();
 
             var code = ((DryvTranslatedRule)clientRules.First()).TranslatedValidationExpression(_ => null, [""], new DryvOptions());
@@ -172,7 +174,7 @@ namespace Dryv.Tests
         [TestMethod]
         public void MultiPropertyRule_ExplicitGroup_AppearsInJavaScriptResult()
         {
-            var allRules = sut.FindValidationRulesInTree(typeof(ModelWithExplicitGroup), RuleType.Validation);
+            var allRules = sut.FindAndTranslateRulesInTree(typeof(ModelWithExplicitGroup), RuleType.Validation);
             var options = new DryvOptions();
 
             var prop = typeof(ModelWithExplicitGroup).GetProperty(nameof(ModelWithExplicitGroup.Field1));
@@ -186,7 +188,7 @@ namespace Dryv.Tests
         [TestMethod]
         public void MultiPropertyRule_ImplicitStringConversion_IncludesGroupInResult()
         {
-            var allRules = sut.FindValidationRulesInTree(typeof(ModelWithImplicitConversion), RuleType.Validation);
+            var allRules = sut.FindAndTranslateRulesInTree(typeof(ModelWithImplicitConversion), RuleType.Validation);
             var options = new DryvOptions();
 
             var prop = typeof(ModelWithImplicitConversion).GetProperty(nameof(ModelWithImplicitConversion.Name));
@@ -202,7 +204,7 @@ namespace Dryv.Tests
         [TestMethod]
         public void MultiPropertyRule_DumpGeneratedOutput()
         {
-            var allRules = sut.FindValidationRulesInTree(typeof(AddressModel), RuleType.Validation);
+            var allRules = sut.FindAndTranslateRulesInTree(typeof(AddressModel), RuleType.Validation);
             var options = new DryvOptions();
             var properties = new[] { "Street", "City", "Zip", "Email" };
 
