@@ -1,11 +1,8 @@
 ﻿using System;
 using System.Linq;
 using System.Threading.Tasks;
-using Dryv.AspNetCore.DynamicControllers.CodeGeneration;
 using Dryv.AspNetCore.DynamicControllers.Endpoints;
 using Dryv.Translation;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Options;
 
 namespace Dryv.AspNetCore.DynamicControllers.Translation
@@ -17,8 +14,8 @@ namespace Dryv.AspNetCore.DynamicControllers.Translation
         {
             return true;
         }
-        public DryvDynamicControllerMethodTranslator(DryvDynamicControllerRegistration controllerRegistration, ControllerGenerator codeGenerator, IDryvClientServerCallWriter controllerCallWriter, IOptions<DryvDynamicControllerOptions> options, IOptions<MvcOptions> mvcOptions, LinkGenerator linkGenerator)
-            : base(controllerRegistration, codeGenerator, controllerCallWriter, options, mvcOptions, linkGenerator) { }
+        public DryvDynamicControllerMethodTranslator(DryvDynamicEndpointRegistration endpointRegistration, IDryvClientServerCallWriter controllerCallWriter, IOptions<DryvDynamicControllerOptions> options)
+            : base(endpointRegistration, controllerCallWriter, options) { }
 
         public bool Translate(MethodTranslationContext context)
         {

@@ -64,7 +64,7 @@ For straightforward rules (like `[Required]` or `[StringLength]`), ASP.NET Core'
 - [C# to JavaScript Translation](#c-to-javascript-translation)
 - [ASP.NET Core Integration](#aspnet-core-integration)
   - [Automatic Server-Side Validation](#automatic-server-side-validation)
-  - [Dynamic Controllers for Async Rules](#dynamic-controllers-for-async-rules)
+  - [Dynamic Endpoints for Async Rules](#dynamic-endpoints-for-async-rules)
   - [Tag Helper](#tag-helper)
   - [HTML Helper](#html-helper)
   - [Preloading](#preloading)
@@ -99,7 +99,7 @@ For straightforward rules (like `[Required]` or `[StringLength]`), ASP.NET Core'
 - **Multi-property rules** — a single rule can apply to multiple properties, with related-property metadata for cross-field validation UIs.
 - **Rule parameters** — define named parameters resolved via DI and passed to client-side validation.
 - **Disabling rules** — conditionally disable entire subtrees of validation.
-- **Automatic ASP.NET Core integration** — plugs into the MVC validation pipeline, auto-generates API endpoints for async rules, and provides Tag Helpers and HTML Helpers for rendering client code.
+- **Automatic ASP.NET Core integration** — plugs into the MVC validation pipeline, auto-generates minimal API endpoints for async rules, and provides Tag Helpers and HTML Helpers for rendering client code.
 - **Extensible translation** — plug in custom translators for your own types and methods.
 - **Preloading** — optionally discover and compile all rules at startup for faster first requests.
 
@@ -110,7 +110,7 @@ For straightforward rules (like `[Required]` or `[StringLength]`), ASP.NET Core'
 | Package | Description |
 |---------|-------------|
 | [`Dryv`](https://www.nuget.org/packages/Dryv) | Core library — rule definition, validation, and C#-to-JavaScript translation. Framework-agnostic (targets .NET 9). |
-| [`Dryv.AspNetCore`](https://www.nuget.org/packages/Dryv.AspNetCore) | ASP.NET Core integration — MVC filters, Tag Helpers, HTML Helpers, dynamic controller generation, and preloading. |
+| [`Dryv.AspNetCore`](https://www.nuget.org/packages/Dryv.AspNetCore) | ASP.NET Core integration — MVC filters, Tag Helpers, HTML Helpers, dynamic endpoint generation, and preloading. |
 
 ```shell
 dotnet add package Dryv
@@ -171,14 +171,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services
     .AddControllersWithViews()
     .AddDryv()
-    .AddDryvDynamicControllers()
+    .AddDryvDynamicEndpoints()
     .AddDryvPreloading();
 
 var app = builder.Build();
 
-app.UseDryv();
-
 app.MapDefaultControllerRoute();
+app.MapDryvEndpoints();
 app.Run();
 ```
 
@@ -254,7 +253,7 @@ Rules can handle asynchronous operations by returning a `Task<DryvValidationResu
         : "Email is already taken")
 ```
 
-On the client side, Dryv automatically routes any async rules requiring server interaction through seamlessly generated [dynamic controllers](#dynamic-controllers-for-async-rules).
+On the client side, Dryv automatically routes any async rules requiring server interaction through seamlessly generated [dynamic endpoints](#dynamic-endpoints-for-async-rules).
 
 ### Server-Only Rules
 
@@ -684,20 +683,35 @@ The `Dryv.AspNetCore` package provides deep integration with ASP.NET Core MVC.
 
 By default, Dryv adds an action filter (`DryvValidationFilterAttribute`) that validates the model on every action and adds errors to `ModelState`. This works alongside standard `[Required]`, `[StringLength]`, etc. attributes.
 
-### Dynamic Controllers for Async Rules
+### Dynamic Endpoints for Async Rules
 
-When you call `AddDryvDynamicControllers()`, Dryv automatically generates ASP.NET Core controller endpoints at runtime for async validation rules that cannot run purely in the browser. The generated JavaScript calls these endpoints transparently.
+When you call `AddDryvDynamicEndpoints()`, Dryv automatically generates minimal API endpoints at runtime for async validation rules that cannot run purely in the browser. The generated JavaScript calls these endpoints transparently. No `MapControllers()` call is required.
 
 ```csharp
 builder.Services
     .AddControllersWithViews()
     .AddDryv()
-    .AddDryvDynamicControllers(options =>
+    .AddDryvDynamicEndpoints(options =>
     {
-        // Customize endpoint routing, HTTP method, filters, etc.
-        options.WithEndpoint((ctx, builder) =>
-            builder.MapControllerRoute(ctx.ControllerFullName, $"api/validate/{ctx.Action}"));
+        // Customize endpoint route pattern
+        options.WithRoute(ctx => $"api/validate/{ctx.Action}");
+
+        // Add metadata to generated endpoints (e.g. authorization)
+        options.ConfigureEndpoint((ctx, endpoint) =>
+        {
+            endpoint.Metadata.Add(new AuthorizeAttribute("MyPolicy"));
+        });
+
+        // Wrap the request handler (equivalent to MVC action filters)
+        options.WrapHandler((ctx, next) => async httpContext =>
+        {
+            // custom logic before/after the handler
+            await next(httpContext);
+        });
     });
+
+// In the pipeline:
+app.MapDryvEndpoints();
 ```
 
 ### Tag Helper
@@ -2539,16 +2553,16 @@ builder.Services
 3. If using async rules, ensure you've provided `$ctx.dryv.callServer` and `$ctx.dryv.handleResult` implementations.
 4. Check the browser console for JavaScript errors in the generated validation code.
 
-### Dynamic controller returns 404
+### Dynamic endpoint returns 404
 
 **Symptoms:** Async rules fail on the client with a 404 error.
 
 **Causes:**
-1. **Stale client code** — Dynamic controller URLs contain an MD5 hash of the expression. If you changed the C# rule but didn't regenerate the client code, the old URL no longer exists.
-2. **Missing `app.UseDryv()`** — The dynamic controllers are initialized during `UseDryv()`.
-3. **Missing `AddDryvDynamicControllers()`** — The dynamic controller services aren't registered.
+1. **Stale client code** — Dynamic endpoint URLs contain an MD5 hash of the expression. If you changed the C# rule but didn't regenerate the client code, the old URL no longer exists.
+2. **Missing `app.MapDryvEndpoints()`** — The dynamic endpoints are registered during `MapDryvEndpoints()`.
+3. **Missing `AddDryvDynamicEndpoints()`** — The dynamic endpoint services aren't registered.
 
-**Fix:** Regenerate client code, ensure both `AddDryvDynamicControllers()` and `app.UseDryv()` are called.
+**Fix:** Regenerate client code, ensure both `AddDryvDynamicEndpoints()` and `app.MapDryvEndpoints()` are called.
 
 ### Parameters are stale / frozen
 

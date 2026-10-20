@@ -8,14 +8,14 @@ builder.Services.AddSingleton<EmailValidator>();
 builder.Services
     .AddControllersWithViews()
     .AddDryv()
-    .AddDryvDynamicControllers()
+    .AddDryvDynamicEndpoints()
     .AddDryvPreloading();
 
 var app = builder.Build();
 
 app.UseStaticFiles();
 app.UseRouting();
-app.UseDryv();
 app.MapDefaultControllerRoute();
+app.MapDryvEndpoints();
 
 app.Run();

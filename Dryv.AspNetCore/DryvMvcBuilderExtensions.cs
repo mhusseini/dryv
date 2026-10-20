@@ -4,7 +4,6 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Dryv.AspNetCore.DynamicControllers.Endpoints;
 using Dryv.AspNetCore.Internal;
 using Dryv.AspNetCore.Json;
 using Dryv.AspNetCore.Translators;
@@ -83,7 +82,6 @@ namespace Dryv.AspNetCore
                 options.JsonConversion = v => JsonSerializer.Serialize(v, jsonOptions);
             }
 
-            serviceCollection.TryAddSingleton<DryvEndpointRouteBuilderProvider>();
             serviceCollection.TryAddSingleton(typeof(IDryvClientValidationFunctionWriter), options.ClientFunctionWriterType ?? DryvOptions.DefaultClientFunctionWriterType);
             serviceCollection.TryAddSingleton(typeof(IDryvClientValidationSetWriter), options.ClientValidationSetWriterType ?? DryvOptions.DefaultClientValidationSetWriterType);
             serviceCollection.TryAddSingleton<ITranslator, JavaScriptTranslator>();

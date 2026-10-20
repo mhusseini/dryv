@@ -1,9 +1,11 @@
 using System.Text;
 using Dryv;
 using Dryv.AspNetCore;
+using Dryv.AspNetCore.DynamicControllers;
 using Dryv.Demo.Api.Dryvue.Models;
 using Dryv.Demo.Api.Dryvue.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,7 +14,21 @@ builder.Services.AddSingleton<EmailValidator>();
 builder.Services
     .AddControllers()
     .AddDryv()
-    .AddDryvDynamicControllers()
+    .AddDryvDynamicEndpoints(options =>
+    {
+        // Add metadata to all generated endpoints (e.g. authorization, CORS, rate limiting)
+        options.ConfigureEndpoint((context, endpoint) =>
+        {
+            endpoint.Metadata.Add(new EndpointNameMetadata($"Dryv:{context.Action}"));
+        });
+
+        // Wrap the request handler with custom logic (equivalent to MVC action filters)
+        options.WrapHandler((context, next) => async httpContext =>
+        {
+            Console.WriteLine($"Dryv endpoint called: {context.Action}");
+            await next(httpContext);
+        });
+    })
     .AddDryvPreloading();
 
 builder.Services.AddHttpContextAccessor();
@@ -29,8 +45,7 @@ var app = builder.Build();
 
 app.UseCors();
 app.UseRouting();
-app.UseDryv();
-app.MapControllers();
+app.MapDryvEndpoints();
 
 app.MapGet("/api/validation-rules", async (
     DryvClientWriter clientWriter,

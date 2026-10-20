@@ -12,7 +12,7 @@ builder.Services.AddSingleton<EmailValidator>();
 builder.Services
     .AddControllers()
     .AddDryv()
-    .AddDryvDynamicControllers()
+    .AddDryvDynamicEndpoints()
     .AddDryvPreloading();
 
 builder.Services.AddHttpContextAccessor();
@@ -22,8 +22,7 @@ var app = builder.Build();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseRouting();
-app.UseDryv();
-app.MapControllers();
+app.MapDryvEndpoints();
 
 app.MapGet("/api/validation-rules", async (
     DryvClientWriter clientWriter,

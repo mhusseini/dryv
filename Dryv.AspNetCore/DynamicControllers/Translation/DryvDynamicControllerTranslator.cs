@@ -1,12 +1,9 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
-using Dryv.AspNetCore.DynamicControllers.CodeGeneration;
 using Dryv.AspNetCore.DynamicControllers.Endpoints;
 using Dryv.Translation;
 using Dryv.Translation.Visitors;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Options;
 
 namespace Dryv.AspNetCore.DynamicControllers.Translation
@@ -15,8 +12,8 @@ namespace Dryv.AspNetCore.DynamicControllers.Translation
     {
         private readonly IReadOnlyCollection<IDryvMethodCallTranslator> methodCallTranslators;
 
-        public DryvDynamicControllerTranslator(DryvDynamicControllerRegistration controllerRegistration, ControllerGenerator codeGenerator, IDryvClientServerCallWriter controllerCallWriter, IOptions<DryvDynamicControllerOptions> options, IOptions<MvcOptions> mvcOptions, LinkGenerator linkGenerator, IReadOnlyCollection<IDryvMethodCallTranslator> methodCallTranslators)
-        : base(controllerRegistration, codeGenerator, controllerCallWriter, options, mvcOptions, linkGenerator)
+        public DryvDynamicControllerTranslator(DryvDynamicEndpointRegistration endpointRegistration, IDryvClientServerCallWriter controllerCallWriter, IOptions<DryvDynamicControllerOptions> options, IReadOnlyCollection<IDryvMethodCallTranslator> methodCallTranslators)
+        : base(endpointRegistration, controllerCallWriter, options)
         {
             this.methodCallTranslators = methodCallTranslators;
         }
