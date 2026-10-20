@@ -2,11 +2,7 @@ using System.Linq.Expressions;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Dryv.Configuration;
-using Dryv.JsonSchema;
 using Dryv.Rules;
-using Dryv.Translation;
-using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Expression = System.Linq.Expressions.Expression;
 
 namespace Dryv.JsonSchema.Tests;
 
@@ -229,7 +225,7 @@ public class JsonSchemaTranslatorTests
         Expression<Func<TestModel, DryvValidationResult>> expr = m =>
             m.Text == null ? "error" : DryvValidationResult.Success;
 
-        var rule = new DryvRuleDefinition { ModelType = typeof(TestModel) };
+        var rule = CreateRule(typeof(TestModel));
         var result = translator.Translate(expr, null, rule);
 
         var json1 = result.Factory(null!, null!, new DryvOptions());
@@ -243,10 +239,17 @@ public class JsonSchemaTranslatorTests
 
     private JsonDocument Translate<TModel>(Expression<Func<TModel, DryvValidationResult>> expression)
     {
-        var rule = new DryvRuleDefinition { ModelType = typeof(TModel) };
+        var rule = CreateRule(typeof(TModel));
         var result = translator.Translate(expression, null, rule);
         var json = result.Factory(null!, null!, new DryvOptions());
         return JsonDocument.Parse(json);
+    }
+
+    private static DryvRuleDefinition CreateRule(Type modelType)
+    {
+        var rule = (DryvRuleDefinition)Activator.CreateInstance(typeof(DryvRuleDefinition), nonPublic: true)!;
+        typeof(DryvRuleDefinition).GetProperty(nameof(DryvRuleDefinition.ModelType))!.SetValue(rule, modelType);
+        return rule;
     }
 
     private static JsonElement GetPropertyConstraints(JsonDocument schema, string propertyName) =>

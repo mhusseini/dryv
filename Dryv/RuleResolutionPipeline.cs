@@ -6,7 +6,7 @@ using Dryv.Rules;
 
 namespace Dryv
 {
-    public class RuleResolutionPipeline
+    internal class RuleResolutionPipeline
     {
         public Task<Dictionary<IReadOnlyList<DryvCompiledRule>, DryvParameters>> ResolveParametersAsync(
             IEnumerable<DryvCompiledRule> rules,

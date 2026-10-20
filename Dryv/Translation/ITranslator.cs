@@ -1,6 +1,4 @@
-﻿using System.Linq.Expressions;
-
-namespace Dryv.Translation
+﻿namespace Dryv.Translation
 {
     /// <summary>
     /// Combines <see cref="IRuleTranslator"/>, <see cref="IExpressionWriter"/>,

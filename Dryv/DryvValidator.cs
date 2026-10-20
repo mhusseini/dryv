@@ -10,8 +10,21 @@ using Dryv.Validation;
 
 namespace Dryv
 {
-    public class DryvValidator(DryvValidationCache validationCache, IDryvServiceResolver serviceResolver, DryvOptions options, RuleResolutionPipeline pipeline)
+    public class DryvValidator
     {
+        private readonly DryvValidationCache validationCache;
+        private readonly IDryvServiceResolver serviceResolver;
+        private readonly DryvOptions options;
+        private readonly RuleResolutionPipeline pipeline;
+
+        internal DryvValidator(DryvValidationCache validationCache, IDryvServiceResolver serviceResolver, DryvOptions options, RuleResolutionPipeline pipeline)
+        {
+            this.validationCache = validationCache;
+            this.serviceResolver = serviceResolver;
+            this.options = options;
+            this.pipeline = pipeline;
+        }
+
         public void ClearCache()
         {
             validationCache.Clear();

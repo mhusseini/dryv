@@ -19,9 +19,9 @@ DryvCoreSetup.ConfigureDefaults(options);
 DryvCoreSetup.RegisterServices(
     options,
     registerSingleton: (svc, impl) => services.TryAddSingleton(svc, impl),
-    registerScoped: (svc, impl) => services.TryAddSingleton(svc, impl),
     registerInstance: (svc, inst) => services.AddSingleton(svc, inst),
-    registerFactory: (svc, factory) => services.AddSingleton(svc, sp => factory(sp.GetService)));
+    registerFactory: (svc, factory) => services.AddSingleton(svc, sp => factory(sp.GetService)),
+    registerScopedFactory: (svc, factory) => services.AddSingleton(svc, sp => factory(sp.GetService)));
 
 // In a console app there are no scopes, so register the resolver as a singleton
 services.TryAddSingleton<IDryvServiceResolver>(sp => DryvServiceResolverFactory.FromFunc(sp.GetService));

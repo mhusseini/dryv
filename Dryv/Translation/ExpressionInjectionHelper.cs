@@ -9,7 +9,7 @@ using Dryv.Translation.Visitors;
 
 namespace Dryv.Translation
 {
-    public class ExpressionInjectionHelper
+    internal static class ExpressionInjectionHelper
     {
         public static bool CanInjectMethodCall(MethodCallExpression expression, TranslationContext context)
         {

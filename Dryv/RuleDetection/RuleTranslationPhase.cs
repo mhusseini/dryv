@@ -9,9 +9,19 @@ using Dryv.Translation;
 
 namespace Dryv.RuleDetection
 {
-    public class RuleTranslationPhase(DryvRuleFinder ruleFinder, IRuleTranslator translator, DryvOptions options)
+    public class RuleTranslationPhase
     {
+        private readonly DryvRuleFinder ruleFinder;
+        private readonly IRuleTranslator translator;
+        private readonly DryvOptions options;
         private readonly ConcurrentDictionary<string, IEnumerable<DryvCompiledRule>> translatedRuleTreeCache = new();
+
+        internal RuleTranslationPhase(DryvRuleFinder ruleFinder, IRuleTranslator translator, DryvOptions options)
+        {
+            this.ruleFinder = ruleFinder;
+            this.translator = translator;
+            this.options = options;
+        }
 
         public void ClearCache()
         {

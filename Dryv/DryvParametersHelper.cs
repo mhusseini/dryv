@@ -1,12 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Threading.Tasks;
 using Dryv.Extensions;
 using Dryv.Rules;
 
 namespace Dryv
 {
-    public class DryvParametersHelper
+    internal static class DryvParametersHelper
     {
         public static async Task<Dictionary<IReadOnlyList<DryvCompiledRule>, DryvParameters>> GetDryvParameters(IEnumerable<DryvCompiledRule> rules, IDryvServiceResolver serviceResolver, IReadOnlyDictionary<string, object> parameters = null)
         {

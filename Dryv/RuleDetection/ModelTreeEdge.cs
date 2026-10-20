@@ -4,7 +4,7 @@ using System.Reflection;
 namespace Dryv.RuleDetection
 {
     [DebuggerDisplay("{" + nameof(Name) + "}")]
-    public class ModelTreeEdge
+    internal class ModelTreeEdge
     {
         public ModelTreeNode Child { get; set; }
         public string Name => this.Member?.Name;

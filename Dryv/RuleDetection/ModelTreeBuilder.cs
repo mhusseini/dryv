@@ -6,7 +6,7 @@ using Dryv.Extensions;
 
 namespace Dryv.RuleDetection
 {
-    public class ModelTreeBuilder
+    internal class ModelTreeBuilder
     {
         public ModelTreeNode Build(Type type)
         {

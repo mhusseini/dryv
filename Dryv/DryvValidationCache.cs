@@ -7,7 +7,7 @@ using Dryv.Rules;
 
 namespace Dryv
 {
-    public class DryvValidationCache(DryvRuleFinder ruleFinder)
+    internal class DryvValidationCache(DryvRuleFinder ruleFinder)
     {
         private readonly ConcurrentDictionary<Type, GroupedValidation> cache = new();
 

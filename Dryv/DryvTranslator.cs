@@ -11,8 +11,17 @@ using Dryv.Translation;
 
 namespace Dryv
 {
-    public class DryvTranslator(RuleTranslationPhase ruleTranslationPhase, RuleResolutionPipeline pipeline)
+    public class DryvTranslator
     {
+        private readonly RuleTranslationPhase ruleTranslationPhase;
+        private readonly RuleResolutionPipeline pipeline;
+
+        internal DryvTranslator(RuleTranslationPhase ruleTranslationPhase, RuleResolutionPipeline pipeline)
+        {
+            this.ruleTranslationPhase = ruleTranslationPhase;
+            this.pipeline = pipeline;
+        }
+
         public async Task<TranslationResult> TranslateValidationRules(Type modelType, IDryvServiceResolver serviceResolver, IReadOnlyDictionary<string, object> parameters = null)
         {
             var validationRules = ruleTranslationPhase

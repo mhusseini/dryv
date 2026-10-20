@@ -3,13 +3,12 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
-using Dryv.Reflection;
 using Dryv.Rules;
 using BindingFlags = System.Reflection.BindingFlags;
 
 namespace Dryv.RuleDetection
 {
-    public class RuleDiscovery
+    internal class RuleDiscovery
     {
         private const BindingFlags BindingFlagsForRules = BindingFlags.Static |
                                                           BindingFlags.Public |

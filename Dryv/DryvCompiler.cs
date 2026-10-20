@@ -6,7 +6,7 @@ using Dryv.Rules;
 
 namespace Dryv
 {
-    public class DryvCompiler
+    internal class DryvCompiler
     {
         public Func<object[], object> CompileEnablingExpression(DryvRuleDefinition rule, LambdaExpression lambdaExpression)
         {

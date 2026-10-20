@@ -13,7 +13,7 @@ using BindingFlags = System.Reflection.BindingFlags;
 
 namespace Dryv.RuleDetection
 {
-    public class DryvRuleFinder(ModelTreeBuilder treeBuilder, DryvCompiler compiler, RuleDiscovery ruleDiscovery, IReadOnlyCollection<IDryvRuleAnnotator> annotators)
+    internal class DryvRuleFinder(ModelTreeBuilder treeBuilder, DryvCompiler compiler, RuleDiscovery ruleDiscovery, IReadOnlyCollection<IDryvRuleAnnotator> annotators)
     {
         private const BindingFlags BindingFlagsForProperties = BindingFlags.FlattenHierarchy |
                                                                BindingFlags.Instance |

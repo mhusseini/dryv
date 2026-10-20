@@ -16,29 +16,7 @@ namespace Dryv.Configuration
     /// </summary>
     public static class DryvCoreSetup
     {
-        /// <summary>
-        /// The core Dryv service types that must be registered as singletons.
-        /// </summary>
-        private static readonly Type[] SingletonServiceTypes =
-        [
-            typeof(ModelTreeBuilder),
-            typeof(DryvValidationCache),
-            typeof(DryvCompiler),
-            typeof(RuleDiscovery),
-            typeof(DryvRuleFinder),
-            typeof(RuleTranslationPhase),
-            typeof(RuleResolutionPipeline),
-            typeof(DryvTranslator)
-        ];
-
-        /// <summary>
-        /// The core Dryv service types that should be registered as scoped
-        /// (or singleton in environments without scoping).
-        /// </summary>
-        private static readonly Type[] ScopedServiceTypes =
-        [
-            typeof(DryvValidator)
-        ];
+        private static T Resolve<T>(Func<Type, object> r) => (T)r(typeof(T));
 
         /// <summary>
         /// Populates default configuration on the specified options.
@@ -71,11 +49,6 @@ namespace Dryv.Configuration
         /// Registers a service type → implementation type mapping as a singleton.
         /// Maps to <c>TryAddSingleton(serviceType, implementationType)</c> in DI frameworks.
         /// </param>
-        /// <param name="registerScoped">
-        /// Registers a service type → implementation type mapping as scoped.
-        /// In environments without scoping (e.g. a console app), this may map to singleton.
-        /// Maps to <c>TryAddScoped(serviceType, implementationType)</c> in DI frameworks.
-        /// </param>
         /// <param name="registerInstance">
         /// Registers a pre-built instance for a service type.
         /// Maps to <c>AddSingleton(serviceType, instance)</c> in DI frameworks.
@@ -86,12 +59,16 @@ namespace Dryv.Configuration
         /// (e.g. <c>IServiceProvider.GetService</c>).
         /// Maps to <c>AddSingleton(serviceType, sp =&gt; factory(sp.GetService))</c> in DI frameworks.
         /// </param>
+        /// <param name="registerScopedFactory">
+        /// Registers a scoped factory that produces a service given a service resolver function.
+        /// Maps to <c>AddScoped(serviceType, sp =&gt; factory(sp.GetService))</c> in DI frameworks.
+        /// </param>
         public static void RegisterServices(
             DryvOptions options,
             Action<Type, Type> registerSingleton,
-            Action<Type, Type> registerScoped,
             Action<Type, object> registerInstance,
-            Action<Type, Func<Func<Type, object>, object>> registerFactory)
+            Action<Type, Func<Func<Type, object>, object>> registerFactory,
+            Action<Type, Func<Func<Type, object>, object>> registerScopedFactory)
         {
             // Interface → implementation bindings
             registerSingleton(typeof(IDryvClientValidationFunctionWriter), options.ClientFunctionWriterType ?? DryvOptions.DefaultClientFunctionWriterType);
@@ -103,17 +80,32 @@ namespace Dryv.Configuration
             registerSingleton(typeof(IExpressionWriter), translatorType);
             registerSingleton(typeof(IValueFormatter), translatorType);
 
-            // Singleton core services
-            foreach (var type in SingletonServiceTypes)
-            {
-                registerSingleton(type, type);
-            }
+            // Core services (factory-based to allow internal constructors)
+            registerFactory(typeof(ModelTreeBuilder), r => new ModelTreeBuilder());
+            registerFactory(typeof(DryvCompiler), r => new DryvCompiler());
+            registerFactory(typeof(RuleDiscovery), r => new RuleDiscovery());
+            registerFactory(typeof(DryvRuleFinder), r => new DryvRuleFinder(
+                Resolve<ModelTreeBuilder>(r),
+                Resolve<DryvCompiler>(r),
+                Resolve<RuleDiscovery>(r),
+                Resolve<IReadOnlyCollection<IDryvRuleAnnotator>>(r)));
+            registerFactory(typeof(DryvValidationCache), r => new DryvValidationCache(
+                Resolve<DryvRuleFinder>(r)));
+            registerFactory(typeof(RuleTranslationPhase), r => new RuleTranslationPhase(
+                Resolve<DryvRuleFinder>(r),
+                Resolve<IRuleTranslator>(r),
+                Resolve<DryvOptions>(r)));
+            registerFactory(typeof(RuleResolutionPipeline), r => new RuleResolutionPipeline());
+            registerFactory(typeof(DryvTranslator), r => new DryvTranslator(
+                Resolve<RuleTranslationPhase>(r),
+                Resolve<RuleResolutionPipeline>(r)));
 
             // Scoped core services
-            foreach (var type in ScopedServiceTypes)
-            {
-                registerScoped(type, type);
-            }
+            registerScopedFactory(typeof(DryvValidator), r => new DryvValidator(
+                Resolve<DryvValidationCache>(r),
+                Resolve<IDryvServiceResolver>(r),
+                Resolve<DryvOptions>(r),
+                Resolve<RuleResolutionPipeline>(r)));
 
             // Translator and annotator implementation types
             foreach (var type in options.Translators)
