@@ -19,8 +19,6 @@ namespace Dryv.Tests
         [TestInitialize]
         public void Initialize()
         {
-            DryvRuleFinder.ClearCache();
-
             var methodCallTranslators = new Collection<IDryvMethodCallTranslator>
             {
                 new RegexTranslator(),

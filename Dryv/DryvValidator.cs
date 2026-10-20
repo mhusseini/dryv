@@ -14,7 +14,7 @@ namespace Dryv
 {
     public class DryvValidator
     {
-        private static readonly ConcurrentDictionary<Type, GroupedValidation> Cache = new ConcurrentDictionary<Type, GroupedValidation>();
+        private readonly ConcurrentDictionary<Type, GroupedValidation> Cache = new ConcurrentDictionary<Type, GroupedValidation>();
         private readonly DryvOptions options;
         private readonly DryvRuleFinder ruleFinder;
 
@@ -22,6 +22,12 @@ namespace Dryv
         {
             this.ruleFinder = ruleFinder;
             this.options = options;
+        }
+
+        public void ClearCache()
+        {
+            this.Cache.Clear();
+            this.ruleFinder.ClearCache();
         }
 
         public async Task<IDictionary<string, DryvValidationResult>> Validate(object model, Func<Type, object> serviceProvider, IReadOnlyDictionary<string, object> parameters = null)

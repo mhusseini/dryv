@@ -27,8 +27,8 @@ namespace Dryv.RuleDetection
                                                           BindingFlags.NonPublic |
                                                           BindingFlags.FlattenHierarchy;
 
-        private static readonly ConcurrentDictionary<string, IEnumerable<DryvCompiledRule>> CompiledRuleCache = new ConcurrentDictionary<string, IEnumerable<DryvCompiledRule>>();
-        private static readonly ConcurrentDictionary<string, IEnumerable<DryvCompiledRule>> CompiledRuleTreeCache = new ConcurrentDictionary<string, IEnumerable<DryvCompiledRule>>();
+        private readonly ConcurrentDictionary<string, IEnumerable<DryvCompiledRule>> CompiledRuleCache = new ConcurrentDictionary<string, IEnumerable<DryvCompiledRule>>();
+        private readonly ConcurrentDictionary<string, IEnumerable<DryvCompiledRule>> CompiledRuleTreeCache = new ConcurrentDictionary<string, IEnumerable<DryvCompiledRule>>();
         private readonly DryvCompiler compiler;
         private readonly DryvOptions options;
         private readonly ITranslator translator;
@@ -44,7 +44,7 @@ namespace Dryv.RuleDetection
             this.options = options;
         }
 
-        public static void ClearCache()
+        public void ClearCache()
         {
             CompiledRuleCache.Clear();
             CompiledRuleTreeCache.Clear();
@@ -77,7 +77,7 @@ namespace Dryv.RuleDetection
             });
         }
 
-        private static IEnumerable<(DryvCompiledRule Rule, string ScopePath)> FindRulesInModelTree(Type rootType, RuleType ruleType, ICollection<Type> processed, string currentPath)
+        private IEnumerable<(DryvCompiledRule Rule, string ScopePath)> FindRulesInModelTree(Type rootType, RuleType ruleType, ICollection<Type> processed, string currentPath)
         {
             if (processed.Contains(rootType))
             {
@@ -136,7 +136,7 @@ namespace Dryv.RuleDetection
             }
         }
 
-        private static IEnumerable<DryvCompiledRule> FindRulesOnType(Type type, RuleType ruleType)
+        private IEnumerable<DryvCompiledRule> FindRulesOnType(Type type, RuleType ruleType)
         {
             return CompiledRuleCache.GetOrAdd($"{type.FullName}|{ruleType}", _ =>
             {
