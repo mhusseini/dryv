@@ -3,7 +3,7 @@
   <PropertyGroup>
     <TargetFrameworks>netstandard2.1;net8.0;net9.0;net10.0</TargetFrameworks>
     <Version>10.0.0</Version>
-    <Copyright>2025 Munir Husseini</Copyright>
+    <Copyright>2018 Munir Husseini</Copyright>
     <PackageProjectUrl>https://github.com/mhusseini/Dryv</PackageProjectUrl>
     <PackageLicense>https://github.com/mhusseini/Dryv/blob/master/LICENSE</PackageLicense>
     <RepositoryUrl>https://github.com/mhusseini/Dryv.git</RepositoryUrl>

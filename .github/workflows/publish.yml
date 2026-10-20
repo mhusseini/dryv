@@ -39,6 +39,9 @@ jobs:
       - name: Pack Dryv.HotChocolate
         run: dotnet pack Dryv.HotChocolate/Dryv.HotChocolate.csproj -c Release --no-build -o ./nupkgs
 
+      - name: Pack Dryv.JsonSchema
+        run: dotnet pack Dryv.JsonSchema/Dryv.JsonSchema.csproj -c Release --no-build -o ./nupkgs
+
       - name: NuGet login (OIDC)
         id: nuget-login
         uses: NuGet/login@v1

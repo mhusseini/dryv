@@ -15,7 +15,10 @@
         <RepositoryUrl>https://github.com/mhusseini/Dryv.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageTags>validation, JavaScript, C#, ASP.NET Core</PackageTags>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <LangVersion>latest</LangVersion>
+        <IsPackable>true</IsPackable>
         <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 

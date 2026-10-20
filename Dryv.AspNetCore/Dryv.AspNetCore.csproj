@@ -8,7 +8,7 @@
     <Company>Munir husseini</Company>
     <Product>Dryv</Product>
     <Description>ASP.NET Core support for Dryv. Dryv provides complex model validation for server and client made easy. Write complex model validation rules in C# once. Dryv will generate JavaScript for client-side validation.</Description>
-    <Copyright>2020 Munir Husseini</Copyright>
+    <Copyright>2018 Munir Husseini</Copyright>
     <PackageProjectUrl>https://github.com/mhusseini/Dryv</PackageProjectUrl>
     <PackageIcon>dryv.png</PackageIcon>
     <RepositoryUrl>https://github.com/mhusseini/Dryv.git</RepositoryUrl>
