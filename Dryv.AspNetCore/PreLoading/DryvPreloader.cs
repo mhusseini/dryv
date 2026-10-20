@@ -7,23 +7,13 @@ using Microsoft.Extensions.Options;
 
 namespace Dryv.AspNetCore.PreLoading
 {
-    internal class DryvPreloader
+    internal class DryvPreloader(DryvRuleFinder ruleFinder, DryvTranslator translator, IOptions<DryvPreloadingOptions> options)
     {
-        private readonly IOptions<DryvPreloadingOptions> options;
-        private readonly DryvRuleFinder ruleFinder;
-        private readonly DryvTranslator translator;
         private bool hasStarted;
-
-        public DryvPreloader(DryvRuleFinder ruleFinder, DryvTranslator translator, IOptions<DryvPreloadingOptions> options)
-        {
-            this.ruleFinder = ruleFinder;
-            this.translator = translator;
-            this.options = options;
-        }
 
         public void Preload(IDryvServiceResolver serviceResolver = null)
         {
-            if (this.hasStarted || !this.options.Value.IsEnabled)
+            if (this.hasStarted || !options.Value.IsEnabled)
             {
                 return;
             }
@@ -34,8 +24,8 @@ namespace Dryv.AspNetCore.PreLoading
 
             foreach (var type in types)
             {
-                this.ruleFinder.FindValidationRulesInTree(type, RuleType.Validation);
-                this.ruleFinder.FindValidationRulesInTree(type, RuleType.Disabling);
+                ruleFinder.FindValidationRulesInTree(type, RuleType.Validation);
+                ruleFinder.FindValidationRulesInTree(type, RuleType.Disabling);
             }
 
             if (serviceResolver == null)
@@ -45,7 +35,7 @@ namespace Dryv.AspNetCore.PreLoading
 
             foreach (var type in types)
             {
-                this.translator.TranslateValidationRules(type, serviceResolver, new Dictionary<string, object>()).GetAwaiter().GetResult();
+                translator.TranslateValidationRules(type, serviceResolver, new Dictionary<string, object>()).GetAwaiter().GetResult();
             }
         }
 

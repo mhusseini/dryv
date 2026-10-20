@@ -8,14 +8,9 @@ namespace Dryv.AspNetCore.Internal
     /// using <see cref="ServiceProviderServiceExtensions.GetRequiredService"/> for
     /// better error messages when a service is not registered.
     /// </summary>
-    internal sealed class ServiceProviderResolver : IDryvServiceResolver
+    internal sealed class ServiceProviderResolver(IServiceProvider serviceProvider) : IDryvServiceResolver
     {
-        private readonly IServiceProvider serviceProvider;
-
-        public ServiceProviderResolver(IServiceProvider serviceProvider)
-        {
-            this.serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
-        }
+        private readonly IServiceProvider serviceProvider = serviceProvider ?? throw new ArgumentNullException(nameof(serviceProvider));
 
         public object GetService(Type serviceType) => this.serviceProvider.GetService(serviceType);
     }

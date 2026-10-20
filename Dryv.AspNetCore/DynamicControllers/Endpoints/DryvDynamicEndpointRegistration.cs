@@ -14,19 +14,10 @@ using Microsoft.Extensions.Options;
 
 namespace Dryv.AspNetCore.DynamicControllers.Endpoints
 {
-    internal class DryvDynamicEndpointRegistration
+    internal class DryvDynamicEndpointRegistration(
+        DryvDynamicEndpointDataSource dataSource,
+        IOptions<DryvDynamicControllerOptions> options)
     {
-        private readonly DryvDynamicEndpointDataSource dataSource;
-        private readonly IOptions<DryvDynamicControllerOptions> options;
-
-        public DryvDynamicEndpointRegistration(
-            DryvDynamicEndpointDataSource dataSource,
-            IOptions<DryvDynamicControllerOptions> options)
-        {
-            this.dataSource = dataSource;
-            this.options = options;
-        }
-
         public string Register(Expression expression, Type modelType, string action, DryvRuleDefinition rule)
         {
             var parameters = DryvExpressionHelper.FindParameters(expression);
@@ -40,12 +31,12 @@ namespace Dryv.AspNetCore.DynamicControllers.Endpoints
             var endpointName = "DryvEndpoint" + Md5Helper.CreateMd5(ExpressionStructuralHasher.GetStructuralHash(expression));
             var context = new DryvControllerGenerationContext(endpointName, action, rule);
 
-            var route = this.options.Value.GetRoute != null
-                ? this.options.Value.GetRoute(context)
+            var route = options.Value.GetRoute != null
+                ? options.Value.GetRoute(context)
                 : CustomizationDefaults.DefaultRoute(context);
 
-            var httpMethod = this.options.Value.GetHttpMethod != null
-                ? this.options.Value.GetHttpMethod(context)
+            var httpMethod = options.Value.GetHttpMethod != null
+                ? options.Value.GetHttpMethod(context)
                 : DryvDynamicControllerMethods.Post;
 
             var httpMethodString = httpMethod.ToString().ToUpper();
@@ -63,19 +54,19 @@ namespace Dryv.AspNetCore.DynamicControllers.Endpoints
                 handler = CreateGetHandler(compiledDelegate, expression, modelType, parameters);
             }
 
-            if (this.options.Value.HandlerWrapper != null)
+            if (options.Value.HandlerWrapper != null)
             {
-                handler = this.options.Value.HandlerWrapper(context, handler);
+                handler = options.Value.HandlerWrapper(context, handler);
             }
 
             Action<Microsoft.AspNetCore.Routing.RouteEndpointBuilder> configure = null;
-            if (this.options.Value.EndpointConfiguration != null)
+            if (options.Value.EndpointConfiguration != null)
             {
                 var ctx = context;
-                configure = builder => this.options.Value.EndpointConfiguration(ctx, builder);
+                configure = builder => options.Value.EndpointConfiguration(ctx, builder);
             }
 
-            this.dataSource.AddEndpoint(route, handler, httpMethodString, configure);
+            dataSource.AddEndpoint(route, handler, httpMethodString, configure);
 
             return route.StartsWith("/") ? route : "/" + route;
         }

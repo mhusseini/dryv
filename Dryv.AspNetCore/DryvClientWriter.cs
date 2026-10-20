@@ -7,18 +7,11 @@ using Dryv.Validation;
 
 namespace Dryv.AspNetCore
 {
-    public class DryvClientWriter
+    public class DryvClientWriter(DryvTranslator translator, IDryvClientValidationFunctionWriter functionWriter, IDryvClientValidationSetWriter setWriter)
     {
-        private readonly DryvTranslator translator;
-        private readonly IDryvClientValidationFunctionWriter functionWriter;
-        private readonly IDryvClientValidationSetWriter setWriter;
-
-        public DryvClientWriter(DryvTranslator translator, IDryvClientValidationFunctionWriter functionWriter, IDryvClientValidationSetWriter setWriter)
-        {
-            this.translator = translator ?? throw new ArgumentNullException(nameof(translator));
-            this.functionWriter = functionWriter ?? throw new ArgumentNullException(nameof(functionWriter));
-            this.setWriter = setWriter ?? throw new ArgumentNullException(nameof(setWriter));
-        }
+        private readonly DryvTranslator translator = translator ?? throw new ArgumentNullException(nameof(translator));
+        private readonly IDryvClientValidationFunctionWriter functionWriter = functionWriter ?? throw new ArgumentNullException(nameof(functionWriter));
+        private readonly IDryvClientValidationSetWriter setWriter = setWriter ?? throw new ArgumentNullException(nameof(setWriter));
 
         public async Task<Action<TextWriter>> WriteDryvValidation<TModel>(string validationSetName, IDryvServiceResolver serviceResolver, IReadOnlyDictionary<string, object> parameters)
         {

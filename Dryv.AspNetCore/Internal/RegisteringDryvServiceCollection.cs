@@ -3,19 +3,11 @@ using Dryv.Configuration;
 
 namespace Dryv.AspNetCore.Internal
 {
-    internal class RegisteringDryvServiceCollection : DryvServiceCollection
+    internal class RegisteringDryvServiceCollection(Action<Type> typeAdded, params Type[] requiredInterfaces) : DryvServiceCollection(requiredInterfaces)
     {
-        private readonly Action<Type> typeAdded;
-
-        public RegisteringDryvServiceCollection(Action<Type> typeAdded, params Type[] requiredInterfaces)
-            : base(requiredInterfaces)
-        {
-            this.typeAdded = typeAdded;
-        }
-
         protected override void OnAdd(Type type)
         {
-            this.typeAdded(type);
+            typeAdded(type);
         }
     }
 }
