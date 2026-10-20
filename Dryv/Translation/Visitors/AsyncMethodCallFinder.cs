@@ -34,11 +34,10 @@ namespace Dryv.Translation.Visitors
             }
 
             var objectType = node.Object?.Type ?? node.Method.DeclaringType;
-            var context2 = this.translationContext.Clone<MethodTranslationContext>();
+            var context2 = this.translationContext.Clone<MethodTranslationContext>(shareAsyncFlag: false);
 
             context2.Expression = node;
             context2.WhatIfMode = true;
-            context2.IsAsync = false;
 
             if (this.methodCallTranslators
                     .Where(t => t.SupportsType(objectType))

@@ -38,8 +38,7 @@ namespace Dryv.Translation.Visitors
             }
 
             var sb = new StringBuilder();
-            var context = this.translationContext.Clone<TranslationContext>(sb);
-            context.IsAsync = false;
+            var context = this.translationContext.Clone<TranslationContext>(sb, shareAsyncFlag: false);
 
             this.translator.Translate(expression, context);
 

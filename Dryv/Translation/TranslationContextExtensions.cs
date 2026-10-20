@@ -9,22 +9,22 @@ namespace Dryv.Translation
     {
         public static string GetVirtualParameter(this TranslationContext context)
         {
-            return $"$p{++TranslationContext.ParameterCount}";
+            return $"$p{context.ParameterCounter.Next()}";
         }
 
         public static bool InjectRuntimeExpression(this TranslationContext context, DryvOptions options, Expression expression, params ParameterExpression[] parameters)
         {
-            return InjectRuntimeExpression(context, options, expression, (IList<ParameterExpression>) parameters);
+            return context.InjectRuntimeExpression(options, expression, (IList<ParameterExpression>) parameters);
         }
 
         public static bool InjectRuntimeExpression(this TranslationContext context, DryvOptions options, Expression expression, IList<ParameterExpression> parameters)
         {
-            return InjectRuntimeExpression(context, options, expression, false, parameters);
+            return context.InjectRuntimeExpression(options, expression, false, parameters);
         }
 
         public static bool InjectRuntimeExpression(this TranslationContext context, DryvOptions options, Expression expression, bool isRawOutput, params ParameterExpression[] parameters)
         {
-            return InjectRuntimeExpression(context, options, expression, isRawOutput, (IList<ParameterExpression>) parameters);
+            return context.InjectRuntimeExpression(options, expression, isRawOutput, (IList<ParameterExpression>) parameters);
         }
 
         public static bool InjectRuntimeExpression(this TranslationContext context, DryvOptions options, Expression expression, bool isRawOutput, IList<ParameterExpression> parameters)

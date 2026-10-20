@@ -11,8 +11,18 @@ namespace Dryv.Translation
     [DebuggerDisplay("{" + nameof(DebugView) + "}")]
     public class TranslationContext
     {
-        internal static int ParameterCount = 0;
-        private bool isAsync;
+        internal class SessionCounter
+        {
+            private int value;
+            public int Next() => ++value;
+        }
+
+        private class SharedAsyncFlag
+        {
+            public bool Value { get; set; }
+        }
+
+        private SharedAsyncFlag asyncFlag = new();
         public Dictionary<object, object> CustomData { get; private set; } = new();
         private string DebugView => this.StringBuilder?.Length > 0 ? this.StringBuilder.ToString() : "PARENT: " + this.ParentContext?.DebugView;
         public List<Func<Expression, TranslationContext, bool>> DynamicTranslation { get; private set; } = new();
@@ -20,16 +30,8 @@ namespace Dryv.Translation
 
         public bool IsAsync
         {
-            get => this.isAsync;
-            set
-            {
-                this.isAsync = value;
-
-                if (this.ParentContext != null)
-                {
-                    this.ParentContext.IsAsync = value;
-                }
-            }
+            get => this.asyncFlag.Value;
+            set => this.asyncFlag.Value = value;
         }
 
         public Type ModelType { get; set; }
@@ -42,8 +44,9 @@ namespace Dryv.Translation
         public bool WhatIfMode { get; set; }
         public StringWriter Writer { get; set; }
         internal StringBuilder StringBuilder { get; set; }
+        internal SessionCounter ParameterCounter { get; private set; } = new();
 
-        public virtual T Clone<T>(StringBuilder sb = null)
+        public virtual T Clone<T>(StringBuilder sb = null, bool shareAsyncFlag = true)
             where T : TranslationContext, new()
         {
             return new T
@@ -61,6 +64,8 @@ namespace Dryv.Translation
                 Translator = this.Translator,
                 CustomData = this.CustomData,
                 DynamicTranslation = this.DynamicTranslation,
+                ParameterCounter = this.ParameterCounter,
+                asyncFlag = shareAsyncFlag ? this.asyncFlag : new SharedAsyncFlag(),
             };
         }
     }

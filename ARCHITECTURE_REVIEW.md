@@ -103,11 +103,13 @@ and method-call translation
 
 ## Issue 4: `TranslationContext` Is a Mutable Grab-Bag
 
-**Status:** 🔴 Open
+**Status:** ✅ Resolved
 **Risk:** Medium (thread safety)
 **Files:**
 - `Dryv/Translation/TranslationContext.cs`
 - `Dryv/Translation/TranslationContextExtensions.cs`
+- `Dryv/Translation/Visitors/AsyncMethodCallFinder.cs`
+- `Dryv/Translation/Visitors/AsyncMethodCallModifier.cs`
 
 **Problem:**
 
@@ -116,11 +118,19 @@ and method-call translation
 - `Clone<T>` creates deep `ParentContext` chains — hard to trace state
 - `IsAsync` setter propagates up through `ParentContext` chain (implicit side effects)
 
-**Fix:**
+**Resolution:**
 
-- Split into: `TranslationScope` (model/rule metadata), `CodeWriter` (output), `InjectionContext` (injected expressions/services)
-- Replace `static ParameterCount` with an instance counter on the root scope
-- Make state immutable where possible; pass new snapshots instead of mutating
+- Replaced `static int ParameterCount` with an instance-based `SessionCounter` class
+  that lives on the root context and is shared across all clones via `Clone<T>`,
+  eliminating the thread-safety hazard
+- Replaced the recursive `IsAsync` parent-chain setter with a `SharedAsyncFlag`
+  reference object shared by default across clones — setting `IsAsync = true`
+  anywhere in the tree is instantly visible to all contexts without recursive mutation
+- Added `shareAsyncFlag` parameter to `Clone<T>` so callers that need an independent
+  flag (async detection probes in `AsyncMethodCallFinder` and `AsyncMethodCallModifier`)
+  can opt out of sharing
+- Removed the latent bug where `AsyncMethodCallModifier` set `IsAsync = false` and
+  inadvertently reset the parent context's flag via the old recursive setter
 
 ---
 
@@ -253,7 +263,7 @@ expressions in an indexed list rather than a hash-keyed dictionary.
 - [x] Issue 1 — Extract async promise writing
 - [x] Issue 2 — Split `DryvRuleFinder`
 - [x] Issue 3 — Break up `JavaScriptTranslator`
-- [ ] Issue 4 — Fix `TranslationContext`
+- [x] Issue 4 — Fix `TranslationContext`
 - [ ] Issue 5 — Remove JS leaks from `Translator` base
 - [ ] Issue 6 — Flatten rule type hierarchy
 - [ ] Issue 7 — Split `ITranslator`
