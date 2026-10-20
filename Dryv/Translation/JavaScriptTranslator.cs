@@ -16,8 +16,6 @@ namespace Dryv.Translation
 {
     public class JavaScriptTranslator : Translator
     {
-        private static readonly MethodInfo DryvValidationResultImplicitConvert = typeof(DryvValidationResult).GetMethod("op_Implicit");
-
         private static readonly MethodInfo TranslateValueMethodInfo = typeof(JavaScriptTranslator).GetMethod(nameof(TranslateValue), typeof(object), typeof(DryvOptions));
 
         private readonly TranslationCompiler translationCompiler = new();
@@ -792,24 +790,16 @@ namespace Dryv.Translation
             return sb.ToString();
         }
 
-        private struct GeneratedJavaScriptCode
+        private readonly struct GeneratedJavaScriptCode(
+            string code,
+            IList<Type> serviceTypes,
+            IList<InjectedExpression> optionDelegates,
+            bool isAsync)
         {
-            public GeneratedJavaScriptCode(
-                string code,
-                IList<Type> serviceTypes,
-                IList<InjectedExpression> optionDelegates,
-                bool isAsync)
-            {
-                this.Code = code;
-                this.ServiceTypes = serviceTypes;
-                this.OptionDelegates = optionDelegates;
-                this.IsAsync = isAsync;
-            }
-
-            public string Code { get; }
-            public bool IsAsync { get; }
-            public IList<InjectedExpression> OptionDelegates { get; }
-            public IList<Type> ServiceTypes { get; }
+            public string Code { get; } = code;
+            public bool IsAsync { get; } = isAsync;
+            public IList<InjectedExpression> OptionDelegates { get; } = optionDelegates;
+            public IList<Type> ServiceTypes { get; } = serviceTypes;
         }
     }
 }

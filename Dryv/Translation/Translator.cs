@@ -7,14 +7,9 @@ using Dryv.Rules;
 
 namespace Dryv.Translation
 {
-    public abstract class Translator : ITranslator
+    public abstract class Translator(DryvOptions options) : ITranslator
     {
-        protected Translator(DryvOptions options)
-        {
-            this.Options = options;
-        }
-
-        protected DryvOptions Options { get; }
+        protected DryvOptions Options { get; } = options;
 
         public virtual string FormatIdentifier(string name)
         {
