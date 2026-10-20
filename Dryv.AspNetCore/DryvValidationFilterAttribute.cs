@@ -41,10 +41,10 @@ namespace Dryv.AspNetCore
             var serviceProvider = context.HttpContext.RequestServices;
             var parameters = GetRuleParametersFromClient(context, serviceProvider);
 
-            var validator = serviceProvider.GetService<DryvValidator>();
+            var validator = serviceProvider.GetRequiredService<DryvValidator>();
             var controller = (Controller)context.Controller;
             var result = true;
-            var errors = await validator.Validate(model, serviceProvider.AsDryvServiceResolver(), parameters);
+            var errors = await validator.Validate(model, parameters);
             var resultDictionary = new Dictionary<string, DryvValidationResult>();
 
             foreach (var error in errors)

@@ -50,7 +50,7 @@ app.MapGet("/api/validation-rules", async (
 app.MapPost("/api/register", async ([FromBody] RegistrationModel model, HttpContext ctx) =>
 {
     var validator = ctx.RequestServices.GetRequiredService<DryvValidator>();
-    var results = await validator.Validate(model, ctx.RequestServices.AsDryvServiceResolver());
+    var results = await validator.Validate(model);
 
     if (results.Any())
     {

@@ -33,7 +33,8 @@ namespace Dryv.AspNetCore.Tests
             services.AddControllers().AddDryv();
 
             var provider = services.BuildServiceProvider();
-            var validator = provider.GetService<DryvValidator>();
+            using var scope = provider.CreateScope();
+            var validator = scope.ServiceProvider.GetService<DryvValidator>();
 
             Assert.IsNotNull(validator, "DryvValidator should be registered.");
         }

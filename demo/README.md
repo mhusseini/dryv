@@ -1,6 +1,6 @@
 # Dryv Demo Projects
 
-This folder contains five demo projects illustrating how to use **Dryv**, **DryvJS**, **Dryvue**, and **Dryv.JsonSchema** in different application architectures. Demos 1–4 implement the same registration form with shared validation rules defined once in C#. Demo 5 shows how to swap the translator to produce JSON Schema instead of JavaScript.
+This folder contains six demo projects illustrating how to use **Dryv**, **DryvJS**, **Dryvue**, and **Dryv.JsonSchema** in different application architectures. Demos 1–4 implement the same registration form with shared validation rules defined once in C#. Demo 5 shows how to swap the translator to produce JSON Schema instead of JavaScript. Demo 6 shows how to use Dryv in a plain console application without ASP.NET Core.
 
 ---
 
@@ -121,6 +121,23 @@ builder.Services.AddControllers().AddDryv(options =>
 cd demo/Dryv.Demo.Api.JsonSchema
 dotnet run
 # Open http://localhost:5120
+```
+
+---
+
+## Demo 6: Console Application (No ASP.NET Core)
+
+**`Dryv.Demo.Console`** — Plain console application that validates a model using only the core `Dryv` package and `Microsoft.Extensions.DependencyInjection`.
+
+- No reference to `Dryv.AspNetCore` — demonstrates the framework-agnostic `DryvCoreSetup` API
+- Uses `DryvCoreSetup.ConfigureDefaults` + `DryvCoreSetup.RegisterServices` with callback-based DI registration
+- Resolves `DryvValidator` from the container and validates models directly
+
+### Run
+
+```bash
+cd demo/Dryv.Demo.Console
+dotnet run
 ```
 
 ---
