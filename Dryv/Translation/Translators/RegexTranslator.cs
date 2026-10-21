@@ -50,7 +50,7 @@ namespace Dryv.Translation.Translators
             var clientRegexp = $"/{result.Pattern}/{TranslateRegexOptions(result.Options)}";
             context.Writer.Write(clientRegexp);
             context.Writer.Write(".test(");
-            WriteArguments(context.Translator, new[] { result.Test }, context);
+            WriteArguments(context.Translator, [result.Test], context);
             context.Writer.Write(")");
 
             return true;
@@ -116,7 +116,7 @@ namespace Dryv.Translation.Translators
             var clientRegexp = $"/{result.Pattern}/{TranslateRegexOptions(result.Options)}";
             context.Writer.Write(clientRegexp);
             context.Writer.Write(".test(");
-            WriteArguments(context.Translator, new[] { result.Test }, context);
+            WriteArguments(context.Translator, [result.Test], context);
             context.Writer.Write(")");
         }
 

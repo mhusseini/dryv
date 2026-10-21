@@ -1,5 +1,4 @@
 using System.Text;
-using Dryv;
 using Dryv.AspNetCore;
 using Dryv.Demo.GraphQL.Dryvue;
 using Dryv.Demo.GraphQL.Dryvue.Models;
@@ -12,8 +11,7 @@ builder.Services.AddSingleton<EmailValidator>();
 
 builder.Services
     .AddControllers()
-    .AddDryv()
-    .AddDryvPreloading();
+    .AddDryv();
 
 builder.Services.AddHttpContextAccessor();
 
@@ -49,7 +47,7 @@ app.MapGet("/api/validation-rules", async (
 
     var write = await clientWriter.WriteDryvValidation(
         types,
-        httpContextAccessor.HttpContext!.RequestServices.GetService,
+        httpContextAccessor.HttpContext!.RequestServices.AsDryvServiceResolver(),
         new Dictionary<string, object>());
 
     var sb = new StringBuilder();

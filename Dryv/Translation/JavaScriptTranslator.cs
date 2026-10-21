@@ -4,11 +4,11 @@ using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text;
 using Dryv.Configuration;
 using Dryv.Extensions;
 using Dryv.Reflection;
+using Dryv.Rules;
 using Dryv.Translation.Translators;
 using Dryv.Translation.Visitors;
 
@@ -16,9 +16,11 @@ namespace Dryv.Translation
 {
     public class JavaScriptTranslator : Translator
     {
-        private static readonly MethodInfo DryvValidationResultImplicitConvert = typeof(DryvValidationResult).GetMethod("op_Implicit");
+        private static readonly MethodInfo TranslateValueMethodInfo = typeof(JavaScriptTranslator).GetMethod(nameof(TranslateValue), typeof(object), typeof(DryvOptions));
 
-        private static readonly Dictionary<ExpressionType, string> Terminals = new Dictionary<ExpressionType, string>
+        private readonly TranslationCompiler translationCompiler = new();
+
+        private static readonly Dictionary<ExpressionType, string> Terminals = new()
         {
             //[ExpressionType.ArrayIndex] = "",
             //[ExpressionType.ArrayLength] = "",
@@ -109,11 +111,17 @@ namespace Dryv.Translation
 
         private readonly IReadOnlyCollection<IDryvCustomTranslator> customTranslators;
         private readonly IReadOnlyCollection<IDryvMethodCallTranslator> methodCallTranslators;
+        private readonly NullComparisonWriter nullComparisonWriter;
+        private readonly AsyncPromiseWriter asyncPromiseWriter;
+        private readonly MemberAccessWriter memberAccessWriter;
 
         public JavaScriptTranslator(IReadOnlyCollection<IDryvCustomTranslator> customTranslators, IReadOnlyCollection<IDryvMethodCallTranslator> methodCallTranslators, DryvOptions options) : base(options)
         {
             this.customTranslators = customTranslators;
             this.methodCallTranslators = methodCallTranslators;
+            this.nullComparisonWriter = new NullComparisonWriter(this);
+            this.asyncPromiseWriter = new AsyncPromiseWriter(this);
+            this.memberAccessWriter = new MemberAccessWriter(this);
         }
 
         public bool UseLowercaseMembers { get; set; }
@@ -125,6 +133,14 @@ namespace Dryv.Translation
                     ? name.ToLower()
                     : name.Substring(0, 1).ToLower() + name.Substring(1)
                 : name;
+        }
+
+        public override TranslationResult Translate(Expression expression, MemberExpression propertyExpression, DryvRuleDefinition rule)
+        {
+            var result = this.GenerateJavaScriptCode(expression, propertyExpression, rule);
+            var translationResult = this.translationCompiler.GenerateTranslationDelegate(result.Code, result.OptionDelegates, result.ServiceTypes, TranslateValueMethodInfo);
+            translationResult.IsAsync = result.IsAsync;
+            return translationResult;
         }
 
         public override void Translate(Expression expression, TranslationContext context, bool negated = false)
@@ -149,11 +165,39 @@ namespace Dryv.Translation
             if (!this.customTranslators.Any(t => t.TryTranslate(context2)) &&
                 !context.DynamicTranslation.Any(t => t(expression, context2)))
             {
-                this.Visit((dynamic)expression, context2, negated);
+                switch (expression)
+                {
+                    case BinaryExpression e: this.Visit(e, context2, negated); break;
+                    case BlockExpression e: this.Visit(e, context2, negated); break;
+                    case ConditionalExpression e: this.Visit(e, context2, negated); break;
+                    case ConstantExpression e: this.Visit(e, context2, negated); break;
+                    case DebugInfoExpression e: this.Visit(e, context2, negated); break;
+                    case DefaultExpression e: this.Visit(e, context2, negated); break;
+                    case DynamicExpression e: this.Visit(e, context2, negated); break;
+                    case GotoExpression e: this.Visit(e, context2, negated); break;
+                    case IndexExpression e: this.Visit(e, context2, negated); break;
+                    case InvocationExpression e: this.Visit(e, context2, negated); break;
+                    case LabelExpression e: this.Visit(e, context2, negated); break;
+                    case LambdaExpression e: this.Visit(e, context2, negated); break;
+                    case ListInitExpression e: this.Visit(e, context2, negated); break;
+                    case LoopExpression e: this.Visit(e, context2, negated); break;
+                    case MemberExpression e: this.Visit(e, context2, negated); break;
+                    case MemberInitExpression e: this.Visit(e, context2, negated); break;
+                    case MethodCallExpression e: this.Visit(e, context2, negated); break;
+                    case NewArrayExpression e: this.Visit(e, context2, negated); break;
+                    case NewExpression e: this.Visit(e, context2, negated); break;
+                    case ParameterExpression e: this.Visit(e, context2, negated); break;
+                    case RuntimeVariablesExpression e: this.Visit(e, context2, negated); break;
+                    case SwitchExpression e: this.Visit(e, context2, negated); break;
+                    case TryExpression e: this.Visit(e, context2, negated); break;
+                    case TypeBinaryExpression e: this.Visit(e, context2, negated); break;
+                    case UnaryExpression e: this.Visit(e, context2, negated); break;
+                    default: throw new NotSupportedException($"Expression type '{expression.GetType().Name}' is not supported.");
+                }
             }
             else if (context2.IsAsync)
             {
-                context.Rule.IsAsync = true;
+                context.IsAsync = true;
             }
 
             if (needsBrackets)
@@ -194,12 +238,12 @@ namespace Dryv.Translation
                 return;
             }
 
-            if (this.TryWriteNullComparison(expression, context, negated))
+            if (this.nullComparisonWriter.TryWriteNullComparison(expression, context, negated))
             {
                 return;
             }
 
-            if (this.TryWriteValueTypeCoalesce(expression, context))
+            if (this.nullComparisonWriter.TryWriteValueTypeCoalesce(expression, context))
             {
                 return;
             }
@@ -212,7 +256,7 @@ namespace Dryv.Translation
             if (!TryWriteTerminal(expression, context.Writer))
             {
                 throw expression.Method != null
-                    ? (Exception)new DryvMethodNotSupportedException(expression)
+                    ? new DryvMethodNotSupportedException(expression)
                     : new DryvExpressionNotSupportedException(expression);
             }
 
@@ -222,7 +266,7 @@ namespace Dryv.Translation
             }
         }
 
-        public override void Visit(BlockExpression expression, TranslationContext context, bool negated = false)
+        protected override void Visit(BlockExpression expression, TranslationContext context, bool negated = false)
         {
             if (TryWriteInjectedExpression(expression, context))
             {
@@ -344,31 +388,21 @@ namespace Dryv.Translation
                 var test = AsyncBinarySwitcher.Modify(expression.Test, finder.AsyncPath);
 
                 var asyncExpression = test is BinaryExpression chain
-                    ? this.TranslateAsyncBooleanChain(chain, context, finder.AsyncPath)
+                    ? this.asyncPromiseWriter.TranslateAsyncBooleanChain(chain, context, finder.AsyncPath)
                     : expression.Test;
 
                 var asyncFinder = new AsyncMethodCallModifier(this, context);
-                var body = asyncFinder.ApplyPromises(context.Rule, asyncExpression);
+                var body = asyncFinder.ApplyPromises(asyncExpression);
 
-                foreach (var call in asyncFinder.AsyncCalls)
+                this.asyncPromiseWriter.WriteAsyncPromiseChain(asyncFinder.AsyncCalls, context, () =>
                 {
-                    context.Writer.Write(call.Key.ToString());
-                    context.Writer.Write(".then(function(");
-                    context.Writer.Write(call.Value.Name);
-                    context.Writer.Write("){return ");
-                }
+                    this.Translate(body, context);
 
-                this.Translate(body, context);
-
-                context.Writer.Write(" ? ");
-                this.Translate(expression.IfTrue, context);
-                context.Writer.Write(" : ");
-                this.Translate(expression.IfFalse, context);
-
-                for (var i = 0; i < asyncFinder.AsyncCalls.Count; i++)
-                {
-                    context.Writer.Write(";})");
-                }
+                    context.Writer.Write(" ? ");
+                    this.Translate(expression.IfTrue, context);
+                    context.Writer.Write(" : ");
+                    this.Translate(expression.IfFalse, context);
+                });
             }
             else
             {
@@ -408,39 +442,29 @@ namespace Dryv.Translation
         public override void Visit(MemberExpression expression, TranslationContext context, bool negated = false)
         {
             var asyncFinder = new AsyncMethodCallModifier(this, context);
-            var body = asyncFinder.ApplyPromises(context.Rule, expression);
+            var body = asyncFinder.ApplyPromises(expression);
 
-            foreach (var call in asyncFinder.AsyncCalls)
+            this.asyncPromiseWriter.WriteAsyncPromiseChain(asyncFinder.AsyncCalls, context, () =>
             {
-                context.Writer.Write(call.Key.ToString());
-                context.Writer.Write(".then(function(");
-                context.Writer.Write(call.Value.Name);
-                context.Writer.Write("){return ");
-            }
+                if (negated)
+                {
+                    context.Writer.Write("!(");
+                }
 
-            if (negated)
-            {
-                context.Writer.Write("!(");
-            }
+                if (asyncFinder.AsyncCalls.Any())
+                {
+                    this.Translate(body, context);
+                }
+                else
+                {
+                    this.memberAccessWriter.WriteMember(expression, context);
+                }
 
-            if (asyncFinder.AsyncCalls.Any())
-            {
-                this.Translate(body, context);
-            }
-            else
-            {
-                this.WriteMember(expression, context);
-            }
-
-            if (negated)
-            {
-                context.Writer.Write(")");
-            }
-
-            for (var i = 0; i < asyncFinder.AsyncCalls.Count; i++)
-            {
-                context.Writer.Write(";})");
-            }
+                if (negated)
+                {
+                    context.Writer.Write(")");
+                }
+            });
         }
 
         public override void Visit(MemberInitExpression expression, TranslationContext context, bool negated = false)
@@ -450,6 +474,17 @@ namespace Dryv.Translation
 
         public override void Visit(MethodCallExpression expression, TranslationContext context, bool negated = false)
         {
+            // .NET 10 compiles e.g. array.Contains() using ReadOnlySpan<T> with an
+            // implicit conversion operator in the expression tree. Type conversions
+            // are meaningless in JavaScript, so we just translate the operand.
+            if (expression.Method.IsSpecialName &&
+                (expression.Method.Name == "op_Implicit" || expression.Method.Name == "op_Explicit") &&
+                expression.Arguments.Count == 1)
+            {
+                this.Translate(expression.Arguments[0], context, negated);
+                return;
+            }
+
             if (TryWriteInjectedExpression(expression, context))
             {
                 return;
@@ -461,7 +496,7 @@ namespace Dryv.Translation
             foreach (var argument in expression.Arguments)
             {
                 var asyncFinder = new AsyncMethodCallModifier(this, context);
-                var newArgument = asyncFinder.ApplyPromises(context.Rule, argument);
+                var newArgument = asyncFinder.ApplyPromises(argument);
 
                 newArguments.Add(newArgument);
                 asyncCalls.AddRange(asyncFinder.AsyncCalls);
@@ -469,21 +504,10 @@ namespace Dryv.Translation
 
             var newExpression = Expression.Call(expression.Object, expression.Method, newArguments);
 
-            foreach (var call in asyncCalls)
+            this.asyncPromiseWriter.WriteAsyncPromiseChain(asyncCalls, context, () =>
             {
-                context.Writer.Write(call.Key.ToString());
-                context.Writer.Write(".then(function(");
-                context.Writer.Write(call.Value.Name);
-                context.Writer.Write("){return ");
-            }
-
-            //this.Translate(body, context);
-            this.TranslateMethodCall(newExpression, context, negated);
-
-            for (var i = 0; i < asyncCalls.Count; i++)
-            {
-                context.Writer.Write(";})");
-            }
+                this.TranslateMethodCall(newExpression, context, negated);
+            });
         }
 
         public override void Visit(NewArrayExpression expression, TranslationContext context, bool negated = false)
@@ -614,7 +638,7 @@ namespace Dryv.Translation
             this.Translate(expression.Operand, context, negatedExpression);
         }
 
-        private bool TryWriteInjectedExpression(Expression expression, TranslationContext context)
+        internal bool TryWriteInjectedExpression(Expression expression, TranslationContext context)
         {
             var parameters = ExpressionInjectionHelper.GetInjectionParameters(this.Options, expression, context);
             return context.InjectRuntimeExpression(this.Options, expression, parameters);
@@ -633,7 +657,7 @@ namespace Dryv.Translation
 
             if (expression is MemberExpression ||
                 expression is MethodCallExpression ||
-                expression is BinaryExpression binary && GetNullComparisonOperand(binary) != null)
+                expression is BinaryExpression binary && NullComparisonWriter.GetNullComparisonOperand(binary) != null)
             {
                 return false;
             }
@@ -651,87 +675,6 @@ namespace Dryv.Translation
             return true;
         }
 
-        private bool TryWriteNullComparison(BinaryExpression expression, TranslationContext context, bool negated)
-        {
-            var operand = GetNullComparisonOperand(expression);
-
-            if (operand == null)
-            {
-                return false;
-            }
-
-            var isNullCheck = (expression.NodeType == ExpressionType.Equal) ^ negated;
-
-            if (operand.Type.GetTypeInfo().IsValueType)
-            {
-                this.WriteValueTypeNullCheck(operand, isNullCheck, context);
-                return true;
-            }
-
-            if (isNullCheck)
-            {
-                context.Writer.Write("!");
-            }
-
-            this.WriteOperand(operand, context);
-            return true;
-        }
-
-        private bool TryWriteValueTypeCoalesce(BinaryExpression expression, TranslationContext context)
-        {
-            if (expression.NodeType != ExpressionType.Coalesce || !expression.Left.Type.GetTypeInfo().IsValueType)
-            {
-                return false;
-            }
-
-            this.WriteValueTypeNullCheck(expression.Left, true, context);
-            context.Writer.Write(" ? ");
-            this.WriteOperand(expression.Right, context);
-            context.Writer.Write(" : ");
-            this.WriteOperand(expression.Left, context);
-
-            return true;
-        }
-
-        private void WriteValueTypeNullCheck(Expression operand, bool isNullCheck, TranslationContext context)
-        {
-            this.WriteOperand(operand, context);
-            context.Writer.Write(isNullCheck ? " == null || " : " != null && ");
-            this.WriteOperand(operand, context);
-            context.Writer.Write(isNullCheck ? " === \"\"" : " !== \"\"");
-        }
-
-        private void WriteOperand(Expression operand, TranslationContext context)
-        {
-            if (!this.TryWriteInjectedExpression(operand, context))
-            {
-                this.Translate(operand, context);
-            }
-        }
-
-        private static Expression GetNullComparisonOperand(BinaryExpression expression)
-        {
-            if (expression.NodeType != ExpressionType.Equal && expression.NodeType != ExpressionType.NotEqual)
-            {
-                return null;
-            }
-
-            return IsNullConstant(expression.Right) ? expression.Left
-                : IsNullConstant(expression.Left) ? expression.Right
-                : null;
-        }
-
-        private static bool IsNullConstant(Expression expression)
-        {
-            while (expression is UnaryExpression { NodeType: ExpressionType.Convert, Method: null } conversion &&
-                   conversion.Type.GetTypeInfo().IsValueType)
-            {
-                expression = conversion.Operand;
-            }
-
-            return expression is ConstantExpression { Value: null };
-        }
-
         private bool GetNeedsBrackets(Expression expression)
         {
             return expression switch
@@ -747,47 +690,14 @@ namespace Dryv.Translation
             };
         }
 
-        private Expression TranslateAsyncBooleanChain(BinaryExpression chain, TranslationContext context, List<Expression> asyncExpressions)
-        {
-            if (asyncExpressions.Contains(chain.Left))
-            {
-                return this.TranslateAsyncBooleanOperand(chain.Left, context, asyncExpressions);
-            }
-
-            this.Translate(chain.Left, context);
-
-            this.TryWriteTerminal(chain, context.Writer);
-
-            if (asyncExpressions.Contains(chain.Right))
-            {
-                return this.TranslateAsyncBooleanOperand(chain.Right, context, asyncExpressions);
-            }
-
-            this.Translate(chain.Right, context);
-
-            return Expression.Empty();
-        }
-
-        private Expression TranslateAsyncBooleanOperand(Expression expression, TranslationContext context, List<Expression> asyncExpressions)
-        {
-            if (expression is BinaryExpression chain && (chain.NodeType == ExpressionType.OrElse || chain.NodeType == ExpressionType.AndAlso))
-            {
-                return this.TranslateAsyncBooleanChain(chain, context, asyncExpressions);
-            }
-
-            return expression;
-        }
-
-        private bool HasMethodCallTranslator(MethodCallExpression expression)
-        {
-            var objectType = expression.Object?.Type ?? expression.Method.DeclaringType;
-            return this.methodCallTranslators
-                .Any(t => t.SupportsType(objectType));
-        }
-
         private void TranslateMethodCall(MethodCallExpression expression, TranslationContext context, bool negated)
         {
             var objectType = expression.Object?.Type ?? expression.Method.DeclaringType;
+
+            if (objectType == typeof(MemoryExtensions))
+            {
+                objectType = typeof(Enumerable);
+            }
             var context2 = context.Clone<MethodTranslationContext>();
             context2.Translator = this;
             context2.Expression = expression;
@@ -801,6 +711,50 @@ namespace Dryv.Translation
             }
 
             throw new DryvMethodNotSupportedException(expression);
+        }
+
+        private GeneratedJavaScriptCode GenerateJavaScriptCode(
+            Expression expression,
+            MemberExpression propertyExpression,
+            DryvRuleDefinition rule)
+        {
+            // Find all service types used in the validation expression.
+            var serviceTypes = ((LambdaExpression)expression).GetInjectedServiceTypes();
+            var injectedServiceTypes = serviceTypes.ToList();
+            if (this.Options.DisableParameterInjection && injectedServiceTypes.Contains(typeof(DryvParameters)))
+            {
+                injectedServiceTypes.Remove(typeof(DryvParameters));
+            }
+
+            // Collect delegates that use options from withing the validation expression.
+            var optionDelegates = new Dictionary<string, InjectedExpression>();
+            var sb = new StringBuilder();
+
+            using var writer = new StringWriter(sb);
+            var context = new TranslationContext
+            {
+                InjectedServiceTypes = injectedServiceTypes,
+                Writer = writer,
+                InjectedExpressions = optionDelegates,
+                ModelType = rule.ModelType,
+                PropertyExpression = propertyExpression?.Expression,
+                Group = rule.Group,
+                StringBuilder = sb,
+                Rule = rule,
+            };
+
+            expression = new NullableMemberModifier().Visit(expression);
+            expression = new EnumComparisionModifier().Visit(expression);
+            expression = new ConditionConversionModifier().Visit(expression);
+            this.Translate(expression, context);
+
+            return new GeneratedJavaScriptCode
+            (
+                sb.ToString(),
+                serviceTypes,
+                context.InjectedExpressions.Values.ToList(),
+                context.IsAsync
+            );
         }
 
         private static string TranslateValidationResultObject(DryvValidationResult result, DryvOptions options)
@@ -836,72 +790,16 @@ namespace Dryv.Translation
             return sb.ToString();
         }
 
-        private void WriteMember(MemberExpression expression, TranslationContext context)
+        private readonly struct GeneratedJavaScriptCode(
+            string code,
+            IList<Type> serviceTypes,
+            IList<InjectedExpression> optionDelegates,
+            bool isAsync)
         {
-            if (TryWriteInjectedExpression(expression, context))
-            {
-                return;
-            }
-
-            if (expression.Member.Name == nameof(Nullable<int>.Value) &&
-                expression.Expression != null &&
-                Nullable.GetUnderlyingType(expression.Expression.Type) != null)
-            {
-                this.Translate(expression.Expression, context);
-                return;
-            }
-
-            if (expression.Expression is ConstantExpression)
-            {
-                var instance = (expression.Expression as ConstantExpression)?.Value;
-                switch (expression.Member)
-                {
-                    case PropertyInfo property:
-                    {
-                        var value = property.GetValue(instance);
-                        context.Writer.Write(this.TranslateValue(value));
-                        break;
-                    }
-                    case FieldInfo field:
-                    {
-                        var value = field.GetValue(instance);
-                        context.Writer.Write(this.TranslateValue(value));
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                if (context.PropertyExpression != null &&
-                    expression.Expression.ToString().Contains(context.PropertyExpression.ToString()))
-                {
-                    var e = expression;
-
-                    switch (e.Expression)
-                    {
-                        case MemberExpression mex:
-                            this.Visit(mex, context);
-                            break;
-
-                        case ParameterExpression parameterExpression:
-                            this.Visit(parameterExpression, context);
-                            context.Writer.Write("$$MODELPATH$$");
-                            break;
-
-                        default:
-                            this.Translate(expression.Expression, context);
-                            break;
-                    }
-                }
-                else
-                {
-                    this.Translate(expression.Expression, context);
-                }
-
-                context.Writer.Write(".");
-
-                context.Writer.Write(this.FormatIdentifier(expression.Member.Name.ToCamelCase()));
-            }
+            public string Code { get; } = code;
+            public bool IsAsync { get; } = isAsync;
+            public IList<InjectedExpression> OptionDelegates { get; } = optionDelegates;
+            public IList<Type> ServiceTypes { get; } = serviceTypes;
         }
     }
 }

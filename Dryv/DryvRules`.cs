@@ -46,7 +46,7 @@ namespace Dryv
             IEnumerable<Expression<Func<TModel, TProperty>>> relatedProperties,
             string groupOverride = null)
         {
-            var ruleDefinition = DryvCompiledRule.Create(property, rule, enabled, ruleLocation, null);
+            var ruleDefinition = DryvRuleDefinition.Create(property, rule, enabled, ruleLocation, null);
             ruleDefinition.RuleType = RuleType.Validation;
             ruleDefinition.Parameters = this.InternalParameters;
             ruleDefinition.RelatedProperties = relatedProperties.Select(p => p.GetMemberExpression())
@@ -70,7 +70,7 @@ namespace Dryv
             this.InternalValidationRules.Add(ruleDefinition);
         }
 
-        private void Add<TProperty>(
+        internal void Add<TProperty>(
             LambdaExpression rule,
             IList<Expression<Func<TModel, TProperty>>> properties,
             Delegate ruleSwitch,
@@ -85,7 +85,7 @@ namespace Dryv
 
             foreach (var property in properties)
             {
-                var relatedProperties = properties.Except(new[] { property }).ToList();
+                var relatedProperties = properties.Except([property]).ToList();
                 this.Add(property, rule, switchLambda, settings, DryvEvaluationLocation.Server | DryvEvaluationLocation.Client, relatedProperties, groupOverride);
             }
         }
@@ -105,7 +105,7 @@ namespace Dryv
 
             foreach (var property in properties)
             {
-                var relatedProperties = properties.Except(new[] { property }).ToList();
+                var relatedProperties = properties.Except([property]).ToList();
                 this.Add(property, rule, switchLambda, settings, DryvEvaluationLocation.Client, relatedProperties, groupOverride);
             }
         }
@@ -122,11 +122,11 @@ namespace Dryv
                 ? Expression.Lambda<Func<object, object[], object>>(Expression.Convert(Expression.Call(m, args), typeof(object)), u, p)
                 : Expression.Lambda<Func<object, object[], object>>(Expression.Convert(Expression.Call(Expression.Constant(o), m, args), typeof(object)), u, p);
 
-            var ruleDefinition = DryvCompiledRule.CreateParameter(name, lambda, services);
+            var ruleDefinition = DryvParameterFactory.CreateParameter(name, lambda, services);
             this.InternalParameters.Add(ruleDefinition);
         }
 
-        private void AddServer<TProperty>(
+        internal void AddServer<TProperty>(
             Delegate rule,
             IList<Expression<Func<TModel, TProperty>>> properties,
             Delegate ruleSwitch,
@@ -138,7 +138,7 @@ namespace Dryv
 
             foreach (var property in properties)
             {
-                var relatedProperties = properties.Except(new[] { property }).ToList();
+                var relatedProperties = properties.Except([property]).ToList();
                 this.Add(property, lambda, switchLambda, settings, DryvEvaluationLocation.Server, relatedProperties);
             }
         }
@@ -151,7 +151,7 @@ namespace Dryv
             params Type[] services)
         {
             var switchLambda = DelegateToLambda(ruleSwitch, services, true);
-            var ruleDefinition = DryvCompiledRule.Create(property, rule, switchLambda, ruleLocation, null);
+            var ruleDefinition = DryvRuleDefinition.Create(property, rule, switchLambda, ruleLocation, null);
             ruleDefinition.RuleType = RuleType.Disabling;
             ruleDefinition.Parameters = this.Parameters;
 

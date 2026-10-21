@@ -1,4 +1,3 @@
-using Dryv;
 using Dryv.Demo.GraphQL.Dryvue.Services;
 
 namespace Dryv.Demo.GraphQL.Dryvue.Models;

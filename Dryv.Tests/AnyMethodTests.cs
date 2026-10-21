@@ -1,7 +1,6 @@
 using System.Linq;
 using System.Text.RegularExpressions;
 using Dryv.Extensions;
-using Dryv.Translation;
 using Dryv.Translation.Translators;
 using Escape.Ast;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
@@ -19,7 +18,7 @@ namespace Dryv.Tests
                     ? "fail"
                     : DryvValidationResult.Success);
 
-            var jsProgram = GetTranslatedAst(expression, new object[] { new AllMethodCallTranslator() });
+            var jsProgram = GetTranslatedAst(expression, [new AllMethodCallTranslator()]);
             var conditional = GetBodyExpression<ConditionalExpression>(jsProgram);
 
             var callExpression = conditional?.Test as CallExpression;
@@ -39,7 +38,7 @@ namespace Dryv.Tests
                     ? "fail"
                     : DryvValidationResult.Success);
 
-            var jsProgram = GetTranslatedAst(expression, new object[] { new AllMethodCallTranslator() });
+            var jsProgram = GetTranslatedAst(expression, [new AllMethodCallTranslator()]);
             var conditional = GetBodyExpression<ConditionalExpression>(jsProgram);
 
             var callExpression = conditional?.Test as CallExpression;
@@ -59,7 +58,7 @@ namespace Dryv.Tests
                     ? "fail"
                     : DryvValidationResult.Success);
 
-            var jsProgram = GetTranslatedAst(expression, new object[] { new AllMethodCallTranslator() });
+            var jsProgram = GetTranslatedAst(expression, [new AllMethodCallTranslator()]);
             var conditional = GetBodyExpression<ConditionalExpression>(jsProgram);
 
             var binaryExpression = conditional.Test as BinaryExpression;

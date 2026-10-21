@@ -13,14 +13,14 @@ namespace Dryv.AspNetCore
         public static async Task<IHtmlContent> DryvValidation<TModel>(this IHtmlHelper<TModel> htmlHelper, string validationSetName, IReadOnlyDictionary<string, object> parameters = null)
         {
             return new LazyHtmlContent(
-                await htmlHelper.GetDryvClientWriter().WriteDryvValidation<TModel>(validationSetName, htmlHelper.ViewContext.HttpContext.RequestServices.GetService, parameters)
+                await htmlHelper.GetDryvClientWriter().WriteDryvValidation<TModel>(validationSetName, htmlHelper.ViewContext.HttpContext.RequestServices.AsDryvServiceResolver(), parameters)
             );
         }
 
         public static async Task<IHtmlContent> DryvValidation<TModel>(this IHtmlHelper htmlHelper, string validationSetName, IReadOnlyDictionary<string, object> parameters = null)
         {
             return new LazyHtmlContent(
-                await htmlHelper.GetDryvClientWriter().WriteDryvValidation<TModel>(validationSetName, htmlHelper.ViewContext.HttpContext.RequestServices.GetService, parameters)
+                await htmlHelper.GetDryvClientWriter().WriteDryvValidation<TModel>(validationSetName, htmlHelper.ViewContext.HttpContext.RequestServices.AsDryvServiceResolver(), parameters)
         );
         }
 

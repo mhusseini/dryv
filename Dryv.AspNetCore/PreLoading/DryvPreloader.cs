@@ -3,27 +3,16 @@ using System.Collections.Generic;
 using System.Linq;
 using Dryv.RuleDetection;
 using Dryv.Rules;
-using Microsoft.Extensions.Options;
 
 namespace Dryv.AspNetCore.PreLoading
 {
-    internal class DryvPreloader
+    internal class DryvPreloader(RuleTranslationPhase ruleTranslationPhase, DryvTranslator translator)
     {
-        private readonly IOptions<DryvPreloadingOptions> options;
-        private readonly DryvRuleFinder ruleFinder;
-        private readonly DryvTranslator translator;
         private bool hasStarted;
 
-        public DryvPreloader(DryvRuleFinder ruleFinder, DryvTranslator translator, IOptions<DryvPreloadingOptions> options)
+        public void Preload(IDryvServiceResolver serviceResolver = null)
         {
-            this.ruleFinder = ruleFinder;
-            this.translator = translator;
-            this.options = options;
-        }
-
-        public void Preload(Func<Type, object> serviceProvider = null)
-        {
-            if (this.hasStarted || !this.options.Value.IsEnabled)
+            if (this.hasStarted)
             {
                 return;
             }
@@ -34,18 +23,18 @@ namespace Dryv.AspNetCore.PreLoading
 
             foreach (var type in types)
             {
-                this.ruleFinder.FindValidationRulesInTree(type, RuleType.Validation);
-                this.ruleFinder.FindValidationRulesInTree(type, RuleType.Disabling);
+                ruleTranslationPhase.FindAndTranslateRulesInTree(type, RuleType.Validation);
+                ruleTranslationPhase.FindAndTranslateRulesInTree(type, RuleType.Disabling);
             }
 
-            if (serviceProvider == null)
+            if (serviceResolver == null)
             {
                 return;
             }
 
             foreach (var type in types)
             {
-                this.translator.TranslateValidationRules(type, serviceProvider, new Dictionary<string, object>()).GetAwaiter().GetResult();
+                translator.TranslateValidationRules(type, serviceResolver, new Dictionary<string, object>()).GetAwaiter().GetResult();
             }
         }
 

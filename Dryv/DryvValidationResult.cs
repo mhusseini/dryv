@@ -5,7 +5,7 @@ namespace Dryv
     [DebuggerDisplay("{Type}: {Text}")]
     public sealed class DryvValidationResult
     {
-        public static readonly DryvValidationResult Success = new DryvValidationResult(DryvResultType.Success, null);
+        public static readonly DryvValidationResult Success = new(DryvResultType.Success, null);
 
         public DryvValidationResult(string text, DryvResultType type, object data, string group) : this(text, type, data) => this.Group = group;
 
@@ -27,17 +27,17 @@ namespace Dryv
 
         public DryvResultType Type { get; }
 
-        public static DryvValidationResult Error(string text, object data) => new DryvValidationResult(text, DryvResultType.Error, data);
+        public static DryvValidationResult Error(string text, object data) => new(text, DryvResultType.Error, data);
 
         public static DryvValidationResult Error(string text) => Error(text, null);
 
         public static implicit operator DryvValidationResult(string text) => string.IsNullOrWhiteSpace(text) ? Success : Error(text);
 
-        public static DryvValidationResult Warning(string text, object data) => new DryvValidationResult(text, DryvResultType.Warning, data);
+        public static DryvValidationResult Warning(string text, object data) => new(text, DryvResultType.Warning, data);
 
         public static DryvValidationResult Warning(string text) => Warning(text, null);
 
-        public static DryvValidationResult From(string? text) => string.IsNullOrWhiteSpace(text)
+        public static DryvValidationResult From(string text) => string.IsNullOrWhiteSpace(text)
             ? Success
             : Error(text);
     }

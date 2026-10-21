@@ -1,14 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq.Expressions;
-using System.Reflection;
-using System.Runtime.InteropServices.ComTypes;
 
 namespace Dryv.AspNetCore.DynamicControllers.Translation
 {
     internal class MemberExpressionComparer : IEqualityComparer<MemberExpression>
     {
-        public static readonly MemberExpressionComparer Default = new MemberExpressionComparer();
+        public static readonly MemberExpressionComparer Default = new();
 
         public bool Equals(MemberExpression x, MemberExpression y)
         {

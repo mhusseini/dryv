@@ -8,7 +8,7 @@
 </p>
 
 <p align="center">
-  <strong>ASP.NET Core integration for Dryv — plugs DRY Validation into the MVC pipeline with Tag Helpers, dynamic controllers, and automatic server-side validation.</strong>
+  <strong>ASP.NET Core integration for Dryv — plugs DRY Validation into the MVC pipeline with Tag Helpers, dynamic endpoints, and automatic server-side validation.</strong>
 </p>
 
 ---
@@ -37,7 +37,7 @@ dotnet add package Dryv.AspNetCore
 ## What's Included
 
 - **MVC validation filter** — automatically validates models using Dryv rules and adds errors to `ModelState` (works alongside `[Required]`, `[StringLength]`, etc.).
-- **Dynamic controller generation** — runtime-generated API endpoints for async validation rules that cannot run purely in the browser.
+- **Dynamic endpoint generation** — runtime-generated minimal API endpoints for async validation rules that cannot run purely in the browser.
 - **Tag Helper** — `<dryv-client-rules>` renders a `<script>` block with translated JavaScript validation functions.
 - **HTML Helpers** — `@await Html.DryvValidation<TModel>()` for Razor views.
 - **Preloading** — discover and compile all rules at startup for faster first requests.
@@ -55,14 +55,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services
     .AddControllersWithViews()
     .AddDryv()                         // core Dryv services
-    .AddDryvDynamicControllers()       // auto-generate endpoints for async rules
+    .AddDryvDynamicEndpoints()         // auto-generate endpoints for async rules
     .AddDryvPreloading();              // compile rules at startup
 
 var app = builder.Build();
 
-app.UseDryv();
-
 app.MapDefaultControllerRoute();
+app.MapDryvEndpoints();                // register dynamic validation endpoints
 app.Run();
 ```
 
@@ -121,58 +120,81 @@ builder.Services
         // Register custom translators
         options.Translators.Add<MyCustomTranslator>();
     })
-    .AddDryvDynamicControllers(options =>
+    .AddDryvDynamicEndpoints(options =>
     {
-        // Customize endpoint routing
-        options.WithEndpoint((ctx, routeBuilder) =>
-            routeBuilder.MapControllerRoute(
-                ctx.ControllerFullName,
-                $"api/validate/{ctx.Action}"));
+        // Customize endpoint route pattern
+        options.WithRoute(ctx => $"api/validate/{ctx.Action}");
 
-        // Add filters to generated controllers
-        options.WithControllerFilters(ctx => new[] { ... });
-        options.WithActionFilters(ctx => new[] { ... });
+        // Add metadata to generated endpoints (authorization, CORS, etc.)
+        options.ConfigureEndpoint((ctx, endpoint) =>
+        {
+            endpoint.Metadata.Add(new AuthorizeAttribute("MyPolicy"));
+        });
+
+        // Wrap handlers with custom logic (equivalent to MVC action filters)
+        options.WrapHandler((ctx, next) => async httpContext =>
+        {
+            // before
+            await next(httpContext);
+            // after
+        });
     });
 ```
 
-## Deep Dive: Dynamic Controllers
+## Deep Dive: Dynamic Endpoints
 
-When a C# rule cannot be translated to JavaScript (e.g., because it calls a database or an external API), Dryv automatically generates an ASP.NET MVC controller to execute it. The generated JavaScript calls this endpoint via AJAX.
+When a C# rule cannot be translated to JavaScript (e.g., because it calls a database or an external API), Dryv automatically generates a minimal API endpoint to execute it. The generated JavaScript calls this endpoint via AJAX. Unlike the legacy MVC controller approach, no `MapControllers()` call is required.
 
-### Securing Dynamic Controllers
+### Securing Dynamic Endpoints
 
-Since dynamic controllers expose your validation logic to the web, you often want to secure them (e.g., requiring authentication). You can add MVC filters to the generated controllers:
+Since dynamic endpoints expose your validation logic to the web, you often want to secure them (e.g., requiring authentication). Use `ConfigureEndpoint` to add metadata:
 
 ```csharp
-builder.Services.AddDryvDynamicControllers(options =>
+builder.Services.AddDryvDynamicEndpoints(options =>
 {
-    // Apply an [Authorize] attribute to all generated dynamic controllers
-    options.WithControllerFilters(ctx => new[]
+    // Apply authorization to all generated endpoints
+    options.ConfigureEndpoint((ctx, endpoint) =>
     {
-        () => new AuthorizeAttribute()
+        endpoint.Metadata.Add(new AuthorizeAttribute());
     });
 
-    // Or apply filters based on the context (e.g., the model type being validated)
-    options.WithActionFilters(ctx =>
+    // Or apply different policies based on the context
+    options.ConfigureEndpoint((ctx, endpoint) =>
     {
-        if (ctx.ControllerFullName.Contains("AdminModels"))
+        if (ctx.ControllerFullName.Contains("Admin"))
         {
-            return new[] { () => new AuthorizeAttribute { Roles = "Admin" } };
+            endpoint.Metadata.Add(new AuthorizeAttribute { Roles = "Admin" });
         }
-        return Array.Empty<Expression<Func<Attribute>>>();
+    });
+});
+```
+
+### Adding Custom Request/Response Logic
+
+Use `WrapHandler` to intercept requests and responses, equivalent to MVC action filters:
+
+```csharp
+builder.Services.AddDryvDynamicEndpoints(options =>
+{
+    options.WrapHandler((ctx, next) => async httpContext =>
+    {
+        // Custom logic before the handler
+        var logger = httpContext.RequestServices.GetRequiredService<ILogger<Program>>();
+        logger.LogInformation("Validating: {Action}", ctx.Action);
+
+        await next(httpContext);
+
+        // Custom logic after the handler
     });
 });
 ```
 
 ### Customizing the Endpoint Route
 
-By default, dynamic controllers are routed to `_v/c{hash}`. You can customize this to fit your API structure:
+By default, dynamic endpoints are routed to `_v/c{hash}`. You can customize this to fit your API structure:
 
 ```csharp
-options.WithEndpoint((ctx, routeBuilder) =>
-    routeBuilder.MapControllerRoute(
-        ctx.ControllerFullName,
-        $"api/validation/rules/{ctx.Action}"));
+options.WithRoute(ctx => $"api/validation/rules/{ctx.Action}");
 ```
 
 ## Handling Results in API Controllers
@@ -310,23 +332,19 @@ When you call `.AddDryvPreloading()`, Dryv scans all registered model types, dis
 builder.Services
     .AddControllersWithViews()
     .AddDryv()
-    .AddDryvDynamicControllers()
+    .AddDryvDynamicEndpoints()
     .AddDryvPreloading(); // ← compile everything at startup
 ```
 
 **Recommended for production.** Without preloading, the first request that triggers validation or client-side rule generation will be slower while Dryv discovers and compiles rules.
 
-## Middleware Pipeline
+## Endpoint Pipeline
 
-`app.UseDryv()` registers the Dryv middleware, which:
-1. Initializes dynamic controllers.
-2. Sets up routing for the generated endpoints.
-
-Always call it before `app.MapControllers()` / `app.MapDefaultControllerRoute()`:
+`app.MapDryvEndpoints()` registers Dryv's dynamically generated validation endpoints. Call it alongside your other endpoint mappings:
 
 ```csharp
-app.UseDryv();
 app.MapDefaultControllerRoute();
+app.MapDryvEndpoints();
 app.Run();
 ```
 
@@ -433,9 +451,9 @@ builder.Services.AddDryv(options =>
 
 This surfaces untranslatable rules immediately instead of silently falling back to server-only validation.
 
-### CORS for Dynamic Controllers
+### CORS for Dynamic Endpoints
 
-If your frontend runs on a different origin (SPA scenario), ensure the dynamic controller endpoints are covered by your CORS policy:
+If your frontend runs on a different origin (SPA scenario), ensure the dynamic endpoints are covered by your CORS policy:
 
 ```csharp
 builder.Services.AddCors(options =>

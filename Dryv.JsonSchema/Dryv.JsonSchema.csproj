@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
+        <Version>10.0.0-pre-01</Version>
+        <Copyright>2026 Munir Husseini</Copyright>
+        <PackageProjectUrl>https://github.com/mhusseini/Dryv</PackageProjectUrl>
+        <RepositoryUrl>https://github.com/mhusseini/Dryv.git</RepositoryUrl>
+        <RepositoryType>git</RepositoryType>
+        <PackageTags>validation, JSON Schema, C#</PackageTags>
+        <Description>JSON Schema support for Dryv. Dryv provides complex model validation for server and client made easy. Write complex model validation rules in C# once. Dryv will generate JavaScript for client-side validation.</Description>
+        <Authors>Munir husseini</Authors>
+        <Company>Munir husseini</Company>
+        <PackageIcon>dryv.png</PackageIcon>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+        <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <LangVersion>latest</LangVersion>
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <IsPackable>true</IsPackable>
+        <PackageReadmeFile>README.md</PackageReadmeFile>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <None Include="dryv.png" Pack="true" PackagePath="\" />
+        <None Include="..\README.md" Pack="true" PackagePath="/" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\Dryv\Dryv.csproj" />
+    </ItemGroup>
+
+</Project>

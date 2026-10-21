@@ -6,12 +6,10 @@ using Dryv.Rules;
 
 namespace Dryv
 {
-    public class DryvCompiler
+    internal class DryvCompiler
     {
-        public Func<object[], object> CompileEnablingExpression(DryvCompiledRule rule, LambdaExpression lambdaExpression)
+        public Func<object[], object> CompileEnablingExpression(DryvRuleDefinition rule, LambdaExpression lambdaExpression)
         {
-            EnsurePreevaluationOptionTypes(rule);
-
             var optionsParameter = Expression.Parameter(typeof(object[]), "options");
             var resultLambda = lambdaExpression != null
                 ? CreateInvokingLambda(lambdaExpression, optionsParameter)
@@ -20,9 +18,8 @@ namespace Dryv
             return resultLambda.Compile();
         }
 
-        public Func<object, object[], object> CompileValidationExpression(DryvCompiledRule rule, LambdaExpression lambdaExpression)
+        public Func<object, object[], object> CompileValidationExpression(DryvRuleDefinition rule, LambdaExpression lambdaExpression)
         {
-            EnsurePreevaluationOptionTypes(rule);
 
             var modelParameter = Expression.Parameter(typeof(object), "model");
             var optionsParameter = Expression.Parameter(typeof(object[]), "options");
@@ -68,13 +65,5 @@ namespace Dryv
             return Expression.Lambda<Func<object[], object>>(Expression.Convert(invokeExpression, typeof(object)), optionsParameter);
         }
 
-        private static void EnsurePreevaluationOptionTypes(DryvCompiledRule rule)
-        {
-            if (rule.ServiceTypes?.Any() != true)
-            {
-                rule.ServiceTypes = (from p in rule.ValidationExpression.Parameters.Skip(1)
-                                                 select p.Type).ToArray();
-            }
-        }
     }
 }

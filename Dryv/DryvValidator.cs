@@ -1,12 +1,10 @@
 using System;
-using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Dryv.Configuration;
 using Dryv.Extensions;
-using Dryv.RuleDetection;
 using Dryv.Rules;
 using Dryv.Validation;
 
@@ -14,17 +12,30 @@ namespace Dryv
 {
     public class DryvValidator
     {
-        private static readonly ConcurrentDictionary<Type, GroupedValidation> Cache = new ConcurrentDictionary<Type, GroupedValidation>();
+        private readonly DryvValidationCache validationCache;
+        private readonly IDryvServiceResolver serviceResolver;
         private readonly DryvOptions options;
-        private readonly DryvRuleFinder ruleFinder;
+        private readonly RuleResolutionPipeline pipeline;
 
-        public DryvValidator(DryvRuleFinder ruleFinder, DryvOptions options)
+        internal DryvValidator(DryvValidationCache validationCache, IDryvServiceResolver serviceResolver, DryvOptions options, RuleResolutionPipeline pipeline)
         {
-            this.ruleFinder = ruleFinder;
+            this.validationCache = validationCache;
+            this.serviceResolver = serviceResolver;
             this.options = options;
+            this.pipeline = pipeline;
         }
 
-        public async Task<IDictionary<string, DryvValidationResult>> Validate(object model, Func<Type, object> serviceProvider, IReadOnlyDictionary<string, object> parameters = null)
+        public void ClearCache()
+        {
+            validationCache.Clear();
+        }
+
+        public Task<IDictionary<string, DryvValidationResult>> Validate(object model, IReadOnlyDictionary<string, object> parameters = null)
+        {
+            return Validate(model, serviceResolver, parameters);
+        }
+
+        public async Task<IDictionary<string, DryvValidationResult>> Validate(object model, IDryvServiceResolver serviceResolver, IReadOnlyDictionary<string, object> parameters = null)
         {
             if (model == null)
             {
@@ -32,13 +43,23 @@ namespace Dryv
             }
 
             var modelType = model.GetType();
-            var validation = Cache.GetOrAdd(modelType, this.GroupValidation);
+            var validation = validationCache.GetValidation(modelType);
 
             var rules = validation.ValidationRules.SelectMany(i => i.Value).Union(validation.DisablingRules.SelectMany(i => i.Value));
-            var ruleParameters = await DryvParametersHelper.GetDryvParameters(rules, serviceProvider, parameters);
-            var taskResults = await Task.WhenAll(from kvp in validation.ValidationRules
-                                                 where !this.IsSubtreeDisabled(model, kvp.Key, validation.DisablingRules, serviceProvider, ruleParameters)
-                                                 select this.GetFirstValidationError(model, serviceProvider, kvp, ruleParameters));
+            var ruleParameters = await pipeline.ResolveParametersAsync(rules, serviceResolver, parameters);
+
+            var validationTasks = new List<Task<KeyValuePair<string, DryvValidationResult>?>>();
+            foreach (var kvp in validation.ValidationRules)
+            {
+                if (await this.IsSubtreeDisabledAsync(model, kvp.Key, validation.DisablingRules, serviceResolver, ruleParameters))
+                {
+                    continue;
+                }
+
+                validationTasks.Add(this.GetFirstValidationError(model, serviceResolver, kvp, ruleParameters));
+            }
+
+            var taskResults = await Task.WhenAll(validationTasks);
 
             return (from result in taskResults
                     where result.HasValue
@@ -65,18 +86,18 @@ namespace Dryv
             }
         }
 
-        private async Task<KeyValuePair<string, DryvValidationResult>?> GetFirstValidationError(object model, Func<Type, object> serviceProvider, KeyValuePair<string, List<DryvCompiledRule>> kvp, Dictionary<IReadOnlyList<DryvCompiledRule>, DryvParameters> parameters)
+        private async Task<KeyValuePair<string, DryvValidationResult>?> GetFirstValidationError(object model, IDryvServiceResolver serviceResolver, KeyValuePair<string, List<DryvCompiledRule>> kvp, Dictionary<IReadOnlyList<DryvCompiledRule>, DryvParameters> parameters)
         {
             foreach (var rule in kvp.Value)
             {
                 try
                 {
-                    var services = serviceProvider.GetServices(rule, parameters);
-                    if (!true.Equals(await TaskValueHelper.GetPossiblyAsyncValue(rule.CompiledEnablingExpression(services))))
+                    if (!await pipeline.IsRuleEnabledAsync(rule, serviceResolver, parameters))
                     {
                         continue;
                     }
 
+                    var services = serviceResolver.GetServices(rule, parameters);
                     var result = await TryGetValidationResult(model, rule, services);
                     if (result == null)
                     {
@@ -96,51 +117,52 @@ namespace Dryv
             return null;
         }
 
-        private GroupedValidation GroupValidation(Type type)
+        private async Task<bool> IsSubtreeDisabledAsync(object model, string modelPath, IReadOnlyDictionary<string, List<DryvCompiledRule>> disablingRules, IDryvServiceResolver serviceResolver, Dictionary<IReadOnlyList<DryvCompiledRule>, DryvParameters> parameters)
         {
-            return new GroupedValidation
+            var rules = FindDisablingRules(modelPath, disablingRules);
+            if (rules == null)
             {
-                ValidationRules = this.ruleFinder.FindValidationRulesInTree(type, RuleType.Validation)
-                    .Where(r => r.EvaluationLocation.HasFlag(DryvEvaluationLocation.Server))
-                    .GroupBy(r => r.ModelPath)
-                    .ToDictionary(g => g.Key, g => g.ToList()),
+                return false;
+            }
 
-                DisablingRules = this.ruleFinder.FindValidationRulesInTree(type, RuleType.Disabling)
-                    .Where(r => r.EvaluationLocation.HasFlag(DryvEvaluationLocation.Server))
-                    .GroupBy(r => r.ModelPath)
-                    .ToDictionary(g => g.Key, g => g.ToList())
-            };
-        }
-
-        private bool IsSubtreeDisabled(object model, string modelPath, IReadOnlyDictionary<string, List<DryvCompiledRule>> disablingRules, Func<Type, object> serviceProvider, Dictionary<IReadOnlyList<DryvCompiledRule>, DryvParameters> parameters)
-        {
-            return FindDisablingRules(modelPath, disablingRules)?.Any(rule =>
+            foreach (var rule in rules)
             {
                 try
                 {
-                    var services = serviceProvider.GetServices(rule, parameters);
-                    var o = rule.CompiledValidationExpression(model, services);
+                    var services = serviceResolver.GetServices(rule, parameters);
+                    var o = await TaskValueHelper.GetPossiblyAsyncValue(rule.CompiledValidationExpression(model, services));
 
-                    return !(o is bool) || (bool)o;
+                    if (!(o is bool) || (bool)o)
+                    {
+                        return true;
+                    }
                 }
                 catch (Exception ex)
                 {
                     throw this.ThrowValidationException(model, rule, ex, RuleType.Disabling);
                 }
-            }) == true;
+            }
+
+            return false;
         }
 
-        private List<DryvCompiledRule> FindDisablingRules(string modelPath, IReadOnlyDictionary<string, List<DryvCompiledRule>> disablingRules)
+        private static List<DryvCompiledRule> FindDisablingRules(string modelPath, IReadOnlyDictionary<string, List<DryvCompiledRule>> disablingRules)
         {
-            var parts = modelPath.Split('.');
+            var searchIndex = -1;
 
-            foreach (var part in Enumerable
-                .Range(1, parts.Length)
-                .Select(i => string.Join(".", parts.Take(i))))
+            while (true)
             {
-                if (disablingRules.TryGetValue(part, out var result))
+                searchIndex = modelPath.IndexOf('.', searchIndex + 1);
+                var key = searchIndex < 0 ? modelPath : modelPath.Substring(0, searchIndex);
+
+                if (disablingRules.TryGetValue(key, out var result))
                 {
                     return result;
+                }
+
+                if (searchIndex < 0)
+                {
+                    break;
                 }
             }
 
@@ -154,21 +176,14 @@ namespace Dryv
                 ? $"{rule.Property.DeclaringType?.Name ?? "Unknown"}.{rule.Property.Name}" 
                 : "unknown property";
             var sb = new StringBuilder($"An error occurred executing the {ruleType.ToString().ToLowerInvariant()} expression '{expressionText}' for property '{propertyName}'. See the inner exception for details.");
-            if (this.options?.IncludeModelDataInExceptions == true)
+            if (options?.IncludeModelDataInExceptions == true)
             {
-                var json = this.options.JsonConversion?.Invoke(model) ?? model?.ToString();
+                var json = options.JsonConversion?.Invoke(model) ?? model?.ToString();
                 sb.AppendLine("The model being validated is:");
                 sb.Append(json);
             }
 
             return new DryvValidationException(sb.ToString(), innerException);
-        }
-
-        private class GroupedValidation
-        {
-            public Dictionary<string, List<DryvCompiledRule>> DisablingRules { get; set; }
-
-            public Dictionary<string, List<DryvCompiledRule>> ValidationRules { get; set; }
         }
     }
 }

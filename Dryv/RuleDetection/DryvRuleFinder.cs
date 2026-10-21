@@ -5,57 +5,36 @@ using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Text;
-using Dryv.Configuration;
 using Dryv.Extensions;
 using Dryv.Reflection;
 using Dryv.Rules;
-using Dryv.Translation;
 using Dryv.Translation.Visitors;
 using BindingFlags = System.Reflection.BindingFlags;
 
 namespace Dryv.RuleDetection
 {
-    public class DryvRuleFinder
+    internal class DryvRuleFinder(ModelTreeBuilder treeBuilder, DryvCompiler compiler, RuleDiscovery ruleDiscovery, IReadOnlyCollection<IDryvRuleAnnotator> annotators)
     {
         private const BindingFlags BindingFlagsForProperties = BindingFlags.FlattenHierarchy |
                                                                BindingFlags.Instance |
                                                                BindingFlags.Public |
                                                                BindingFlags.NonPublic;
 
-        private const BindingFlags BindingFlagsForRules = BindingFlags.Static |
-                                                          BindingFlags.Public |
-                                                          BindingFlags.NonPublic |
-                                                          BindingFlags.FlattenHierarchy;
+        private readonly ConcurrentDictionary<string, IEnumerable<DryvCompiledRule>> compiledRuleTreeCache = new();
+        private readonly IReadOnlyCollection<IDryvRuleAnnotator> annotators = annotators ?? Array.Empty<IDryvRuleAnnotator>();
 
-        private static readonly ConcurrentDictionary<string, IEnumerable<DryvCompiledRule>> CompiledRuleCache = new ConcurrentDictionary<string, IEnumerable<DryvCompiledRule>>();
-        private static readonly ConcurrentDictionary<string, IEnumerable<DryvCompiledRule>> CompiledRuleTreeCache = new ConcurrentDictionary<string, IEnumerable<DryvCompiledRule>>();
-        private readonly DryvCompiler compiler;
-        private readonly DryvOptions options;
-        private readonly ITranslator translator;
-        private readonly IReadOnlyCollection<IDryvRuleAnnotator> annotators;
-        private readonly ModelTreeBuilder treeBuilder;
-
-        public DryvRuleFinder(ModelTreeBuilder treeBuilder, DryvCompiler compiler, ITranslator translator, IReadOnlyCollection<IDryvRuleAnnotator> annotators, DryvOptions options)
+        public void ClearCache()
         {
-            this.compiler = compiler;
-            this.treeBuilder = treeBuilder;
-            this.translator = translator;
-            this.annotators = annotators ?? new IDryvRuleAnnotator[0];
-            this.options = options;
-        }
-
-        public static void ClearCache()
-        {
-            CompiledRuleCache.Clear();
-            CompiledRuleTreeCache.Clear();
+            ruleDiscovery.ClearCache();
+            compiledRuleTreeCache.Clear();
         }
 
         public IEnumerable<DryvCompiledRule> FindValidationRulesInTree(Type rootType, RuleType ruleType)
         {
-            return CompiledRuleTreeCache.GetOrAdd($"{rootType.FullName}|{ruleType}", _ =>
+            return compiledRuleTreeCache.GetOrAdd($"{rootType.FullName}|{ruleType}", _ =>
             {
                 var result = new List<DryvCompiledRule>();
-                var tree = this.treeBuilder.Build(rootType);
+                var tree = treeBuilder.Build(rootType);
                 var flatTree = tree.Iterate(t => t.Children.Select(c => c.Child).Where(c => c != null)).ToList();
                 var scopedRules = FindRulesInModelTree(rootType, ruleType, new HashSet<Type>(), null).ToList();
 
@@ -77,7 +56,7 @@ namespace Dryv.RuleDetection
             });
         }
 
-        private static IEnumerable<(DryvCompiledRule Rule, string ScopePath)> FindRulesInModelTree(Type rootType, RuleType ruleType, ICollection<Type> processed, string currentPath)
+        private IEnumerable<(DryvRuleDefinition Rule, string ScopePath)> FindRulesInModelTree(Type rootType, RuleType ruleType, ICollection<Type> processed, string currentPath)
         {
             if (processed.Contains(rootType))
             {
@@ -91,7 +70,7 @@ namespace Dryv.RuleDetection
                 .ToList();
 
             foreach (var rule in from type in baseTypes
-                                 from rule in FindRulesOnType(type, ruleType)
+                                 from rule in ruleDiscovery.FindRulesOnType(type, ruleType)
                                  select rule)
             {
                 yield return (rule, currentPath);
@@ -107,7 +86,7 @@ namespace Dryv.RuleDetection
             }
 
             foreach (var scopedRule in from property in rootType.GetProperties(BindingFlagsForProperties)
-                                 let propertyType = GetElementTypeOrSelf(property.PropertyType)
+                                 let propertyType = property.PropertyType.GetElementTypeOrSelf()
                                  where propertyType.Namespace != typeof(object).Namespace
                                  from scopedRule in FindRulesInModelTree(propertyType, ruleType, processed, currentPath)
                                  select scopedRule)
@@ -136,33 +115,6 @@ namespace Dryv.RuleDetection
             }
         }
 
-        private static IEnumerable<DryvCompiledRule> FindRulesOnType(Type type, RuleType ruleType)
-        {
-            return CompiledRuleCache.GetOrAdd($"{type.FullName}|{ruleType}", _ =>
-            {
-                var typeInfo = type.GetTypeInfo();
-
-                var fromFields = from p in typeInfo.GetFields(BindingFlagsForRules)
-                                 where typeof(DryvRules).IsAssignableFrom(p.FieldType)
-                                 select p.GetValue(null) as DryvRules;
-
-                var fromProperties = from p in typeInfo.GetProperties(BindingFlagsForRules)
-                                     where typeof(DryvRules).IsAssignableFrom(p.PropertyType)
-                                     select p.GetValue(null) as DryvRules;
-
-                var fromMethods = from m in typeInfo.GetMethods(BindingFlagsForRules)
-                                  where m.IsStatic
-                                        && !m.GetParameters().Any()
-                                        && typeof(DryvRules).IsAssignableFrom(m.ReturnType)
-                                        && !m.ContainsGenericParameters
-                                  select m.Invoke(null, null) as DryvRules;
-
-                return (from rules in fromFields.Union(fromProperties).Union(fromMethods)
-                        from rule in GetRulesOfType(rules, ruleType)
-                        select rule).ToList();
-            });
-        }
-
         private static string GetEffectiveModelPath(string originalPath, string transposedPath, PropertyInfo property)
         {
             var basePath = string.IsNullOrWhiteSpace(transposedPath) ? originalPath : transposedPath;
@@ -173,7 +125,7 @@ namespace Dryv.RuleDetection
             return path + sep + property.Name.ToCamelCase();
         }
 
-        private static IEnumerable<ModelTreeNode> GetNodesForRule(List<ModelTreeNode> flatTree, DryvCompiledRule rule, string scopePath)
+        private static IEnumerable<ModelTreeNode> GetNodesForRule(List<ModelTreeNode> flatTree, DryvRuleDefinition rule, string scopePath)
         {
             var rulePropertyName = rule.Property.Name;
             var rulePropertyType = rule.Property.PropertyType;
@@ -213,30 +165,6 @@ namespace Dryv.RuleDetection
             });
         }
 
-        private static IEnumerable<DryvCompiledRule> GetRulesOfType(DryvRules rules, RuleType ruleType)
-        {
-            return ruleType == RuleType.Disabling ? rules.DisablingRules : rules.ValidationRules;
-        }
-
-        private static Type GetElementTypeOrSelf(Type type)
-        {
-            if (type.IsArray)
-            {
-                return type.GetElementType() ?? type;
-            }
-
-            if (type.IsGenericType && typeof(System.Collections.IEnumerable).IsAssignableFrom(type))
-            {
-                var genericArgs = type.GetGenericArguments();
-                if (genericArgs.Length > 0)
-                {
-                    return genericArgs[0];
-                }
-            }
-
-            return type;
-        }
-
         private static bool HasCollectionInPath(ModelTreeNode node)
         {
             if (node.Hierarchy == null || node.Hierarchy.Count <= 1)
@@ -250,27 +178,22 @@ namespace Dryv.RuleDetection
                     FieldInfo f => f.FieldType,
                     _ => null
                 };
-                if (type != null && type != GetElementTypeOrSelf(type))
+                if (type != null && type != type.GetElementTypeOrSelf())
                     return true;
             }
 
             return false;
         }
 
-        private static Type TransposeExpressions(ModelTreeNode node, DryvCompiledRule rule, out LambdaExpression newValidationExpression, out string transposedPath)
+        private static Type TransposeExpressions(ModelTreeNode node, DryvRuleDefinition rule, out LambdaExpression newValidationExpression, out string transposedPath)
         {
             var firstMember = node.Hierarchy.First();
-            var modelType = firstMember.DeclaringType;
+            var modelType = firstMember.DeclaringType ?? throw new InvalidOperationException($"DeclaringType of member '{firstMember.Name}' is null.");
             var modelParameter = Expression.Parameter(modelType, "$m");
             var modelReplacement = TransposePath(modelParameter, node, out transposedPath);
 
             var parameters = new List<ParameterExpression> { modelParameter };
             parameters.AddRange(rule.ValidationExpression.Parameters.Skip(1));
-
-            if (rule.ServiceTypes == null)
-            {
-                rule.ServiceTypes = parameters.Skip(1).Select(p => p.Type).ToArray();
-            }
 
             var replacer = new NodeReplacer();
             var validationBody = replacer.Replace(
@@ -298,7 +221,7 @@ namespace Dryv.RuleDetection
             return modelReplacement;
         }
 
-        private DryvCompiledRule ApplyRuleToNode(ModelTreeNode node, DryvCompiledRule rule)
+        private DryvCompiledRule ApplyRuleToNode(ModelTreeNode node, DryvRuleDefinition rule)
         {
             LambdaExpression newValidationExpression;
             Type modelType;
@@ -315,25 +238,19 @@ namespace Dryv.RuleDetection
                 modelType = rule.ModelType;
             }
 
-            if (rule.RelatedProperties != null)
-            {
-                foreach (var relatedProperty in rule.RelatedProperties)
-                {
-                }
-            }
-
             var concreteProperty = node.Hierarchy?.LastOrDefault() as PropertyInfo ?? rule.Property;
+            var serviceTypes = rule.ServiceTypes ?? newValidationExpression.Parameters.Skip(1).Select(p => p.Type).ToArray();
 
-            var transposedRule = new DryvCompiledRule
+            var compiledRule = new DryvCompiledRule
             {
                 ModelType = modelType,
-                CompiledEnablingExpression = this.compiler.CompileEnablingExpression(rule, rule.EnablingExpression),
-                CompiledValidationExpression = this.compiler.CompileValidationExpression(rule, newValidationExpression),
+                CompiledEnablingExpression = compiler.CompileEnablingExpression(rule, rule.EnablingExpression),
+                CompiledValidationExpression = compiler.CompileValidationExpression(rule, newValidationExpression),
                 EnablingExpression = rule.EnablingExpression,
                 ValidationExpression = newValidationExpression,
                 EvaluationLocation = rule.EvaluationLocation,
                 PropertyExpression = rule.PropertyExpression,
-                ServiceTypes = rule.ServiceTypes,
+                ServiceTypes = serviceTypes,
                 Group = rule.Group,
                 Name = rule.Name,
                 RuleType = rule.RuleType,
@@ -347,43 +264,7 @@ namespace Dryv.RuleDetection
                     p => GetEffectiveModelPath(p.Value, transposedPath, p.Key)),
             };
 
-            if (transposedRule.EvaluationLocation.HasFlag(DryvEvaluationLocation.Client))
-            {
-                this.Translate(transposedRule, transposedRule.ValidationExpression);
-            }
-
-            return transposedRule;
-        }
-
-        private void Translate(DryvCompiledRule rule, Expression validationExpression)
-        {
-            if (this.translator == null)
-            {
-                return;
-            }
-
-            try
-            {
-                var translation = this.translator.Translate(validationExpression, rule.PropertyExpression, rule);
-                rule.TranslatedValidationExpression = translation.Factory;
-                rule.ServiceTypes = translation.InjectedServiceTypes;
-                rule.CodeTemplate = translation.CodeTemplate;
-            }
-            catch (DryvException ex)
-            {
-                if (this.options.TranslationErrorBehavior != TranslationErrorBehavior.ValidateOnServer)
-                {
-                    throw new DryvExpressionTranslationException(validationExpression, "An error occurred while translating validation rule.", ex);
-                }
-
-                rule.TranslatedValidationExpression = null;
-                rule.ServiceTypes = null;
-                rule.TranslationError = ex;
-            }
-            catch (Exception ex)
-            {
-                throw new DryvExpressionTranslationException(validationExpression, "An error occurred while translating validation rule.", ex);           
-            }
+            return compiledRule;
         }
     }
 }

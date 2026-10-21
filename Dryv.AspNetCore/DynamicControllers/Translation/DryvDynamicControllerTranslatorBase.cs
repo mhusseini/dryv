@@ -4,37 +4,28 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
-using Dryv.AspNetCore.DynamicControllers.CodeGeneration;
 using Dryv.AspNetCore.DynamicControllers.Endpoints;
 using Dryv.Translation;
 using Dryv.Translation.Visitors;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Options;
 
 namespace Dryv.AspNetCore.DynamicControllers.Translation
 {
     internal abstract class DryvDynamicControllerTranslatorBase
     {
-        private static readonly ConcurrentDictionary<string, Lazy<TypeInfo>> Controllers = new ConcurrentDictionary<string, Lazy<TypeInfo>>();
-        private readonly ControllerGenerator codeGenerator;
+        private static readonly ConcurrentDictionary<string, Lazy<string>> EndpointUrls = new();
         private readonly IDryvClientServerCallWriter controllerCallWriter;
-        private readonly DryvDynamicControllerRegistration controllerRegistration;
-        private readonly LinkGenerator linkGenerator;
-        private readonly IOptions<MvcOptions> mvcOptions;
+        private readonly DryvDynamicEndpointRegistration endpointRegistration;
         private readonly IOptions<DryvDynamicControllerOptions> options;
 
-        protected DryvDynamicControllerTranslatorBase(DryvDynamicControllerRegistration controllerRegistration, ControllerGenerator codeGenerator, IDryvClientServerCallWriter controllerCallWriter, IOptions<DryvDynamicControllerOptions> options, IOptions<MvcOptions> mvcOptions, LinkGenerator linkGenerator)
+        protected DryvDynamicControllerTranslatorBase(DryvDynamicEndpointRegistration endpointRegistration, IDryvClientServerCallWriter controllerCallWriter, IOptions<DryvDynamicControllerOptions> options)
         {
-            this.controllerRegistration = controllerRegistration;
-            this.codeGenerator = codeGenerator;
+            this.endpointRegistration = endpointRegistration;
             this.controllerCallWriter = controllerCallWriter;
             this.options = options;
-            this.mvcOptions = mvcOptions;
-            this.linkGenerator = linkGenerator;
         }
 
-        protected void TranslateToServerCall(TranslationContext context, ITranslator translator, Expression expression, string action)
+        protected void TranslateToServerCall(TranslationContext context, IExpressionWriter translator, Expression expression, string action)
         {
             context.IsAsync = true;
 
@@ -43,9 +34,13 @@ namespace Dryv.AspNetCore.DynamicControllers.Translation
                 return;
             }
 
-            var controller = this.GenerateController(context, Internal.ExpressionStructuralHasher.GetStructuralHash(expression), expression, action);
-            var url = this.mvcOptions.Value.EnableEndpointRouting ? this.GetUrlFromEndpoint(controller) : GetUrlFromAttributes(controller);
-            var httpMethod = this.options.Value.GetHttpMethod(new DryvControllerGenerationContext(controller, action, context.Rule)).ToString().ToUpper();
+            var key = Internal.ExpressionStructuralHasher.GetStructuralHash(expression);
+            var url = EndpointUrls.GetOrAdd(key, _ => new Lazy<string>(() =>
+                this.endpointRegistration.Register(expression, context.ModelType, action, context.Rule)
+            )).Value;
+
+            var endpointName = "DryvEndpoint" + Internal.Md5Helper.CreateMd5(key);
+            var httpMethod = this.options.Value.GetHttpMethod(new DryvControllerGenerationContext(endpointName, action, context.Rule)).ToString().ToUpper();
             var modelProperties = FindModelPropertiesInExpression(context, expression);
 
             if (modelProperties.Count > 0)
@@ -82,33 +77,5 @@ namespace Dryv.AspNetCore.DynamicControllers.Translation
                 .ToList();
         }
 
-        private static string GetUrlFromAttributes(Type controller)
-        {
-            var routeAttribute = controller.GetMethods().Select(m => m.GetCustomAttribute<RouteAttribute>()).First(a => a != null);
-            var url = routeAttribute.Template;
-
-            if (!url.StartsWith("/"))
-            {
-                url = "/" + url;
-            }
-
-            return url;
-        }
-
-        private TypeInfo GenerateController(TranslationContext context, string key, Expression expression, string action)
-        {
-            return Controllers.GetOrAdd(key, _ => new Lazy<TypeInfo>(() =>
-            {
-                var assembly = this.codeGenerator.CreateControllerAssembly(expression, context.ModelType, action, context.Rule);
-                this.controllerRegistration.Register(assembly, action, context.Rule);
-
-                return assembly.DefinedTypes.FirstOrDefault(typeof(Controller).IsAssignableFrom);
-            })).Value;
-        }
-
-        private string GetUrlFromEndpoint(Type controller)
-        {
-            return this.linkGenerator.GetPathByRouteValues(controller.Name, null);
-        }
     }
 }

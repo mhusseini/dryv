@@ -6,7 +6,7 @@ namespace Dryv.Translation
     {
         public LambdaExpression LambdaExpression { get; set; }
 
-        public int Index { get; set; }
+        public string Index { get; set; }
 
         public bool IsRawOutput { get; set; }
     }

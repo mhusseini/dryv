@@ -1,0 +1,37 @@
+using System;
+
+namespace Dryv
+{
+    /// <summary>
+    /// Abstracts service resolution so that the core library stays independent
+    /// of any particular DI container while still supporting <see cref="IServiceProvider"/>
+    /// features (scoping, better error messages) in framework-specific layers.
+    /// </summary>
+    public interface IDryvServiceResolver
+    {
+        /// <summary>
+        /// Resolves a service instance of the specified <paramref name="serviceType"/>.
+        /// </summary>
+        /// <param name="serviceType">The type of service to resolve.</param>
+        /// <returns>The resolved service instance, or <c>null</c> if unavailable.</returns>
+        object GetService(Type serviceType);
+    }
+
+    /// <summary>
+    /// Wraps a <see cref="Func{Type, Object}"/> delegate as an <see cref="IDryvServiceResolver"/>.
+    /// </summary>
+    internal sealed class FuncServiceResolver(Func<Type, object> resolver) : IDryvServiceResolver
+    {
+        private readonly Func<Type, object> resolver = resolver ?? throw new ArgumentNullException(nameof(resolver));
+
+        public object GetService(Type serviceType) => this.resolver(serviceType);
+    }
+
+    public static class DryvServiceResolverFactory
+    {
+        /// <summary>
+        /// Creates an <see cref="IDryvServiceResolver"/> from a delegate.
+        /// </summary>
+        public static IDryvServiceResolver FromFunc(Func<Type, object> resolver) => new FuncServiceResolver(resolver);
+    }
+}

@@ -1,10 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
-        <TargetFramework>net9.0</TargetFramework>
+        <TargetFrameworks>net8.0;net9.0;net10.0</TargetFrameworks>
         <ImplicitUsings>enable</ImplicitUsings>
         <Nullable>enable</Nullable>
-        <Version>9.4.1</Version>
+        <Version>9.4.1-pre-01</Version>
         <Authors>Munir husseini</Authors>
         <Company>Munir husseini</Company>
         <Product>Dryv</Product>
@@ -15,7 +15,10 @@
         <RepositoryUrl>https://github.com/mhusseini/Dryv.git</RepositoryUrl>
         <RepositoryType>git</RepositoryType>
         <PackageTags>validation, JavaScript, C#, ASP.NET Core</PackageTags>
+        <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
         <PackageLicenseExpression>MIT</PackageLicenseExpression>
+        <LangVersion>latest</LangVersion>
+        <IsPackable>true</IsPackable>
         <PackageReadmeFile>README.md</PackageReadmeFile>
     </PropertyGroup>
 
@@ -28,7 +31,7 @@
     </ItemGroup>
     
     <ItemGroup>
-        <PackageReference Include="HotChocolate" Version="16.1.3" />
+        <PackageReference Include="HotChocolate" Version="16.6.9" />
     </ItemGroup>
 
     <ItemGroup>

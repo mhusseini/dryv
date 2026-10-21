@@ -1,9 +1,5 @@
-using System;
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
 using System.Reflection;
-using System.Threading.Tasks;
 using HotChocolate;
 using HotChocolate.Configuration;
 using HotChocolate.Resolvers;
@@ -64,7 +60,7 @@ internal sealed class DryvValidationTypeInterceptor : TypeInterceptor
                 continue;
             }
 
-            var results = await validator.Validate(value, context.Services.GetService);
+            var results = await validator.Validate(value);
 
             foreach (var (path, result) in results)
             {

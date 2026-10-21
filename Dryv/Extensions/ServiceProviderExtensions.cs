@@ -6,19 +6,19 @@ namespace Dryv.Extensions
 {
     internal static class ServiceProviderExtensions
     {
-        public static T GetService<T>(this Func<Type, object> serviceProvider) where T : class
+        public static T GetService<T>(this IDryvServiceResolver serviceResolver) where T : class
         {
-            var o = serviceProvider(typeof(T));
+            var o = serviceResolver.GetService(typeof(T));
             return o as T;
         }
         
-        public static object[] GetServices(this Func<Type, object> serviceProvider, DryvCompiledRule rule, IReadOnlyDictionary<IReadOnlyList<DryvCompiledRule>, DryvParameters> parameters)
+        public static object[] GetServices(this IDryvServiceResolver serviceResolver, DryvCompiledRule rule, IReadOnlyDictionary<IReadOnlyList<DryvCompiledRule>, DryvParameters> parameters)
         {
             parameters.TryGetValue(rule.Parameters, out var dryvParameters);
-            return GetServices(serviceProvider, rule.ServiceTypes, dryvParameters);
+            return GetServices(serviceResolver, rule.ServiceTypes, dryvParameters);
         }
 
-        public static object[] GetServices(this Func<Type, object> serviceProvider, IList<Type> types, DryvParameters parameters = null)
+        public static object[] GetServices(this IDryvServiceResolver serviceResolver, IList<Type> types, DryvParameters parameters = null)
         {
             var result = new object[types.Count];
 
@@ -27,7 +27,7 @@ namespace Dryv.Extensions
                 var type = types[i];
                 var service = type == typeof(DryvParameters)
                 ? parameters
-                : serviceProvider(type);
+                : serviceResolver.GetService(type);
 
                 result[i] = service ?? throw new DryvDependencyInjectionException(type);
             }

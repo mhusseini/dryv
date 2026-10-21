@@ -6,7 +6,7 @@ namespace Dryv.Translation.Visitors
 {
     internal class AsyncBinaryFinder : ExpressionVisitor<object>
     {
-        private readonly Dictionary<Expression, Expression> parents = new Dictionary<Expression, Expression>();
+        private readonly Dictionary<Expression, Expression> parents = new();
         private readonly IReadOnlyCollection<IDryvMethodCallTranslator> methodCallTranslators;
         private readonly TranslationContext translationContext;
 
@@ -16,8 +16,8 @@ namespace Dryv.Translation.Visitors
             this.translationContext = translationContext;
         }
 
-        public List<Expression> AsyncBinaryExpressions { get; } = new List<Expression>();
-        public List<Expression> AsyncPath { get; } = new List<Expression>();
+        public List<Expression> AsyncBinaryExpressions { get; } = new();
+        public List<Expression> AsyncPath { get; } = new();
 
         public void FindAsyncBinaryExpressions(Expression node)
         {

@@ -363,6 +363,231 @@ Annotations appear in the generated JavaScript rule objects under the `annotatio
 
 See the [full translation reference](https://github.com/mhusseini/dryv#c-to-javascript-translation--reference) in the repository root.
 
+## JavaScriptTranslator — Detailed Capabilities
+
+The `JavaScriptTranslator` converts C# expression trees into equivalent JavaScript code. This section documents every expression kind, operator, method call, and special case it supports.
+
+### Supported Expression Types
+
+The translator dispatches on the .NET `Expression` node type. The following table lists each node and how it is handled:
+
+| Expression Node | JavaScript Output | Notes |
+|---|---|---|
+| `BinaryExpression` | `left op right` | See *Operators* below. Includes null-coalescing (`??` → `\|\|`) and null-safe comparisons. |
+| `BlockExpression` | `var a, b; ...` | Variable declarations are emitted as a single `var` statement; sub-expressions are translated sequentially. |
+| `ConditionalExpression` | `test ? ifTrue : ifFalse` | Async-aware: when the test contains async calls, wraps in `.then(...)` promise chains automatically. |
+| `ConstantExpression` | Literal value | Strings are escaped for safe HTML embedding. `null` → `null`, booleans → `true`/`false`. |
+| `DefaultExpression` | Type default | `default(int)` → `0`, `default(string)` → `null`, etc. |
+| `IndexExpression` | `obj[index]` | Single-argument indexers only. |
+| `InvocationExpression` | `expr(args)` | Delegate invocations. |
+| `LambdaExpression` | `function(m, $ctx) { return ... }` | Model parameter is camelCased when `UseLowercaseMembers` is set. A `$ctx` parameter is always appended. |
+| `ListInitExpression` | `= [item, ...]` | Collection initializers become JavaScript arrays. |
+| `MemberExpression` | `obj.member` | Property/field access. Nullable members are automatically unwrapped via `NullableMemberModifier`. |
+| `MemberInitExpression` | `{}` | Object initialization — emits an empty object literal. |
+| `MethodCallExpression` | Varies | Dispatched to registered `IDryvMethodCallTranslator` instances. See *Method Call Translators* below. |
+| `NewArrayExpression` | `[elements]` | Array creation expressions. |
+| `NewExpression` | `{}` | Constructor calls emit an empty object literal. |
+| `ParameterExpression` | Parameter name | Emitted as-is. |
+| `SwitchExpression` | `switch(val){ case ...: ... break; }` | Full switch/case translation. |
+| `UnaryExpression` | Prefix operator | `Not` → `!`, `Negate` → `-`, `Convert` → type-aware (see below), `ArrayLength` → `.length`. |
+
+**Unsupported** (throw `NotSupportedException`): `DynamicExpression`, `GotoExpression`, `LabelExpression`, `LoopExpression`, `TryExpression`, `RuntimeVariablesExpression`, `TypeBinaryExpression`.
+
+### Operators
+
+All C# binary and unary operators are mapped:
+
+| Category | C# | JavaScript |
+|---|---|---|
+| **Arithmetic** | `+`, `-`, `*`, `/`, `%`, `**` | `+`, `-`, `*`, `/`, `%`, `**` |
+| **Comparison** | `==`, `!=`, `<`, `>`, `<=`, `>=` | `===`, `!=`, `<`, `>`, `<=`, `>=` |
+| **Logical** | `&&`, `\|\|`, `!` | `&&`, `\|\|`, `!` |
+| **Bitwise** | `&`, `\|`, `^` | `&&`, `\|\|`, `\|\|` (mapped to logical equivalents) |
+| **Assignment** | `=`, `+=`, `-=`, `*=`, `/=`, `%=`, `**=`, `<<=`, `>>=`, `&=`, `\|=` | Same tokens |
+| **Null coalescing** | `??` | `\|\|` |
+| **Shift** | `<<`, `>>` | `<<`, `>>` |
+| **Increment/Decrement** | `++`, `--` | `++`, `--` |
+
+### Null Handling
+
+- **Null comparisons** (`x == null`, `x != null`) are translated with special `NullComparisonWriter` logic to emit idiomatic null/undefined checks.
+- **Value-type coalescing** (`Nullable<T> ?? default`) is detected and translated using `||`.
+- **Nullable member access** is rewritten by `NullableMemberModifier` before translation so `.Value` / `.HasValue` are unwrapped.
+
+### Type Conversions (UnaryExpression.Convert)
+
+| Source | Target | JavaScript |
+|---|---|---|
+| `string` literal | `DryvValidationResult` | `{ type:"error", text: "...", group: "..." }` |
+| Any constant | Enum / `Nullable<Enum>` | Enum string name (via `TranslateValue`) |
+| Other casts | — | Ignored (operand is translated directly) |
+
+### Async Support
+
+When a rule expression contains async method calls (services returning `Task`), the translator:
+
+1. Detects async calls via `AsyncMethodCallModifier` / `AsyncBinaryFinder`.
+2. Wraps them in `.then(function(result){ return ... })` promise chains.
+3. Sets `TranslationResult.IsAsync = true` so the client runtime knows to `await` / `.then()` the result.
+
+### Expression Pre-Processing
+
+Before translation, the expression tree is rewritten by three visitors:
+
+| Visitor | Purpose |
+|---|---|
+| `NullableMemberModifier` | Unwraps `Nullable<T>.Value` / `.HasValue` access. |
+| `EnumComparisionModifier` | Normalizes enum comparisons for consistent JS string output. |
+| `ConditionConversionModifier` | Normalizes conditional expression conversions. |
+
+### Injected Expressions
+
+The translator supports runtime expression injection via `ExpressionInjectionHelper`. Injected service parameters and `DryvOptions`-based delegates are extracted and replaced with placeholder tokens at translation time. At runtime, these tokens are filled by the generated `TranslationResult.Factory` delegate.
+
+### Method Call Translators — Detailed Reference
+
+#### `StringTranslator` — `System.String`
+
+| C# Method | JavaScript | Notes |
+|---|---|---|
+| `string.IsNullOrEmpty(s)` | `!s` | Negation-aware: `!string.IsNullOrEmpty(s)` → `s` |
+| `string.IsNullOrWhiteSpace(s)` | `!/\S/.test(s \|\| "")` | Negation-aware |
+| `s.Contains("x")` | `s.indexOf("x") >= 0` | Case-insensitive overloads use `.toLowerCase()` on both sides |
+| `s.StartsWith("x")` | `s.indexOf("x") === 0` | Case-insensitive via `StringComparison` or `bool ignoreCase` parameter |
+| `s.EndsWith("x")` | `(s.indexOf("x") >= 0 && s.indexOf("x") === (s.length - "x".length))` | Case-insensitive supported |
+| `s.Equals("x")` | `s === "x"` | Static overload: `string.Equals(a, b)` also supported. Case-insensitive via `.toLowerCase()` |
+| `s.IndexOf("x")` | `s.indexOf("x")` | Overloads with `startIndex` (int) parameter are **not** supported |
+| `s.ToLower()` | `s.toLowerCase()` | Culture parameter is accepted but ignored |
+| `s.ToUpper()` | `s.toUpperCase()` | Culture parameter is accepted but ignored |
+| `s.Trim()` | `s.trim()` | Only the parameterless overload |
+| `s.TrimStart()` | `s.trimLeft()` | Only the parameterless overload |
+| `s.TrimEnd()` | `s.trimRight()` | Only the parameterless overload |
+| `s.Normalize()` | `s.normalize()` | `NormalizationForm` parameter accepted but ignored |
+| `string.Compare(a, b)` | `a.localeCompare(b)` | Overloads with index parameters are **not** supported. Case-insensitive via `.toLowerCase()` |
+| `s.CompareTo(other)` | `s.localeCompare(other)` | |
+| `string.Format(fmt, args)` | `"part1" + arg0 + "part2"` | Non-constant format strings are **not** supported. `IFormatProvider` overloads are parsed but locale is ignored. Format specifiers use `$ctx.dryv.format(...)`. |
+
+#### `RegexTranslator` — `System.Text.RegularExpressions.Regex`
+
+| C# Pattern | JavaScript | Notes |
+|---|---|---|
+| `Regex.IsMatch(input, pattern)` | `/pattern/.test(input)` | Static overload |
+| `new Regex(pattern).IsMatch(input)` | `/pattern/.test(input)` | Instance overload; pattern extracted from constructor |
+| `regex.IsMatch(input)` (captured variable) | `/pattern/.test(input)` | Pattern extracted from captured `Regex` object |
+| `regex.Match(input).Success` | `/pattern/.test(input)` | `Group.Success` property access is translated as a test |
+
+**RegexOptions mapping:**
+
+| C# Option | JS Flag |
+|---|---|
+| `IgnoreCase` | `i` |
+| `Multiline` | `m` |
+| `IgnorePatternWhitespace` | ❌ Not supported (throws) |
+| `RightToLeft` | ❌ Not supported (throws) |
+
+#### `EnumerableTranslator` — `System.Linq.Enumerable`
+
+| C# Method | JavaScript | Notes |
+|---|---|---|
+| `items.Any(x => ...)` | `items.some(function(x){ return ... })` | Negation-aware |
+| `items.All(x => ...)` | `items.every(function(x){ return ... })` | Negation-aware |
+| `items.Where(x => ...)` | `items.filter(function(x){ return ... })` | |
+| `items.Select(x => ...)` | `items.map(function(x){ return ... })` | |
+| `items.First()` | `(items)[0]` | With predicate: filters first |
+| `items.FirstOrDefault()` | `(function(arr){ return arr.length ? arr[0] : null; })(items)` | With predicate: filters first |
+| `items.Last()` | `(function(arr){ return arr[arr.length - 1]; })(items)` | |
+| `items.LastOrDefault()` | `(function(arr){ return arr.length ? arr[arr.length - 1] : null; })(items)` | |
+| `items.Single()` | `(function(arr){ return arr[0]; })(items)` | |
+| `items.SingleOrDefault()` | `(function(arr){ return arr.length == 1 ? arr[0] : null; })(items)` | |
+| `items.Count()` | `(function(arr){ return arr.length; })(items)` | With predicate: filters first |
+| `items.LongCount()` | Same as `Count()` | |
+| `items.Contains(x)` | `items.indexOf(x) >= 0` | Negation-aware |
+| `items.ElementAt(i)` | `items[i]` | |
+| `items.ElementAtOrDefault(i)` | `(function(arr){ return arr.length > i ? arr[i] : null; })(items)` | |
+| `items.DefaultIfEmpty()` | `(function(arr){ return arr.length ? arr : [default]; })(items)` | Custom default value supported |
+| `items.Sum()` | `items.reduce(function(a,b){ return a+b }, 0)` | With selector: maps first |
+| `items.Average()` | `(function(){ var _c = 0; return items.reduce(...) / _c; })()` | With selector: maps first |
+| `items.Min(x => ...)` | `Math.min.apply(null, items.map(...))` | |
+| `items.Max(x => ...)` | `Math.max.apply(null, items.map(...))` | |
+
+#### `DryvValidationResultTranslator`
+
+| C# | JavaScript |
+|---|---|
+| `DryvValidationResult.Success` | `null` |
+| `DryvValidationResult.Error("text")` | `{ type:"error", text:"text" }` |
+| `DryvValidationResult.Warning("text")` | `{ type:"warning", text:"text" }` |
+| `DryvValidationResult.Error("text", data)` | `{ type:"error", text:"text", data: ... }` |
+
+When a `group` is set on the rule, it is included as `group: "..."` in the emitted object.
+
+#### `DateTimeTranslator` — `DateTime` / `DateTimeOffset`
+
+Comparisons between `DateTime` or `DateTimeOffset` values (e.g. `m.BirthDate < DateTime.Now`) are translated using the Dryv client-side helper:
+
+```
+$ctx.dryv.parseDate(value, cultureName, momentFormat) op $ctx.dryv.parseDate(...)
+```
+
+- .NET date format strings are converted to Moment.js tokens via `MomentJsFormatConverter`.
+- `CultureInfo.CurrentUICulture.Name` is injected as a runtime expression.
+- Null comparisons are excluded (handled by the normal binary path).
+
+#### `ObjectTranslator` — `.ToString()`
+
+Any `.ToString()` call on an object is translated to:
+
+```javascript
+$ctx.dryv.format(value, "typeName")
+// or with a format string:
+$ctx.dryv.format(value, "typeName", "formatString")
+```
+
+#### `ToStringTranslator`
+
+A simpler fallback for `.ToString()` without format parameters:
+
+```javascript
+value.toString()
+```
+
+#### `DryvParametersTranslator`
+
+When `DryvOptions.DisableParameterInjection` is set:
+
+| C# | JavaScript |
+|---|---|
+| `parameters.Get<int>("name")` | `$ctx.parameter("name")` |
+
+#### `CustomCodeTranslator` — Raw JavaScript
+
+`DryvClientCode.Raw("js code")` injects the literal string as JavaScript. Binary expressions involving `DryvClientCode` concatenation are handled specially (brackets are suppressed).
+
+#### `AllMethodCallTranslator` — Catch-All
+
+Any method call not handled by a more specific translator is translated 1:1 with the method name converted to camelCase:
+
+```
+obj.MyMethod(a, b)  →  obj.myMethod(a, b)
+```
+
+### Value Serialization
+
+| C# Type | JavaScript Literal |
+|---|---|
+| `string` | `"text"` (HTML-safe escaped: `\u0022`, `\u0027`, `\u0026`, `\u003c`, `\u003e`, `\u005c`) |
+| `bool` | `true` / `false` |
+| `null` | `null` |
+| `DateTime` / `DateTimeOffset` | `"formatted string"` (using `CultureInfo.CurrentUICulture`) |
+| `Guid` | `"guid-string"` |
+| `Enum` | Delegated to `DryvOptions.JsonConversion` or `.ToString()` |
+| Numeric types | `.ToString()` |
+| `DryvValidationResult` | Object literal (see above) |
+
+### Identifier Formatting
+
+When `UseLowercaseMembers` is `true` (the default for ASP.NET Core integration), property and parameter names are emitted in camelCase (`FirstName` → `firstName`).
+
 ## Client-Side Libraries
 
 The official companion packages consume the `DryvValidationRuleSet` objects generated by this library:

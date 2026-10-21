@@ -7,7 +7,7 @@ namespace Dryv.Translation.Translators
 {
     public class StringTranslator : MethodCallTranslator
     {
-        private static readonly StringFormatDissector StringFormatDissector = new StringFormatDissector();
+        private static readonly StringFormatDissector StringFormatDissector = new();
 
         public StringTranslator()
         {
@@ -189,7 +189,7 @@ namespace Dryv.Translation.Translators
             context.Writer.Write(context.Negated ? "!==" : " === ");
 
 
-            WriteArguments(context.Translator, new[] { value2 }, context);
+            WriteArguments(context.Translator, [value2], context);
             if (isCaseInsensitive)
             {
                 context.Writer.Write(".toLowerCase()");

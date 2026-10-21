@@ -6,5 +6,6 @@ namespace Dryv
     {
         public DryvCompiledRule Rule { get; set; }
         public string ClientCode { get; set; }
+        public bool IsAsync { get; set; }
     }
 }

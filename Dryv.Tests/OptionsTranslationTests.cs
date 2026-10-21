@@ -13,13 +13,12 @@ namespace Dryv.Tests
         {
             var value = "hello";
             var rule = TestWithOptionsModel.Rules.ValidationRules.First();
-            var jsProgram = GetTranslatedAst<TestWithOptionsModel>(rule.ValidationExpression, null, new object[]
-            {
+            var jsProgram = GetTranslatedAst<TestWithOptionsModel>(rule.ValidationExpression, null, [
                 Options.Create(new TestOptions
                 {
                     Text = value
                 })
-            });
+            ]);
 
             var conditional = GetBodyExpression<ConditionalExpression>(jsProgram);
             var binaryExpression = conditional.Test as BinaryExpression;

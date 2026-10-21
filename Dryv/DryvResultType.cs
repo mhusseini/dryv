@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Dryv
+﻿namespace Dryv
 {
     public enum DryvResultType
     {

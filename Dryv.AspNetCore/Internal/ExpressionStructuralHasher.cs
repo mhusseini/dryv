@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using System.Linq.Expressions;
-using System.Reflection;
 using System.Text;
 
 namespace Dryv.AspNetCore.Internal
@@ -14,7 +12,7 @@ namespace Dryv.AspNetCore.Internal
     /// </summary>
     internal sealed class ExpressionStructuralHasher : ExpressionVisitor
     {
-        private readonly StringBuilder sb = new StringBuilder();
+        private readonly StringBuilder sb = new();
 
         public static string GetStructuralHash(Expression expression)
         {

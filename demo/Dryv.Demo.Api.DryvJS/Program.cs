@@ -12,8 +12,7 @@ builder.Services.AddSingleton<EmailValidator>();
 builder.Services
     .AddControllers()
     .AddDryv()
-    .AddDryvDynamicControllers()
-    .AddDryvPreloading();
+    .AddDryvDynamicEndpoints();
 
 builder.Services.AddHttpContextAccessor();
 
@@ -22,8 +21,7 @@ var app = builder.Build();
 app.UseDefaultFiles();
 app.UseStaticFiles();
 app.UseRouting();
-app.UseDryv();
-app.MapControllers();
+app.MapDryvEndpoints();
 
 app.MapGet("/api/validation-rules", async (
     DryvClientWriter clientWriter,
@@ -36,7 +34,7 @@ app.MapGet("/api/validation-rules", async (
 
     var write = await clientWriter.WriteDryvValidation(
         types,
-        httpContextAccessor.HttpContext!.RequestServices.GetService,
+        httpContextAccessor.HttpContext!.RequestServices.AsDryvServiceResolver(),
         new Dictionary<string, object>());
 
     var sb = new StringBuilder();
@@ -51,7 +49,7 @@ app.MapGet("/api/validation-rules", async (
 app.MapPost("/api/register", async ([FromBody] RegistrationModel model, HttpContext ctx) =>
 {
     var validator = ctx.RequestServices.GetRequiredService<DryvValidator>();
-    var results = await validator.Validate(model, ctx.RequestServices.GetService);
+    var results = await validator.Validate(model);
 
     if (results.Any())
     {

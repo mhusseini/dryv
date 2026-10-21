@@ -43,7 +43,7 @@ namespace Dryv.AspNetCore.TagHelpers
             output.TagName = "script";
             output.TagMode = TagMode.StartTagAndEndTag;
 
-            var content = await this.clientWriter.WriteDryvValidation(modelTypes, this.ViewContext.HttpContext.RequestServices.GetService, this.Parameters);
+            var content = await this.clientWriter.WriteDryvValidation(modelTypes, this.ViewContext.HttpContext.RequestServices.AsDryvServiceResolver(), this.Parameters);
 
             output.Content.AppendHtml(new LazyHtmlContent(content));
         }

@@ -1,8 +1,5 @@
-using System;
-using Castle.DynamicProxy.Generators.Emitters.SimpleAST;
 using Escape.Ast;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using ConditionalExpression = Escape.Ast.ConditionalExpression;
 
 namespace Dryv.Tests
 {

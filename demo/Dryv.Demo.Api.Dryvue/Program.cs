@@ -1,6 +1,7 @@
 using System.Text;
 using Dryv;
 using Dryv.AspNetCore;
+using Dryv.AspNetCore.DynamicControllers;
 using Dryv.Demo.Api.Dryvue.Models;
 using Dryv.Demo.Api.Dryvue.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -12,8 +13,21 @@ builder.Services.AddSingleton<EmailValidator>();
 builder.Services
     .AddControllers()
     .AddDryv()
-    .AddDryvDynamicControllers()
-    .AddDryvPreloading();
+    .AddDryvDynamicEndpoints(options =>
+    {
+        // Add metadata to all generated endpoints (e.g. authorization, CORS, rate limiting)
+        options.ConfigureEndpoint((context, endpoint) =>
+        {
+            endpoint.Metadata.Add(new EndpointNameMetadata($"Dryv:{context.Action}"));
+        });
+
+        // Wrap the request handler with custom logic (equivalent to MVC action filters)
+        options.WrapHandler((context, next) => async httpContext =>
+        {
+            Console.WriteLine($"Dryv endpoint called: {context.Action}");
+            await next(httpContext);
+        });
+    });
 
 builder.Services.AddHttpContextAccessor();
 
@@ -29,8 +43,7 @@ var app = builder.Build();
 
 app.UseCors();
 app.UseRouting();
-app.UseDryv();
-app.MapControllers();
+app.MapDryvEndpoints();
 
 app.MapGet("/api/validation-rules", async (
     DryvClientWriter clientWriter,
@@ -43,7 +56,7 @@ app.MapGet("/api/validation-rules", async (
 
     var write = await clientWriter.WriteDryvValidation(
         types,
-        httpContextAccessor.HttpContext!.RequestServices.GetService,
+        httpContextAccessor.HttpContext!.RequestServices.AsDryvServiceResolver(),
         new Dictionary<string, object>());
 
     var sb = new StringBuilder();
@@ -58,7 +71,7 @@ app.MapGet("/api/validation-rules", async (
 app.MapPost("/api/register", async ([FromBody] RegistrationModel model, HttpContext ctx) =>
 {
     var validator = ctx.RequestServices.GetRequiredService<DryvValidator>();
-    var results = await validator.Validate(model, ctx.RequestServices.GetService);
+    var results = await validator.Validate(model);
 
     if (results.Any())
     {

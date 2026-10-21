@@ -1,12 +1,14 @@
 ﻿using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Dryv.Configuration
 {
-    public class DryvServiceCollection : IEnumerable<Type>
+    public class DryvServiceCollection(params Type[] requiredInterfaces) : IEnumerable<Type>
     {
-        private readonly List<Type> items = new List<Type>();
+        private readonly List<Type> items = new();
+        private readonly Type[] requiredInterfaces = requiredInterfaces ?? Array.Empty<Type>();
 
         protected virtual void OnAdd(Type type)
         {
@@ -23,14 +25,14 @@ namespace Dryv.Configuration
 
         public void Add(Type type)
         {
-            //if (!typeof(IDryvCustomTranslator).IsAssignableFrom(type) &&
-            //    !typeof(IDryvMethodCallTranslator).IsAssignableFrom(type))
-            //{
-            //    throw new ArgumentException($"The supplied type must implement {nameof(IDryvCustomTranslator)} or {nameof(IDryvMethodCallTranslator)}.");
-            //}
+            if (this.requiredInterfaces.Length > 0 && !this.requiredInterfaces.Any(i => i.IsAssignableFrom(type)))
+            {
+                throw new ArgumentException(
+                    $"Type '{type.FullName}' must implement one of: {string.Join(", ", this.requiredInterfaces.Select(i => i.Name))}.",
+                    nameof(type));
+            }
 
             this.OnAdd(type);
-
             this.items.Add(type);
         }
 

@@ -10,7 +10,7 @@ namespace Dryv.Extensions
     public static class ExpressionExtensions
     {
         private static readonly MethodInfo DefaultMethod;
-        private static readonly ConcurrentDictionary<Type, object> DefaultValues = new ConcurrentDictionary<Type, object>();
+        private static readonly ConcurrentDictionary<Type, object> DefaultValues = new();
 
         static ExpressionExtensions()
         {
@@ -35,6 +35,7 @@ namespace Dryv.Extensions
                     PropertyInfo m => m.GetMethod.IsStatic,
                     FieldInfo m => m.IsStatic,
                     MethodInfo m => m.IsStatic,
+                    _ => false,
                 });
         }
 

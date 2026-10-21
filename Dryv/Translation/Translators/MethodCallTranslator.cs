@@ -10,13 +10,13 @@ namespace Dryv.Translation.Translators
 {
     public abstract class MethodCallTranslator : IDryvMethodCallTranslator
     {
-        private readonly List<RegexAndTranslator> methodTranslatorsByRegex = new List<RegexAndTranslator>();
+        private readonly List<RegexAndTranslator> methodTranslatorsByRegex = new();
 
-        private readonly List<Type> supportedTypes = new List<Type>();
+        private readonly List<Type> supportedTypes = new();
 
         public int? OrderIndex { get; set; }
 
-        public static void WriteArguments(ITranslator translator, IEnumerable<Expression> arguments,
+        public static void WriteArguments(IExpressionWriter translator, IEnumerable<Expression> arguments,
             TranslationContext context)
         {
             var sep = string.Empty;

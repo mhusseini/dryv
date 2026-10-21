@@ -7,7 +7,7 @@ namespace Dryv.AspNetCore.Internal
 {
     internal static class Md5Helper
     {
-        private static readonly Regex RegexUrlCars = new Regex(@"[^a-z0-9]", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+        private static readonly Regex RegexUrlCars = new(@"[^a-z0-9]", RegexOptions.Compiled | RegexOptions.IgnoreCase);
         public static string GetShortMd5(string input, int? length = null)
         {
             using var md5 = MD5.Create();

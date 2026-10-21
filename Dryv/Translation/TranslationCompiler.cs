@@ -13,9 +13,7 @@ namespace Dryv.Translation
     {
         private static readonly MethodInfo FormatMethod = typeof(string).GetMethod(nameof(string.Format), typeof(string), typeof(object[]));
 
-        private static readonly MethodInfo TranslateValueMethod = typeof(JavaScriptTranslator).GetMethod(nameof(JavaScriptTranslator.TranslateValue), typeof(object), typeof(DryvOptions));
-
-        public TranslationResult GenerateTranslationDelegate(string code, IEnumerable<InjectedExpression> optionDelegates, IList<Type> serviceTypes)
+        public TranslationResult GenerateTranslationDelegate(string code, IEnumerable<InjectedExpression> optionDelegates, IList<Type> serviceTypes, MethodInfo translateValueMethod)
         {
             // Escape curly braces for usage within string.Format().
             code = code
@@ -27,7 +25,7 @@ namespace Dryv.Translation
             var optionsParameter = Expression.Parameter(typeof(DryvOptions));
 
             // Create an array that will be used as parameters for string.Format().
-            var arrayItems = this.GenerateFormatArgumentExpressions(optionDelegates, serviceTypes, parameter, optionsParameter, ref code);
+            var arrayItems = this.GenerateFormatArgumentExpressions(optionDelegates, serviceTypes, parameter, optionsParameter, translateValueMethod, ref code);
 
             // create the following code: string.Format("...", new[]{ ... })
             var pattern = Expression.Constant(code);
@@ -38,7 +36,7 @@ namespace Dryv.Translation
             var format = Expression.Call(null, FormatMethod, pattern, arguments);
             blockExpressions.Add(Expression.Assign(resultVariable, format));
 
-            var block = Expression.Block(new[] {resultVariable}, blockExpressions);
+            var block = Expression.Block([resultVariable], blockExpressions);
             var result = Expression.Lambda<Func<Func<Type, object>, object[], DryvOptions, string>>
                 (block, servicesParameter, parameter, optionsParameter);
 
@@ -81,17 +79,12 @@ namespace Dryv.Translation
             IList<Type> serviceTypes,
             Expression parameter,
             ParameterExpression parameterExpression,
+            MethodInfo translateValueMethod,
             ref string code)
         {
             var arrayItems = new List<Expression>();
-            var arrayIndexes = new ConcurrentDictionary<int, int>();
+            var arrayIndexes = new ConcurrentDictionary<string, int>();
 
-            // The first item is the model path.
-            arrayItems.Add(Expression.ArrayAccess(parameter, Expression.Constant(0)));
-
-            // Replace all occurrences of $$MODELPATH$$ with the appropriate formatting placeholder
-            // TODO: remove "$$MODELPATH$$" from all code.
-            code = code.Replace("$$MODELPATH$$", string.Empty);
 
             foreach (var injectedExpression in injectedExpressions)
             {
@@ -99,7 +92,7 @@ namespace Dryv.Translation
                 {
                     // get item from input array (properly casted)
                     var arguments = from p2 in injectedExpression.LambdaExpression.Parameters
-                        let idx2 = Expression.Constant(serviceTypes.IndexOf(p2.Type) + 1)
+                        let idx2 = Expression.Constant(serviceTypes.IndexOf(p2.Type))
                         let arrayAccess = Expression.ArrayAccess(parameter, idx2)
                         select Expression.Convert(arrayAccess, p2.Type);
 
@@ -109,13 +102,13 @@ namespace Dryv.Translation
                     if (!injectedExpression.IsRawOutput)
                     {
                         // translate result of lambda to JavaScript
-                        value = Expression.Call(null, TranslateValueMethod, value, parameterExpression);
+                        value = Expression.Call(null, translateValueMethod, value, parameterExpression);
                     }
 
                     // Add the whole expression to the formatting array
                     arrayItems.Add(Expression.Convert(value, typeof(object)));
 
-                    return arrayIndexes.Count + 1;
+                    return arrayIndexes.Count;
                 });
 
                 // Replace all occurrences of $$...$$ with the appropriate formatting placeholder

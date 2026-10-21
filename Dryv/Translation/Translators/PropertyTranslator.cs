@@ -9,9 +9,9 @@ namespace Dryv.Translation.Translators
 {
     public abstract class PropertyTranslator : IDryvCustomTranslator
     {
-        private readonly List<RegexAndTranslator> propertyTranslatorsByRegex = new List<RegexAndTranslator>();
+        private readonly List<RegexAndTranslator> propertyTranslatorsByRegex = new();
 
-        private readonly List<Type> supportedTypes = new List<Type>();
+        private readonly List<Type> supportedTypes = new();
 
         public int? OrderIndex { get; set; }
 

@@ -1,17 +1,15 @@
 using System;
 using System.Collections.Concurrent;
-using System.Linq;
 using System.Linq.Expressions;
 using System.Reflection;
 using System.Threading.Tasks;
-using Dryv.Reflection;
 using BindingFlags = System.Reflection.BindingFlags;
 
 namespace Dryv
 {
     internal static class TaskRetype
     {
-        private static readonly ConcurrentDictionary<Type, Func<Task, Task<object>>> Wrappers = new ConcurrentDictionary<Type, Func<Task, Task<object>>>();
+        private static readonly ConcurrentDictionary<Type, Func<Task, Task<object>>> Wrappers = new();
         private static readonly MethodInfo FactoryMethod = typeof(TaskRetype).GetMethod(nameof(GenericWapper), BindingFlags.NonPublic | BindingFlags.Static);
 
         public static async Task<object> OfObject(this Task task)

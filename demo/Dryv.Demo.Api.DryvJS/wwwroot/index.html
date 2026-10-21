@@ -7,6 +7,7 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css" />
     <style>
         .error { color: #e74c3c; font-size: 0.85em; display: block; margin-top: 0.25em; }
+        .warning { color: #f39c12; font-size: 0.85em; display: block; margin-top: 0.25em; }
         .input-error { border-color: #e74c3c; }
         .success { color: #27ae60; font-weight: bold; }
         form > div { margin-bottom: 1rem; }
@@ -30,6 +31,12 @@
         </div>
 
         <div>
+            <label for="phoneNumber">Phone Number</label>
+            <input type="tel" id="phoneNumber" name="phoneNumber" />
+            <span class="warning" id="error-phoneNumber"></span>
+        </div>
+
+        <div>
             <label for="email">Email</label>
             <input type="email" id="email" name="email" />
             <span class="error" id="error-email"></span>
@@ -45,6 +52,28 @@
             <label for="confirmPassword">Confirm Password</label>
             <input type="password" id="confirmPassword" name="confirmPassword" />
             <span class="error" id="error-confirmPassword"></span>
+        </div>
+
+        <div>
+            <label for="accountType">Account Type</label>
+            <select id="accountType" name="accountType">
+                <option value="personal">Personal</option>
+                <option value="business">Business</option>
+            </select>
+        </div>
+
+        <div id="companyNameGroup">
+            <label for="companyName">Company Name</label>
+            <input type="text" id="companyName" name="companyName" />
+            <span class="error" id="error-companyName"></span>
+        </div>
+
+        <div>
+            <label>
+                <input type="checkbox" id="acceptsTerms" name="acceptsTerms" />
+                I accept the terms and conditions
+            </label>
+            <span class="error" id="error-acceptsTerms"></span>
         </div>
 
         <button type="submit">Register</button>
@@ -80,28 +109,39 @@
                 return {
                     firstName: document.getElementById('firstName').value,
                     lastName: document.getElementById('lastName').value,
+                    phoneNumber: document.getElementById('phoneNumber').value,
                     email: document.getElementById('email').value,
                     password: document.getElementById('password').value,
-                    confirmPassword: document.getElementById('confirmPassword').value
+                    confirmPassword: document.getElementById('confirmPassword').value,
+                    accountType: document.getElementById('accountType').value,
+                    companyName: document.getElementById('companyName').value,
+                    acceptsTerms: document.getElementById('acceptsTerms').checked
                 };
             }
 
             function clearErrors() {
-                document.querySelectorAll('.error').forEach(function (el) { el.textContent = ''; });
+                document.querySelectorAll('.error, .warning').forEach(function (el) { el.textContent = ''; });
                 document.querySelectorAll('.input-error').forEach(function (el) { el.classList.remove('input-error'); });
                 successDiv.style.display = 'none';
             }
 
             function showErrors(results) {
                 results.forEach(function (r) {
-                    if (r.result && r.result.type === 'error') {
+                    if (r.result && (r.result.type === 'error' || r.result.type === 'warning')) {
                         var errorSpan = document.getElementById('error-' + r.path);
                         var input = document.getElementById(r.path);
                         if (errorSpan) errorSpan.textContent = r.result.text;
-                        if (input) input.classList.add('input-error');
+                        if (input && r.result.type === 'error') input.classList.add('input-error');
                     }
                 });
             }
+
+            // Toggle CompanyName visibility based on AccountType
+            document.getElementById('accountType').addEventListener('change', function () {
+                var group = document.getElementById('companyNameGroup');
+                group.style.display = this.value === 'business' ? '' : 'none';
+            });
+            document.getElementById('companyNameGroup').style.display = 'none';
 
             form.addEventListener('submit', async function (e) {
                 e.preventDefault();

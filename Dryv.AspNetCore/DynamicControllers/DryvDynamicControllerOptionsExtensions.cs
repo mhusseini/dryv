@@ -1,7 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq.Expressions;
 using Dryv.AspNetCore.DynamicControllers.Translation;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 
 namespace Dryv.AspNetCore.DynamicControllers
@@ -13,28 +12,27 @@ namespace Dryv.AspNetCore.DynamicControllers
             options.DynamicControllerCallWriterType = typeof(T);
         }
 
-        public static void WithActionFilters(this DryvDynamicControllerOptions options, Func<DryvControllerGenerationContext, IEnumerable<Expression<Func<Attribute>>>> filters)
-        {
-            // FilterExpressionValidator.ValidateFilterExpressions(filters);
-
-            options.GetActionFilters = filters;
-        }
-
-        public static void WithControllerFilters(this DryvDynamicControllerOptions options, Func<DryvControllerGenerationContext, IEnumerable<Expression<Func<Attribute>>>> filters)
-        {
-            // FilterExpressionValidator.ValidateFilterExpressions(filters);
-
-            options.GetControllerFilters = filters;
-        }
-
-        public static void WithEndpoint(this DryvDynamicControllerOptions options, Action<DryvControllerGenerationContext, IEndpointRouteBuilder> mapper)
-        {
-            options.SetEndpoint = mapper;
-        }
-
         public static void WithRoute(this DryvDynamicControllerOptions options, Func<DryvControllerGenerationContext, string> template)
         {
             options.GetRoute = template;
+        }
+
+        /// <summary>
+        /// Configures the endpoint builder for each dynamically generated endpoint.
+        /// Use this to add metadata such as authorization policies, CORS, rate limiting, etc.
+        /// </summary>
+        public static void ConfigureEndpoint(this DryvDynamicControllerOptions options, Action<DryvControllerGenerationContext, RouteEndpointBuilder> configure)
+        {
+            options.EndpointConfiguration = configure;
+        }
+
+        /// <summary>
+        /// Wraps the request handler for each dynamically generated endpoint.
+        /// Use this to add custom request/response logic, equivalent to MVC action filters.
+        /// </summary>
+        public static void WrapHandler(this DryvDynamicControllerOptions options, Func<DryvControllerGenerationContext, RequestDelegate, RequestDelegate> wrapper)
+        {
+            options.HandlerWrapper = wrapper;
         }
     }
 }

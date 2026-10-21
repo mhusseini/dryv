@@ -13,13 +13,13 @@ namespace Dryv.Translation.Translators
         private static readonly Expression<Func<string>> DateTimeOffsetFormatExpression = () => MomentJsFormatConverter.ConvertFormat($"{CultureInfo.CurrentUICulture.DateTimeFormat.ShortDatePattern} {CultureInfo.CurrentUICulture.DateTimeFormat.LongTimePattern} zzz");
         private static readonly Expression<Func<string>> DateTimeFormatExpression = () => MomentJsFormatConverter.ConvertFormat($"{CultureInfo.CurrentUICulture.DateTimeFormat.ShortDatePattern} {CultureInfo.CurrentUICulture.DateTimeFormat.LongTimePattern}");
 
-        private readonly HashSet<Type> dateTimeTypes = new HashSet<Type>()
-        {
+        private readonly HashSet<Type> dateTimeTypes =
+        [
             typeof(DateTime),
             typeof(DateTimeOffset),
             typeof(DateTime?),
             typeof(DateTimeOffset?)
-        };
+        ];
 
         public DateTimeTranslator(DryvOptions options)
         {

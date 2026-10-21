@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<!--suppress JSUnresolvedLibraryURL -->
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dryv Demo - REST API + JSON Schema</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/water.css@2/out/water.css" />
+    <style>
+        .error { color: #e74c3c; font-size: 0.85em; display: block; margin-top: 0.25em; }
+        .success { color: #27ae60; font-weight: bold; }
+        form > div { margin-bottom: 1rem; }
+        pre { background: #1a1a2e; color: #e0e0e0; padding: 1rem; border-radius: 6px; overflow-x: auto; font-size: 0.85em; }
+        details { margin-bottom: 1.5rem; }
+        details summary { cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <h1>Dryv Demo &mdash; REST API + JSON Schema</h1>
+    <p>
+        This demo fetches a <strong>JSON Schema</strong> generated from Dryv validation rules
+        and uses <a href="https://ajv.js.org">Ajv</a> for client-side validation &mdash;
+        no DryvJS, no custom validation code.
+    </p>
+
+    <details id="schemaDetails">
+        <summary>View generated JSON Schema</summary>
+        <pre id="schemaDisplay">Loading&hellip;</pre>
+    </details>
+
+    <form id="registrationForm">
+        <div>
+            <label for="firstName">First Name</label>
+            <input type="text" id="firstName" name="firstName" />
+            <span class="error" id="error-firstName"></span>
+        </div>
+
+        <div>
+            <label for="lastName">Last Name</label>
+            <input type="text" id="lastName" name="lastName" />
+            <span class="error" id="error-lastName"></span>
+        </div>
+
+        <div>
+            <label for="email">Email</label>
+            <input type="text" id="email" name="email" />
+            <span class="error" id="error-email"></span>
+        </div>
+
+        <div>
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" />
+            <span class="error" id="error-password"></span>
+        </div>
+
+        <div>
+            <label for="age">Age</label>
+            <input type="number" id="age" name="age" />
+            <span class="error" id="error-age"></span>
+        </div>
+
+        <button type="submit">Register</button>
+    </form>
+
+    <div id="successMessage" class="success" style="display:none;"></div>
+
+    <script type="module">
+        import Ajv2020 from 'https://esm.sh/ajv/dist/2020';
+        (async function () {
+            // ── 1. Fetch JSON Schema from the server ──────────────────────
+            const response = await fetch('/api/json-schema');
+            const schema = await response.json();
+
+            document.getElementById('schemaDisplay').textContent = JSON.stringify(schema, null, 2);
+
+            // ── 2. Compile the schema with Ajv ────────────────────────────
+            const ajv = new Ajv2020({ allErrors: true });
+            const validate = ajv.compile(schema);
+
+            // ── 3. Human-readable error messages per keyword ──────────────
+            // noinspection JSUnusedGlobalSymbols
+            const messages = {
+                required: function (err) {
+                    const field = err.params.missingProperty;
+                    return capitalize(field) + ' is required.';
+                },
+                minLength: function (err) {
+                    const field = fieldName(err);
+                    return capitalize(field) + ' must be at least ' + err.params.limit + ' character(s).';
+                },
+                maxLength: function (err) {
+                    const field = fieldName(err);
+                    return capitalize(field) + ' must be at most ' + err.params.limit + ' character(s).';
+                },
+                pattern: function (err) {
+                    const field = fieldName(err);
+                    return capitalize(field) + ' has an invalid format.';
+                },
+                minimum: function (err) {
+                    const field = fieldName(err);
+                    return capitalize(field) + ' must be at least ' + err.params.limit + '.';
+                },
+                maximum: function (err) {
+                    const field = fieldName(err);
+                    return capitalize(field) + ' must be at most ' + err.params.limit + '.';
+                },
+                exclusiveMinimum: function (err) {
+                    const field = fieldName(err);
+                    return capitalize(field) + ' must be greater than ' + err.params.limit + '.';
+                },
+                exclusiveMaximum: function (err) {
+                    const field = fieldName(err);
+                    return capitalize(field) + ' must be less than ' + err.params.limit + '.';
+                }
+            };
+
+            function fieldName(err) {
+                // instancePath is like "/email" — extract the property name
+                return err.instancePath.replace(/^\//, '') || '(unknown)';
+            }
+
+            function capitalize(s) {
+                // camelCase → Title Case: "firstName" → "First name"
+                return s.charAt(0).toUpperCase() + s.slice(1).replace(/([A-Z])/g, ' $1').toLowerCase().trim();
+            }
+
+            function formatError(err) {
+                const fn = messages[err.keyword];
+                return fn ? fn(err) : err.message;
+            }
+
+            // ── 4. Form handling ──────────────────────────────────────────
+            const form = document.getElementById('registrationForm');
+            const successDiv = document.getElementById('successMessage');
+
+            function getModel() {
+                return {
+                    firstName: document.getElementById('firstName').value,
+                    lastName: document.getElementById('lastName').value,
+                    email: document.getElementById('email').value,
+                    password: document.getElementById('password').value,
+                    age: parseInt(document.getElementById('age').value, 10) || 0
+                };
+            }
+
+            function clearErrors() {
+                document.querySelectorAll('.error').forEach(function (el) { el.textContent = ''; });
+                document.querySelectorAll('.input-error').forEach(function (el) { el.classList.remove('input-error'); });
+                successDiv.style.display = 'none';
+            }
+
+            function showError(field, message) {
+                const errorSpan = document.getElementById('error-' + field);
+                const input = document.getElementById(field);
+                if (errorSpan) {
+                    // Append if there are already errors for this field
+                    if (errorSpan.textContent) errorSpan.textContent += ' ';
+                    errorSpan.textContent += message;
+                }
+                if (input) input.classList.add('input-error');
+            }
+
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                clearErrors();
+
+                const model = getModel();
+                const valid = validate(model);
+
+                if (!valid) {
+                    // Group errors by field and display
+                    validate.errors.forEach(function (err) {
+                        let field;
+                        if (err.keyword === 'required') {
+                            field = err.params.missingProperty;
+                        } else {
+                            field = err.instancePath.replace(/^\//, '');
+                        }
+                        if (field) showError(field, formatError(err));
+                    });
+                    return;
+                }
+
+                // Client validation passed — submit to server
+                const response = await fetch('/api/register', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(model)
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    successDiv.textContent = data.message;
+                    successDiv.style.display = 'block';
+                    form.style.display = 'none';
+                } else if (data.errors) {
+                    data.errors.forEach(function (err) {
+                        showError(err.path, err.text);
+                    });
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

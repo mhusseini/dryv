@@ -1,25 +1,12 @@
-﻿using System.IO;
-using System.Linq.Expressions;
-using Dryv.Rules;
-
-namespace Dryv.Translation
+﻿namespace Dryv.Translation
 {
     /// <summary>
-    /// Defines objects that are able to translate any given <see cref="Expression"/> to the client language.
+    /// Combines <see cref="IRuleTranslator"/>, <see cref="IExpressionWriter"/>,
+    /// and <see cref="IValueFormatter"/> into a single composite interface for
+    /// backward compatibility.  New consumers should depend on the narrowest
+    /// sub-interface they actually need.
     /// </summary>
-    public interface ITranslator
+    public interface ITranslator : IRuleTranslator, IExpressionWriter, IValueFormatter
     {
-        string FormatIdentifier(string name);
-
-        /// <summary>
-        /// Translates the specified expression.
-        /// </summary>
-        TranslationResult Translate(Expression expression, MemberExpression propertyExpression, DryvCompiledRule rule);
-
-        void Translate(Expression expression, TranslationContext context, bool negated = false);
-
-        string TranslateValue(object value);
-
-        bool TryWriteTerminal(Expression expression, TextWriter writer);
     }
 }

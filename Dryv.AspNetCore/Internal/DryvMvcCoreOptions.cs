@@ -1,5 +1,7 @@
 ﻿using System;
 using Dryv.Configuration;
+using Dryv.Rules;
+using Dryv.Translation;
 
 namespace Dryv.AspNetCore.Internal
 {
@@ -11,8 +13,8 @@ namespace Dryv.AspNetCore.Internal
 
         public DryvMvcCoreOptions(Action<Type> typeAdded)
         {
-            this.Translators = new RegisteringDryvServiceCollection(typeAdded);
-            this.Annotators = new RegisteringDryvServiceCollection(typeAdded);
+            this.Translators = new RegisteringDryvServiceCollection(typeAdded, typeof(IDryvMethodCallTranslator), typeof(IDryvCustomTranslator));
+            this.Annotators = new RegisteringDryvServiceCollection(typeAdded, typeof(IDryvRuleAnnotator));
         }
 
         public override DryvServiceCollection Annotators { get; }
